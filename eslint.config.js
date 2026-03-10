@@ -9,7 +9,7 @@ export default defineConfig([
   {
     ignores: ["dist/", "node_modules/", "*.js", "coverage/"]
   },
-  
+
   // JavaScript files
   {
     files: ["**/*.js"],
@@ -23,7 +23,7 @@ export default defineConfig([
     },
     extends: ["js/recommended"]
   },
-  
+
   // TypeScript files
   {
     files: ["**/*.ts"],
@@ -50,8 +50,7 @@ export default defineConfig([
       "@typescript-eslint/explicit-module-boundary-types": "off",
       "@typescript-eslint/no-explicit-any": "warn",
       "@typescript-eslint/no-non-null-assertion": "warn",
-      "@typescript-eslint/prefer-const": "error",
-      
+
       // Base ESLint rules
       "no-console": "warn",
       "prefer-const": "off"

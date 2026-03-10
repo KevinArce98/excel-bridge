@@ -1,4 +1,3 @@
-import { unzipSync, strFromU8 } from 'fflate';
 import { XMLParser } from 'fast-xml-parser';
 import { extractExcelFiles, validateExcelStructure } from '../core/zip-manager';
 
@@ -222,7 +221,7 @@ export class ExcelReader {
           metadata.modified = properties.Modified;
         }
       }
-    } catch (error) {
+    } catch {
       // Ignore metadata parsing errors
     }
 

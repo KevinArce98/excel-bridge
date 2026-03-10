@@ -48,7 +48,7 @@ export const extractExcelFiles = (buffer: Uint8Array): ExcelFiles => {
     }
 
     return files;
-  } catch (error) {
+  } catch {
     throw new Error('Invalid Excel file: Unable to extract ZIP contents');
   }
 };
