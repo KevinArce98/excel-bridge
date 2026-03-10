@@ -35,10 +35,10 @@ export interface ExcelData {
 }
 
 export class ExcelWriter {
-  private options: ExcelWriterOptions;
+  private _options: ExcelWriterOptions;
 
   constructor(options: ExcelWriterOptions = {}) {
-    this.options = {
+    this._options = {
       sheetName: 'Sheet1',
       creator: 'Excel Bridge',
       ...options,
