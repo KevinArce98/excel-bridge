@@ -1,11 +1,13 @@
 {
-  "name": "@excel-bridge/core",
+  "name": "excel-bridge",
   "version": "1.0.0",
   "description": "A lightweight, modular Excel manipulation library based on micro-packages",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts --clean",
     "dev": "tsup src/index.ts --format cjs,esm --watch --dts",
@@ -41,5 +43,18 @@
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
     }
-  }
+  },
+  "directories": {
+    "test": "tests"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/KevinArce98/excel-bridge.git"
+  },
+  "author": "Kevin Arias",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/KevinArce98/excel-bridge/issues"
+  },
+  "homepage": "https://github.com/KevinArce98/excel-bridge#readme"
 }
