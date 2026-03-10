@@ -254,45 +254,6 @@ This library follows a **micro-package architecture** for optimal tree-shaking a
 - Node.js ^20.19.0, ^22.13.0, or >=24
 - Built with SSL support (standard in official distributions)
 
-## CI/CD & Publishing
-
-This package uses GitHub Actions for automated testing and publishing to npm.
-
-### Continuous Integration
-
-Every push and pull request to `main` or `develop` branches automatically:
-- Runs tests on Node.js 20.x and 22.x
-- Validates code with ESLint
-- Checks code formatting with Prettier
-- Builds the package
-
-### Publishing to npm
-
-Releases are automated using git tags:
-
-```bash
-# 1. Create and push a version tag
-git tag v1.0.1
-git push origin v1.0.1
-
-# 2. GitHub Actions will automatically:
-#    - Update package.json version
-#    - Build the package
-#    - Publish to npm
-```
-
-**First-time setup:**
-1. Create an npm access token at [npmjs.com/settings/tokens](https://www.npmjs.com/settings/YOUR_USERNAME/tokens)
-2. Add it as `NPM_TOKEN` in your GitHub repository secrets
-3. Push a version tag to trigger the publish workflow
-
-### Version Management
-
-Follow semantic versioning (semver):
-- `v1.0.1` - Patch release (bug fixes)
-- `v1.1.0` - Minor release (new features, backward compatible)
-- `v2.0.0` - Major release (breaking changes)
-
 ## Contributing
 
 Contributions are welcome! Please ensure:
