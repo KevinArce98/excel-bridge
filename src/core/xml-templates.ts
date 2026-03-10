@@ -18,20 +18,20 @@ export const generateSheetXml = (
   styles: Record<string, CellStyle> = {}
 ) => {
   let rowsXml = '';
-  
+
   data.forEach((row, rowIndex) => {
     rowsXml += `<row r="${rowIndex + 1}">`;
     row.forEach((cellValue, colIndex) => {
       const ref = `${String.fromCharCode(65 + colIndex)}${rowIndex + 1}`;
       const styleKey = `${rowIndex}-${colIndex}`;
       const style = styles[styleKey];
-      
+
       let cellXml = `<c r="${ref}"`;
-      
+
       if (style) {
         cellXml += ` s="1"`;
       }
-      
+
       if (cellValue === null || cellValue === undefined) {
         rowsXml += cellXml + '/>';
       } else if (typeof cellValue === 'number') {
@@ -48,10 +48,13 @@ export const generateSheetXml = (
     rowsXml += `</row>`;
   });
 
-  const validationsXml = validations.length > 0 ? `
+  const validationsXml =
+    validations.length > 0
+      ? `
     <dataValidations count="${validations.length}">
       ${validations.map(v => `<dataValidation type="list" sqref="${v.range}"><formula1>"${escapeXml(v.options)}"</formula1></dataValidation>`).join('')}
-    </dataValidations>` : '';
+    </dataValidations>`
+      : '';
 
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <worksheet xmlns="${XML_NS.spreadsheetml}">
@@ -61,7 +64,7 @@ export const generateSheetXml = (
 
 export const generateSharedStringsXml = (strings: string[]) => {
   const uniqueStrings = [...new Set(strings)];
-  
+
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <sst xmlns="${XML_NS.spreadsheetml}" count="${strings.length}" uniqueCount="${uniqueStrings.length}">
   ${uniqueStrings.map(str => `<si><t>${escapeXml(str)}</t></si>`).join('')}
