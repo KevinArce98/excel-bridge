@@ -1,4 +1,4 @@
-# @excel-bridge/core
+# excel-bridge
 
 A lightweight, modular Excel manipulation library built with micro-packages and TypeScript. Designed for performance and minimal dependencies.
 
@@ -17,11 +17,11 @@ A lightweight, modular Excel manipulation library built with micro-packages and 
 ## Installation
 
 ```bash
-npm install @excel-bridge/core
+npm install excel-bridge
 # or
-yarn add @excel-bridge/core
+yarn add excel-bridge
 # or
-pnpm add @excel-bridge/core
+pnpm add excel-bridge
 ```
 
 ## Quick Start
@@ -29,7 +29,7 @@ pnpm add @excel-bridge/core
 ### Reading Excel Files
 
 ```typescript
-import { ExcelBridge } from '@excel-bridge/core';
+import { ExcelBridge } from 'excel-bridge';
 
 // From File (Browser)
 const file = document.querySelector('input[type="file"]').files[0];
@@ -46,7 +46,7 @@ console.log(workbook.sheets[0].data);
 ### Writing Excel Files
 
 ```typescript
-import { ExcelBridge } from '@excel-bridge/core';
+import { ExcelBridge } from 'excel-bridge';
 
 const data = [
   ['Name', 'Age', 'City'],
@@ -69,7 +69,7 @@ fs.writeFileSync('output.xlsx', buffer);
 ### Custom Styling
 
 ```typescript
-import { ExcelWriter } from '@excel-bridge/core';
+import { ExcelWriter } from 'excel-bridge';
 
 const writer = new ExcelWriter({ sheetName: 'Report' });
 
@@ -91,7 +91,7 @@ const blob = writer.createWorkbook(styledData);
 ### Data Validation
 
 ```typescript
-import { ExcelWriter } from '@excel-bridge/core';
+import { ExcelWriter } from 'excel-bridge';
 
 const writer = new ExcelWriter();
 
@@ -114,7 +114,7 @@ const blob = writer.createWorkbook(validatedData);
 ### Working with Coordinates
 
 ```typescript
-import { coordinateToIndex, indexToCoordinate } from '@excel-bridge/core';
+import { coordinateToIndex, indexToCoordinate } from 'excel-bridge';
 
 // Convert "A1" to indices
 const { row, col } = coordinateToIndex('A1'); // { row: 0, col: 0 }
