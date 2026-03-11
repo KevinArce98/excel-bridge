@@ -4,7 +4,13 @@ export type { ParsedCell, ParsedSheet, ParsedWorkbook } from './reader';
 
 // Writer exports
 export { ExcelWriter, createExcelFile, createExcelFileBuffer } from './writer';
-export type { ExcelWriterOptions, ExcelData, CellValidation, CellStyle } from './writer';
+export type {
+  ExcelWriterOptions,
+  ExcelData,
+  CellValidation,
+  CellStyle,
+  SheetOptions,
+} from './writer';
 
 // Core utilities
 export {
@@ -24,7 +30,28 @@ export {
   generateWorkbookXml,
   generateWorkbookRelsXml,
   generateRootRelsXml,
+  generateCorePropsXml,
+  generateAppPropsXml,
 } from './core/xml-templates';
+export type { SheetGenerationOptions } from './core/xml-templates';
+
+// Style management
+export { StyleManager } from './core/style-manager';
+export type { ExcelStyle, Font, Fill, Border } from './core/style-manager';
+
+// Date utilities
+export {
+  dateToExcelSerial,
+  excelSerialToDate,
+  isDate,
+  EXCEL_LIMITS,
+  validateRowIndex,
+  validateColIndex,
+  validateCellValue,
+} from './core/date-utils';
+
+// Column width utilities
+export { calculateColumnWidths, generateColsXml } from './core/column-width';
 
 // Utility functions
 export const coordinateToIndex = (coordinate: string): { row: number; col: number } => {

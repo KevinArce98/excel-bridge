@@ -2,11 +2,10 @@ import { createExcelBlob, createExcelBuffer, ExcelFiles } from '../core/zip-mana
 import {
   generateSheetXml,
   generateStylesXml,
-  generateContentTypesXml,
-  generateWorkbookXml,
   generateWorkbookRelsXml,
-  generateRootRelsXml,
+  SheetGenerationOptions,
 } from '../core/xml-templates';
+import { StyleManager } from '../core/style-manager';
 
 export interface CellValidation {
   range: string;
@@ -20,8 +19,13 @@ export interface CellStyle {
   color?: string;
 }
 
+export interface SheetOptions {
+  name?: string;
+  freezePane?: { row?: number; col?: number };
+  autoWidth?: boolean;
+}
+
 export interface ExcelWriterOptions {
-  sheetName?: string;
   creator?: string;
   title?: string;
   subject?: string;
@@ -31,6 +35,8 @@ export interface ExcelData {
   data: any[][];
   validations?: CellValidation[];
   styles?: Record<string, CellStyle>;
+  mergeCells?: string[];
+  options?: SheetOptions;
 }
 
 export class ExcelWriter {
@@ -38,7 +44,6 @@ export class ExcelWriter {
 
   constructor(options: ExcelWriterOptions = {}) {
     this._options = {
-      sheetName: 'Sheet1',
       creator: 'Excel Bridge',
       ...options,
     };
@@ -55,39 +60,72 @@ export class ExcelWriter {
   }
 
   private generateFiles(data: ExcelData[]): ExcelFiles {
-    // CRITICAL: Force hasSharedStrings to false
-    // We use inlineStr in cells, so we must NOT declare sharedStrings.xml
-    // Having sharedStrings.xml declared but using inlineStr causes Excel to reject the file
     const hasSharedStrings = false;
+    const sheetCount = data.length;
 
-    // CRITICAL: Order matters for Excel compatibility, especially on Mac
-    // [Content_Types].xml MUST be first in the ZIP index
+    // Create a single StyleManager for all sheets
+    const styleManager = new StyleManager();
+
+    // Pre-process all styles to populate StyleManager
+    data.forEach(sheetData => {
+      if (sheetData.styles) {
+        Object.values(sheetData.styles).forEach(style => {
+          styleManager.getStyleId(style);
+        });
+      }
+    });
+
+    // Extract sheet names
+    const sheetNames = data.map((sheet, index) => sheet.options?.name || `Sheet${index + 1}`);
+
+    // SAFE FUNCTIONAL VERSION - NO DOCPROPS
     const files: ExcelFiles = {};
 
-    // 1. Content Types - MUST BE FIRST
-    files['[Content_Types].xml'] = generateContentTypesXml(hasSharedStrings);
+    // 1. [Content_Types].xml - MUST BE FIRST
+    files['[Content_Types].xml'] = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
+${Array.from({ length: sheetCount }, (_, i) => `  <Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('\n')}
+  <Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
+</Types>`;
 
-    // 2. Root relationships
-    files['_rels/.rels'] = generateRootRelsXml();
+    // 2. _rels/.rels
+    files['_rels/.rels'] = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
+</Relationships>`;
 
-    // 3. Workbook relationships
-    files['xl/_rels/workbook.xml.rels'] = generateWorkbookRelsXml(hasSharedStrings);
+    // 3. xl/_rels/workbook.xml.rels
+    files['xl/_rels/workbook.xml.rels'] = generateWorkbookRelsXml(sheetCount, hasSharedStrings);
 
-    // 4. Workbook
-    files['xl/workbook.xml'] = generateWorkbookXml();
+    // 4. xl/workbook.xml - SIMPLE VERSION
+    files['xl/workbook.xml'] = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <sheets>
+${sheetNames.map((name, index) => `    <sheet name="${name}" sheetId="${index + 1}" r:id="rId${index + 1}"/>`).join('\n')}
+  </sheets>
+</workbook>`;
 
-    // 5. Styles
-    files['xl/styles.xml'] = generateStylesXml();
+    // 5. xl/styles.xml
+    files['xl/styles.xml'] = generateStylesXml(styleManager);
 
-    // 6. NO Shared strings - we use inlineStr instead
-
-    // 7. Worksheets
+    // 6. xl/worksheets/sheet*.xml
     data.forEach((sheetData, index) => {
       const sheetIndex = index + 1;
+      const sheetOptions: SheetGenerationOptions = {
+        freezePane: sheetData.options?.freezePane,
+        autoWidth: sheetData.options?.autoWidth,
+        mergeCells: sheetData.mergeCells,
+      };
+
       files[`xl/worksheets/sheet${sheetIndex}.xml`] = generateSheetXml(
         sheetData.data,
         sheetData.validations || [],
-        sheetData.styles || {}
+        sheetData.styles || {},
+        styleManager,
+        sheetOptions
       );
     });
 
