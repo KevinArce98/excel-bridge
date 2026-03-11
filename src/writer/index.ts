@@ -1,7 +1,6 @@
 import { createExcelBlob, createExcelBuffer, ExcelFiles } from '../core/zip-manager';
 import {
   generateSheetXml,
-  generateSharedStringsXml,
   generateStylesXml,
   generateContentTypesXml,
   generateWorkbookXml,
@@ -56,28 +55,33 @@ export class ExcelWriter {
   }
 
   private generateFiles(data: ExcelData[]): ExcelFiles {
+    // CRITICAL: Force hasSharedStrings to false
+    // We use inlineStr in cells, so we must NOT declare sharedStrings.xml
+    // Having sharedStrings.xml declared but using inlineStr causes Excel to reject the file
+    const hasSharedStrings = false;
+
+    // CRITICAL: Order matters for Excel compatibility, especially on Mac
+    // [Content_Types].xml MUST be first in the ZIP index
     const files: ExcelFiles = {};
 
-    // Content Types
-    files['[Content_Types].xml'] = generateContentTypesXml();
+    // 1. Content Types - MUST BE FIRST
+    files['[Content_Types].xml'] = generateContentTypesXml(hasSharedStrings);
 
-    // Root relationships
+    // 2. Root relationships
     files['_rels/.rels'] = generateRootRelsXml();
 
-    // Workbook
-    files['xl/workbook.xml'] = generateWorkbookXml();
-    files['xl/_rels/workbook.xml.rels'] = generateWorkbookRelsXml();
+    // 3. Workbook relationships
+    files['xl/_rels/workbook.xml.rels'] = generateWorkbookRelsXml(hasSharedStrings);
 
-    // Styles (shared across all sheets)
+    // 4. Workbook
+    files['xl/workbook.xml'] = generateWorkbookXml();
+
+    // 5. Styles
     files['xl/styles.xml'] = generateStylesXml();
 
-    // Generate shared strings from all data
-    const allStrings = this.extractAllStrings(data);
-    if (allStrings.length > 0) {
-      files['xl/sharedStrings.xml'] = generateSharedStringsXml(allStrings);
-    }
+    // 6. NO Shared strings - we use inlineStr instead
 
-    // Generate worksheets
+    // 7. Worksheets
     data.forEach((sheetData, index) => {
       const sheetIndex = index + 1;
       files[`xl/worksheets/sheet${sheetIndex}.xml`] = generateSheetXml(

@@ -1,4 +1,4 @@
-import { XML_NS, CELL_TYPES } from './constants';
+import { XML_NS } from './constants';
 
 export interface CellValidation {
   range: string;
@@ -12,6 +12,19 @@ export interface CellStyle {
   color?: string;
 }
 
+const indexToColumnLetter = (index: number): string => {
+  let letter = '';
+  let num = index + 1;
+
+  while (num > 0) {
+    const remainder = (num - 1) % 26;
+    letter = String.fromCharCode(65 + remainder) + letter;
+    num = Math.floor((num - 1) / 26);
+  }
+
+  return letter;
+};
+
 export const generateSheetXml = (
   data: any[][],
   validations: CellValidation[] = [],
@@ -20,9 +33,9 @@ export const generateSheetXml = (
   let rowsXml = '';
 
   data.forEach((row, rowIndex) => {
-    rowsXml += `<row r="${rowIndex + 1}">`;
+    rowsXml += `\n    <row r="${rowIndex + 1}">`;
     row.forEach((cellValue, colIndex) => {
-      const ref = `${String.fromCharCode(65 + colIndex)}${rowIndex + 1}`;
+      const ref = `${indexToColumnLetter(colIndex)}${rowIndex + 1}`;
       const styleKey = `${rowIndex}-${colIndex}`;
       const style = styles[styleKey];
 
@@ -35,30 +48,39 @@ export const generateSheetXml = (
       if (cellValue === null || cellValue === undefined) {
         rowsXml += cellXml + '/>';
       } else if (typeof cellValue === 'number') {
-        cellXml += ` t="${CELL_TYPES.NUMBER}"><v>${cellValue}</v></c>`;
+        // No type attribute for numbers - Excel assumes numeric by default
+        cellXml += `><v>${cellValue}</v></c>`;
         rowsXml += cellXml;
       } else if (typeof cellValue === 'boolean') {
-        cellXml += ` t="${CELL_TYPES.BOOLEAN}"><v>${cellValue ? 1 : 0}</v></c>`;
+        cellXml += ` t="b"><v>${cellValue ? 1 : 0}</v></c>`;
         rowsXml += cellXml;
       } else {
-        cellXml += ` t="${CELL_TYPES.INLINE_STRING}"><is><t>${escapeXml(cellValue.toString())}</t></is></c>`;
+        cellXml += ` t="inlineStr"><is><t>${escapeXml(cellValue.toString())}</t></is></c>`;
         rowsXml += cellXml;
       }
     });
     rowsXml += `</row>`;
   });
 
-  const validationsXml =
-    validations.length > 0
-      ? `
-    <dataValidations count="${validations.length}">
-      ${validations.map(v => `<dataValidation type="list" sqref="${v.range}"><formula1>"${escapeXml(v.options)}"</formula1></dataValidation>`).join('')}
-    </dataValidations>`
-      : '';
+  // Build validations XML (MUST come after sheetData)
+  let validationsXml = '';
+  if (validations.length > 0) {
+    validationsXml = `
+  <dataValidations count="${validations.length}">`;
+    validations.forEach(v => {
+      validationsXml += `
+    <dataValidation type="list" allowBlank="1" showInputMessage="1" showErrorMessage="1" sqref="${v.range}">
+      <formula1>"${escapeXml(v.options)}"</formula1>
+    </dataValidation>`;
+    });
+    validationsXml += `
+  </dataValidations>`;
+  }
 
-  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+  return `<?xml version="1.0"?>
 <worksheet xmlns="${XML_NS.spreadsheetml}">
-  <sheetData>${rowsXml}</sheetData>${validationsXml}
+  <sheetData>${rowsXml}
+  </sheetData>${validationsXml}
 </worksheet>`;
 };
 
@@ -72,67 +94,65 @@ export const generateSharedStringsXml = (strings: string[]) => {
 };
 
 export const generateStylesXml = () => {
-  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+  return `<?xml version="1.0"?>
 <styleSheet xmlns="${XML_NS.spreadsheetml}">
+  <fonts count="1">
+    <font>
+      <sz val="11"/>
+      <name val="Calibri"/>
+    </font>
+  </fonts>
   <fills count="2">
-    <fill>
-      <patternFill patternType="none"/>
-    </fill>
-    <fill>
-      <patternFill patternType="solid">
-        <fgColor rgb="FFFFE0B0"/>
-      </patternFill>
-    </fill>
+    <fill><patternFill patternType="none"/></fill>
+    <fill><patternFill patternType="gray125"/></fill>
   </fills>
   <borders count="1">
-    <border>
-      <left/>
-      <right/>
-      <top/>
-      <bottom/>
-      <diagonal/>
-    </border>
+    <border><left/><right/><top/><bottom/><diagonal/></border>
   </borders>
-  <cellXfs count="2">
+  <cellStyleXfs count="1">
+    <xf numFmtId="0" fontId="0" fillId="0" borderId="0"/>
+  </cellStyleXfs>
+  <cellXfs count="1">
     <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
-    <xf numFmtId="0" fontId="0" fillId="1" borderId="0" xfId="0" applyFill="1"/>
   </cellXfs>
 </styleSheet>`;
 };
 
-export const generateContentTypesXml = () => {
-  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+export const generateContentTypesXml = (hasSharedStrings: boolean = true) => {
+  const sharedStringsOverride = hasSharedStrings
+    ? '\n  <Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/>'
+    : '';
+
+  return `<?xml version="1.0"?>
 <Types xmlns="${XML_NS.content_types}">
   <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
   <Default Extension="xml" ContentType="application/xml"/>
   <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
-  <Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
-  <Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/>
+  <Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>${sharedStringsOverride}
   <Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
 </Types>`;
 };
 
 export const generateWorkbookXml = () => {
-  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<workbook xmlns="${XML_NS.spreadsheetml}">
+  return `<?xml version="1.0"?>
+<workbook xmlns="${XML_NS.spreadsheetml}" xmlns:r="${XML_NS.relationships}">
   <sheets>
-    <sheet name="Sheet1" sheetId="1" r:id="rId1" xmlns:r="${XML_NS.relationships}"/>
+    <sheet name="Sheet1" sheetId="1" r:id="rId1"/>
   </sheets>
 </workbook>`;
 };
 
-export const generateWorkbookRelsXml = () => {
-  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="${XML_NS.relationships}">
+export const generateWorkbookRelsXml = (hasSharedStrings: boolean = false) => {
+  return `<?xml version="1.0"?>
+<Relationships xmlns="${XML_NS.main_rel}">
   <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>
-  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/>
-  <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>${hasSharedStrings ? '\n  <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/>' : ''}
 </Relationships>`;
 };
 
 export const generateRootRelsXml = () => {
-  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="${XML_NS.relationships}">
+  return `<?xml version="1.0"?>
+<Relationships xmlns="${XML_NS.main_rel}">
   <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
 </Relationships>`;
 };

@@ -7,11 +7,15 @@ export interface ExcelFiles {
 export const createExcelBlob = (files: ExcelFiles): Blob => {
   const zipConfig: Record<string, Uint8Array> = {};
 
+  // Preserve insertion order by using Object.entries (ES2015+ guarantees order)
   for (const [path, content] of Object.entries(files)) {
-    zipConfig[path] = strToU8(content);
+    // Clean path: remove leading slash if present (Excel expects relative paths)
+    const cleanPath = path.startsWith('/') ? path.slice(1) : path;
+    zipConfig[cleanPath] = strToU8(content);
   }
 
-  const zipped = zipSync(zipConfig);
+  const zipped = zipSync(zipConfig, { level: 6 });
+  // Force clean Uint8Array to avoid any Buffer/ArrayBuffer confusion
   const zippedArray = new Uint8Array(zipped);
 
   // Check if Blob is available (browser environment)
@@ -31,11 +35,18 @@ export const createExcelBlob = (files: ExcelFiles): Blob => {
 export const createExcelBuffer = (files: ExcelFiles): Uint8Array => {
   const zipConfig: Record<string, Uint8Array> = {};
 
+  // Preserve insertion order by using Object.entries (ES2015+ guarantees order)
   for (const [path, content] of Object.entries(files)) {
-    zipConfig[path] = strToU8(content);
+    // Clean path: remove leading slash if present (Excel expects relative paths)
+    const cleanPath = path.startsWith('/') ? path.slice(1) : path;
+    zipConfig[cleanPath] = strToU8(content);
   }
 
-  return zipSync(zipConfig);
+  // zipSync returns Uint8Array - ensure we return it directly without any wrapper
+  const result = zipSync(zipConfig, { level: 6 });
+
+  // Force clean Uint8Array to avoid any Buffer/ArrayBuffer confusion
+  return new Uint8Array(result);
 };
 
 export const extractExcelFiles = (buffer: Uint8Array): ExcelFiles => {

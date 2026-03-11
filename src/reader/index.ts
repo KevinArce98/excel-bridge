@@ -56,6 +56,8 @@ export class ExcelReader {
       const workbookXml = files['xl/workbook.xml'];
       const workbook = this.parser.parse(workbookXml);
 
+      const sharedStrings = this.parseSharedStrings(files);
+
       const sheets: ParsedSheet[] = [];
       const sheetElements = workbook.workbook?.sheets?.sheet || [];
 
@@ -65,7 +67,7 @@ export class ExcelReader {
           const sheetPath = `xl/worksheets/sheet${sheetElement.sheetId || 1}.xml`;
 
           if (files[sheetPath]) {
-            const sheetData = this.parseSheet(files[sheetPath]);
+            const sheetData = this.parseSheet(files[sheetPath], sharedStrings);
             sheets.push({
               name: sheetName,
               ...sheetData,
@@ -74,7 +76,7 @@ export class ExcelReader {
         }
       } else if (sheetElements) {
         const sheetName = sheetElements.name || 'Sheet1';
-        const sheetData = this.parseSheet(files['xl/worksheets/sheet1.xml']);
+        const sheetData = this.parseSheet(files['xl/worksheets/sheet1.xml'], sharedStrings);
         sheets.push({
           name: sheetName,
           ...sheetData,
@@ -92,7 +94,33 @@ export class ExcelReader {
     }
   }
 
-  private parseSheet(sheetXml: string): Omit<ParsedSheet, 'name'> {
+  private parseSharedStrings(files: Record<string, string>): string[] {
+    const sharedStringsXml = files['xl/sharedStrings.xml'];
+    if (!sharedStringsXml) {
+      return [];
+    }
+
+    try {
+      const parsed = this.parser.parse(sharedStringsXml);
+      const sst = parsed.sst;
+
+      if (!sst || !sst.si) {
+        return [];
+      }
+
+      const items = Array.isArray(sst.si) ? sst.si : [sst.si];
+      return items.map((item: any) => {
+        if (item.t) {
+          return item.t['#text'] || item.t || '';
+        }
+        return '';
+      });
+    } catch {
+      return [];
+    }
+  }
+
+  private parseSheet(sheetXml: string, sharedStrings: string[]): Omit<ParsedSheet, 'name'> {
     const parsed = this.parser.parse(sheetXml);
     const worksheet = parsed.worksheet;
 
@@ -124,11 +152,11 @@ export class ExcelReader {
 
         if (Array.isArray(cells)) {
           for (const cell of cells) {
-            const cellData = this.parseCell(cell, rowIndex);
+            const cellData = this.parseCell(cell, rowIndex, sharedStrings);
             rowData.push(cellData);
           }
         } else if (cells) {
-          const cellData = this.parseCell(cells, rowIndex);
+          const cellData = this.parseCell(cells, rowIndex, sharedStrings);
           rowData.push(cellData);
         }
 
@@ -141,11 +169,11 @@ export class ExcelReader {
 
       if (Array.isArray(cells)) {
         for (const cell of cells) {
-          const cellData = this.parseCell(cell, rowIndex);
+          const cellData = this.parseCell(cell, rowIndex, sharedStrings);
           rowData.push(cellData);
         }
       } else if (cells) {
-        const cellData = this.parseCell(cells, rowIndex);
+        const cellData = this.parseCell(cells, rowIndex, sharedStrings);
         rowData.push(cellData);
       }
 
@@ -158,7 +186,7 @@ export class ExcelReader {
     };
   }
 
-  private parseCell(cell: any, rowIndex: number): ParsedCell {
+  private parseCell(cell: any, rowIndex: number, sharedStrings: string[]): ParsedCell {
     const coordinate = cell.r;
     const columnIndex = this.columnLetterToIndex(coordinate.replace(/\d+/, ''));
 
@@ -168,21 +196,22 @@ export class ExcelReader {
     if (cell.v !== undefined) {
       value = cell.v;
 
-      if (cell.t === 'n') {
-        value = parseFloat(value);
-        type = 'number';
-      } else if (cell.t === 'b') {
+      if (cell.t === 'b') {
         value = value === '1' || value === 1 || value === true;
         type = 'boolean';
       } else if (cell.t === 'inlineStr') {
         value = cell.is?.t?.['#text'] || cell.is?.t || '';
         type = 'string';
       } else if (cell.t === 's') {
-        value = cell.v;
+        const stringIndex = parseInt(cell.v);
+        value = sharedStrings[stringIndex] || '';
         type = 'string';
-      } else {
+      } else if (cell.t === 'str') {
         value = value.toString();
         type = 'string';
+      } else {
+        value = parseFloat(value);
+        type = 'number';
       }
     } else if (cell.is?.t) {
       value = cell.is.t['#text'] || cell.is.t || '';
