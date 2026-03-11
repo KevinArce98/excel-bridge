@@ -227,7 +227,10 @@ ${styleManager.generateCellXfsXml()}
 </styleSheet>`;
 };
 
-export const generateContentTypesXml = (sheetCount: number = 1, hasSharedStrings: boolean = false) => {
+export const generateContentTypesXml = (
+  sheetCount: number = 1,
+  hasSharedStrings: boolean = false
+) => {
   const sharedStringsOverride = hasSharedStrings
     ? '\n  <Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/>'
     : '';
