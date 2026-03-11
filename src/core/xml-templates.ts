@@ -141,11 +141,18 @@ export const generateSheetXml = (
     <sheetView workbookViewId="0">`;
 
     if (row > 0 || col > 0) {
+      let activePane = 'bottomRight';
+      if (row > 0 && col === 0) {
+        activePane = 'bottomLeft';
+      } else if (col > 0 && row === 0) {
+        activePane = 'topRight';
+      }
+
       sheetViewsXml += `
       <pane`;
       if (col > 0) sheetViewsXml += ` xSplit="${col}"`;
       if (row > 0) sheetViewsXml += ` ySplit="${row}"`;
-      sheetViewsXml += ` topLeftCell="${topLeftCell}" activePane="bottomRight" state="frozen"/>`;
+      sheetViewsXml += ` topLeftCell="${topLeftCell}" activePane="${activePane}" state="frozen"/>`;
     }
 
     sheetViewsXml += `
@@ -203,6 +210,11 @@ export const generateStylesXml = (styleManager?: StyleManager) => {
   <cellXfs count="1">
     <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
   </cellXfs>
+  <cellStyles count="1">
+    <cellStyle name="Normal" xfId="0" builtinId="0"/>
+  </cellStyles>
+  <dxfs count="0"/>
+  <tableStyles count="0" defaultTableStyle="TableStyleMedium2" defaultPivotStyle="PivotStyleLight16"/>
 </styleSheet>`;
   }
 
@@ -224,6 +236,11 @@ ${styleManager.generateBordersXml()}
   <cellXfs count="${styleManager.getCellXfsCount()}">
 ${styleManager.generateCellXfsXml()}
   </cellXfs>
+  <cellStyles count="1">
+    <cellStyle name="Normal" xfId="0" builtinId="0"/>
+  </cellStyles>
+  <dxfs count="0"/>
+  <tableStyles count="0" defaultTableStyle="TableStyleMedium2" defaultPivotStyle="PivotStyleLight16"/>
 </styleSheet>`;
 };
 

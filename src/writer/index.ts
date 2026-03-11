@@ -6,6 +6,7 @@ import {
   SheetGenerationOptions,
 } from '../core/xml-templates';
 import { StyleManager } from '../core/style-manager';
+import { isDate } from '../core/date-utils';
 
 export interface CellValidation {
   range: string;
@@ -75,8 +76,39 @@ export class ExcelWriter {
       }
     });
 
+    // Ensure date style is registered before generating styles.xml
+    const containsDates = data.some(sheetData =>
+      sheetData.data.some(row => row.some(cell => isDate(cell)))
+    );
+
+    if (containsDates) {
+      styleManager.getDateStyleId();
+    }
+
     // Extract sheet names
     const sheetNames = data.map((sheet, index) => sheet.options?.name || `Sheet${index + 1}`);
+
+    // Generate worksheet XML first to capture style usage
+    const worksheetEntries: Array<{ path: string; xml: string }> = [];
+
+    data.forEach((sheetData, index) => {
+      const sheetIndex = index + 1;
+      const sheetOptions: SheetGenerationOptions = {
+        freezePane: sheetData.options?.freezePane,
+        autoWidth: sheetData.options?.autoWidth,
+        mergeCells: sheetData.mergeCells,
+      };
+
+      const sheetXml = generateSheetXml(
+        sheetData.data,
+        sheetData.validations || [],
+        sheetData.styles || {},
+        styleManager,
+        sheetOptions
+      );
+
+      worksheetEntries.push({ path: `xl/worksheets/sheet${sheetIndex}.xml`, xml: sheetXml });
+    });
 
     // SAFE FUNCTIONAL VERSION - NO DOCPROPS
     const files: ExcelFiles = {};
@@ -108,25 +140,12 @@ ${sheetNames.map((name, index) => `    <sheet name="${name}" sheetId="${index + 
   </sheets>
 </workbook>`;
 
-    // 5. xl/styles.xml
+    // 5. xl/styles.xml (after worksheets so StyleManager has all styles)
     files['xl/styles.xml'] = generateStylesXml(styleManager);
 
     // 6. xl/worksheets/sheet*.xml
-    data.forEach((sheetData, index) => {
-      const sheetIndex = index + 1;
-      const sheetOptions: SheetGenerationOptions = {
-        freezePane: sheetData.options?.freezePane,
-        autoWidth: sheetData.options?.autoWidth,
-        mergeCells: sheetData.mergeCells,
-      };
-
-      files[`xl/worksheets/sheet${sheetIndex}.xml`] = generateSheetXml(
-        sheetData.data,
-        sheetData.validations || [],
-        sheetData.styles || {},
-        styleManager,
-        sheetOptions
-      );
+    worksheetEntries.forEach(entry => {
+      files[entry.path] = entry.xml;
     });
 
     return files;
