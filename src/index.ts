@@ -9,6 +9,7 @@ export type {
   ExcelData,
   CellValidation,
   CellStyle,
+  CellValue,
   SheetOptions,
 } from './writer';
 
@@ -37,13 +38,15 @@ export type { SheetGenerationOptions } from './core/xml-templates';
 
 // Style management
 export { StyleManager } from './core/style-manager';
-export type { ExcelStyle, Font, Fill, Border } from './core/style-manager';
+export type { ExcelStyle, Font, Fill, Border, CellAlignment } from './core/style-manager';
 
 // Date utilities
 export {
   dateToExcelSerial,
   excelSerialToDate,
   isDate,
+  isDateNumFmtId,
+  isDateFormatCode,
   EXCEL_LIMITS,
   validateRowIndex,
   validateColIndex,

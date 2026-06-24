@@ -2,23 +2,18 @@ import { createExcelBlob, createExcelBuffer, ExcelFiles } from '../core/zip-mana
 import {
   generateSheetXml,
   generateStylesXml,
+  generateSharedStringsXml,
   generateWorkbookRelsXml,
   SheetGenerationOptions,
 } from '../core/xml-templates';
 import { StyleManager } from '../core/style-manager';
 import { isDate } from '../core/date-utils';
+import { CellValue, CellValidation, CellStyle } from '../core/types';
 
-export interface CellValidation {
-  range: string;
-  options: string;
-}
+export type { CellValue, CellValidation, CellStyle } from '../core/types';
 
-export interface CellStyle {
-  background?: string;
-  border?: boolean;
-  bold?: boolean;
-  color?: string;
-}
+const escapeXmlAttr = (text: string): string =>
+  text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 export interface SheetOptions {
   name?: string;
@@ -30,10 +25,12 @@ export interface ExcelWriterOptions {
   creator?: string;
   title?: string;
   subject?: string;
+  /** Write strings to a shared-strings table instead of inline (smaller files with repeated text). */
+  sharedStrings?: boolean;
 }
 
 export interface ExcelData {
-  data: any[][];
+  data: CellValue[][];
   validations?: CellValidation[];
   styles?: Record<string, CellStyle>;
   mergeCells?: string[];
@@ -61,8 +58,11 @@ export class ExcelWriter {
   }
 
   private generateFiles(data: ExcelData[]): ExcelFiles {
-    const hasSharedStrings = false;
     const sheetCount = data.length;
+
+    // Optionally build a shared-strings table.
+    const shared = this._options.sharedStrings ? this.buildSharedStrings(data) : null;
+    const hasSharedStrings = !!shared && shared.list.length > 0;
 
     // Create a single StyleManager for all sheets
     const styleManager = new StyleManager();
@@ -97,6 +97,7 @@ export class ExcelWriter {
         freezePane: sheetData.options?.freezePane,
         autoWidth: sheetData.options?.autoWidth,
         mergeCells: sheetData.mergeCells,
+        sharedStrings: hasSharedStrings ? shared!.map : undefined,
       };
 
       const sheetXml = generateSheetXml(
@@ -114,13 +115,17 @@ export class ExcelWriter {
     const files: ExcelFiles = {};
 
     // 1. [Content_Types].xml - MUST BE FIRST
+    const sharedStringsOverride = hasSharedStrings
+      ? '\n  <Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/>'
+      : '';
+
     files['[Content_Types].xml'] = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
   <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
   <Default Extension="xml" ContentType="application/xml"/>
   <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
 ${Array.from({ length: sheetCount }, (_, i) => `  <Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('\n')}
-  <Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
+  <Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>${sharedStringsOverride}
 </Types>`;
 
     // 2. _rels/.rels
@@ -136,8 +141,9 @@ ${Array.from({ length: sheetCount }, (_, i) => `  <Override PartName="/xl/worksh
     files['xl/workbook.xml'] = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
   <sheets>
-${sheetNames.map((name, index) => `    <sheet name="${name}" sheetId="${index + 1}" r:id="rId${index + 1}"/>`).join('\n')}
+${sheetNames.map((name, index) => `    <sheet name="${escapeXmlAttr(name)}" sheetId="${index + 1}" r:id="rId${index + 1}"/>`).join('\n')}
   </sheets>
+  <calcPr calcId="0" fullCalcOnLoad="1"/>
 </workbook>`;
 
     // 5. xl/styles.xml (after worksheets so StyleManager has all styles)
@@ -148,32 +154,31 @@ ${sheetNames.map((name, index) => `    <sheet name="${name}" sheetId="${index + 
       files[entry.path] = entry.xml;
     });
 
+    // 7. xl/sharedStrings.xml (only when enabled)
+    if (hasSharedStrings) {
+      files['xl/sharedStrings.xml'] = generateSharedStringsXml(shared!.list);
+    }
+
     return files;
   }
 
-  private extractAllStrings(data: ExcelData[]): string[] {
-    const strings: string[] = [];
+  private buildSharedStrings(data: ExcelData[]): { map: Map<string, number>; list: string[] } {
+    const map = new Map<string, number>();
+    const list: string[] = [];
 
     data.forEach(sheetData => {
       sheetData.data.forEach(row => {
         row.forEach(cell => {
-          if (typeof cell === 'string') {
-            strings.push(cell);
-          } else if (cell !== null && cell !== undefined && typeof cell.toString === 'function') {
-            const str = cell.toString();
-            if (str && str !== '' && !isNaN(Date.parse(str))) {
-              // Don't treat date strings as shared strings for now
-              return;
-            }
-            if (str && str !== '') {
-              strings.push(str);
-            }
+          // Only plain strings are shared; formulas (=...) and dates are handled separately.
+          if (typeof cell === 'string' && !cell.startsWith('=') && !map.has(cell)) {
+            map.set(cell, list.length);
+            list.push(cell);
           }
         });
       });
     });
 
-    return strings;
+    return { map, list };
   }
 
   addValidation(data: ExcelData[], range: string, options: string): ExcelData[] {
@@ -204,21 +209,24 @@ ${sheetNames.map((name, index) => `    <sheet name="${name}" sheetId="${index + 
     return newData;
   }
 
-  static createSimple(data: any[][], options?: ExcelWriterOptions): Blob {
+  static createSimple(data: CellValue[][], options?: ExcelWriterOptions): Blob {
     const writer = new ExcelWriter(options);
     return writer.createWorkbook([{ data }]);
   }
 
-  static createSimpleBuffer(data: any[][], options?: ExcelWriterOptions): Uint8Array {
+  static createSimpleBuffer(data: CellValue[][], options?: ExcelWriterOptions): Uint8Array {
     const writer = new ExcelWriter(options);
     return writer.createWorkbookBuffer([{ data }]);
   }
 }
 
-export const createExcelFile = (data: any[][], options?: ExcelWriterOptions): Blob => {
+export const createExcelFile = (data: CellValue[][], options?: ExcelWriterOptions): Blob => {
   return ExcelWriter.createSimple(data, options);
 };
 
-export const createExcelFileBuffer = (data: any[][], options?: ExcelWriterOptions): Uint8Array => {
+export const createExcelFileBuffer = (
+  data: CellValue[][],
+  options?: ExcelWriterOptions
+): Uint8Array => {
   return ExcelWriter.createSimpleBuffer(data, options);
 };

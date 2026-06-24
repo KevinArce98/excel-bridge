@@ -8,18 +8,9 @@ import {
   validateCellValue,
 } from './date-utils';
 import { calculateColumnWidths, generateColsXml } from './column-width';
+import { CellValue, CellValidation, CellStyle } from './types';
 
-export interface CellValidation {
-  range: string;
-  options: string;
-}
-
-export interface CellStyle {
-  background?: string;
-  border?: boolean;
-  bold?: boolean;
-  color?: string;
-}
+export type { CellValidation, CellStyle } from './types';
 
 const indexToColumnLetter = (index: number): string => {
   let letter = '';
@@ -38,10 +29,12 @@ export interface SheetGenerationOptions {
   freezePane?: { row?: number; col?: number };
   autoWidth?: boolean;
   mergeCells?: string[];
+  /** When provided, strings are written as shared-string references instead of inline. */
+  sharedStrings?: Map<string, number>;
 }
 
 export const generateSheetXml = (
-  data: any[][],
+  data: CellValue[][],
   validations: CellValidation[] = [],
   styles: Record<string, CellStyle> = {},
   styleManager?: StyleManager,
@@ -76,7 +69,8 @@ export const generateSheetXml = (
       // Handle formulas (strings starting with =)
       if (typeof cellValue === 'string' && cellValue.startsWith('=')) {
         const formula = escapeXml(cellValue.substring(1));
-        cellXml += `><f>${formula}</f><v>0</v></c>`;
+        // No cached <v>: Excel recalculates on open (fullCalcOnLoad is set in workbook.xml).
+        cellXml += `><f>${formula}</f></c>`;
         rowsXml += cellXml;
         return;
       }
@@ -107,7 +101,19 @@ export const generateSheetXml = (
       // Handle strings
       const stringValue = cellValue.toString();
       validateCellValue(stringValue);
-      cellXml += ` t="inlineStr"><is><t>${escapeXml(stringValue)}</t></is></c>`;
+
+      if (options.sharedStrings) {
+        const index = options.sharedStrings.get(stringValue);
+        if (index !== undefined) {
+          cellXml += ` t="s"><v>${index}</v></c>`;
+          rowsXml += cellXml;
+          return;
+        }
+      }
+
+      // Preserve leading/trailing whitespace in inline strings.
+      const space = stringValue !== stringValue.trim() ? ' xml:space="preserve"' : '';
+      cellXml += ` t="inlineStr"><is><t${space}>${escapeXml(stringValue)}</t></is></c>`;
       rowsXml += cellXml;
     });
 
@@ -182,7 +188,12 @@ export const generateSharedStringsXml = (strings: string[]) => {
 
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <sst xmlns="${XML_NS.spreadsheetml}" count="${strings.length}" uniqueCount="${uniqueStrings.length}">
-  ${uniqueStrings.map(str => `<si><t>${escapeXml(str)}</t></si>`).join('')}
+  ${uniqueStrings
+    .map(str => {
+      const space = str !== str.trim() ? ' xml:space="preserve"' : '';
+      return `<si><t${space}>${escapeXml(str)}</t></si>`;
+    })
+    .join('')}
 </sst>`;
 };
 
@@ -219,9 +230,15 @@ export const generateStylesXml = (styleManager?: StyleManager) => {
   }
 
   // Generate dynamic styles using StyleManager
+  const numFmtsCount = styleManager.getNumFmtsCount();
+  const numFmtsXml =
+    numFmtsCount > 0
+      ? `  <numFmts count="${numFmtsCount}">\n${styleManager.generateNumFmtsXml()}\n  </numFmts>\n`
+      : '';
+
   return `<?xml version="1.0"?>
 <styleSheet xmlns="${XML_NS.spreadsheetml}">
-  <fonts count="${styleManager.getFontsCount()}">
+${numFmtsXml}  <fonts count="${styleManager.getFontsCount()}">
 ${styleManager.generateFontsXml()}
   </fonts>
   <fills count="${styleManager.getFillsCount()}">
@@ -341,6 +358,7 @@ export const generateRootRelsXml = () => {
 
 const escapeXml = (text: string): string => {
   return text
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '') // strip invalid XML 1.0 control chars
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')

@@ -1,4 +1,10 @@
-import { CellStyle } from '../writer';
+import { CellStyle } from './types';
+
+export interface CellAlignment {
+  horizontal?: 'left' | 'center' | 'right';
+  vertical?: 'top' | 'middle' | 'bottom';
+  wrapText?: boolean;
+}
 
 export interface ExcelStyle {
   fontId: number;
@@ -9,10 +15,13 @@ export interface ExcelStyle {
   applyFill?: boolean;
   applyBorder?: boolean;
   applyNumberFormat?: boolean;
+  alignment?: CellAlignment;
 }
 
 export interface Font {
   bold?: boolean;
+  italic?: boolean;
+  underline?: boolean;
   color?: string;
   size?: number;
   name?: string;
@@ -38,6 +47,9 @@ export class StyleManager {
   private borders: Border[] = [];
   private cellXfs: ExcelStyle[] = [];
   private styleMap: Map<string, number> = new Map();
+  // Custom number formats: format code -> numFmtId (>= 164)
+  private numFmts: Map<string, number> = new Map();
+  private nextNumFmtId = 164;
 
   constructor() {
     // Add default font
@@ -68,7 +80,11 @@ export class StyleManager {
 
     const fontId = this.addFont({
       bold: style.bold,
+      italic: style.italic,
+      underline: style.underline,
       color: style.color,
+      size: style.fontSize,
+      name: style.fontName,
     });
 
     const fillId = this.addFill({
@@ -83,14 +99,31 @@ export class StyleManager {
       bottom: style.border,
     });
 
+    const numFmtId = style.numberFormat ? this.addNumFmt(style.numberFormat) : 0;
+
+    const hasAlignment = !!(style.align || style.verticalAlign || style.wrapText);
+    const alignment: CellAlignment | undefined = hasAlignment
+      ? { horizontal: style.align, vertical: style.verticalAlign, wrapText: style.wrapText }
+      : undefined;
+
+    const hasFont =
+      style.bold ||
+      style.italic ||
+      style.underline ||
+      !!style.color ||
+      !!style.fontSize ||
+      !!style.fontName;
+
     const cellXf: ExcelStyle = {
       fontId,
       fillId,
       borderId,
-      numFmtId: 0,
-      applyFont: style.bold || !!style.color,
+      numFmtId,
+      applyFont: hasFont,
       applyFill: !!style.background,
       applyBorder: !!style.border,
+      applyNumberFormat: !!style.numberFormat,
+      alignment,
     };
 
     this.cellXfs.push(cellXf);
@@ -98,6 +131,16 @@ export class StyleManager {
     this.styleMap.set(hash, styleId);
 
     return styleId;
+  }
+
+  private addNumFmt(code: string): number {
+    const existing = this.numFmts.get(code);
+    if (existing !== undefined) {
+      return existing;
+    }
+    const id = this.nextNumFmtId++;
+    this.numFmts.set(code, id);
+    return id;
   }
 
   getDateStyleId(): number {
@@ -126,23 +169,44 @@ export class StyleManager {
     return JSON.stringify({
       bg: style.background || '',
       bold: style.bold || false,
+      italic: style.italic || false,
+      underline: style.underline || false,
       border: style.border || false,
       color: style.color || '',
+      fontSize: style.fontSize || 0,
+      fontName: style.fontName || '',
+      align: style.align || '',
+      valign: style.verticalAlign || '',
+      wrap: style.wrapText || false,
+      numFmt: style.numberFormat || '',
     });
   }
 
   private addFont(font: Font): number {
-    const existing = this.fonts.findIndex(f => f.bold === font.bold && f.color === font.color);
+    const normalized: Font = {
+      size: font.size || 11,
+      name: font.name || 'Calibri',
+      bold: font.bold,
+      italic: font.italic,
+      underline: font.underline,
+      color: font.color,
+    };
+
+    const existing = this.fonts.findIndex(
+      f =>
+        f.bold === normalized.bold &&
+        f.italic === normalized.italic &&
+        f.underline === normalized.underline &&
+        f.color === normalized.color &&
+        f.size === normalized.size &&
+        f.name === normalized.name
+    );
 
     if (existing !== -1) {
       return existing;
     }
 
-    this.fonts.push({
-      size: 11,
-      name: 'Calibri',
-      ...font,
-    });
+    this.fonts.push(normalized);
 
     return this.fonts.length - 1;
   }
@@ -182,6 +246,8 @@ export class StyleManager {
       .map(font => {
         let xml = '    <font>';
         if (font.bold) xml += '\n      <b/>';
+        if (font.italic) xml += '\n      <i/>';
+        if (font.underline) xml += '\n      <u/>';
         if (font.size) xml += `\n      <sz val="${font.size}"/>`;
         if (font.color) xml += `\n      <color rgb="${this.normalizeColor(font.color)}"/>`;
         if (font.name) xml += `\n      <name val="${font.name}"/>`;
@@ -238,10 +304,42 @@ export class StyleManager {
         if (xf.applyFill) xml += ' applyFill="1"';
         if (xf.applyBorder) xml += ' applyBorder="1"';
         if (xf.applyNumberFormat) xml += ' applyNumberFormat="1"';
-        xml += '/>';
+        if (xf.alignment) xml += ' applyAlignment="1"';
+
+        if (xf.alignment) {
+          const { horizontal, vertical, wrapText } = xf.alignment;
+          // Excel uses "center" for vertical middle alignment.
+          const verticalValue = vertical === 'middle' ? 'center' : vertical;
+          let alignXml = '      <alignment';
+          if (horizontal) alignXml += ` horizontal="${horizontal}"`;
+          if (verticalValue) alignXml += ` vertical="${verticalValue}"`;
+          if (wrapText) alignXml += ' wrapText="1"';
+          alignXml += '/>';
+          xml += `>\n${alignXml}\n    </xf>`;
+        } else {
+          xml += '/>';
+        }
         return xml;
       })
       .join('\n');
+  }
+
+  generateNumFmtsXml(): string {
+    return Array.from(this.numFmts.entries())
+      .map(([code, id]) => `    <numFmt numFmtId="${id}" formatCode="${this.escapeAttr(code)}"/>`)
+      .join('\n');
+  }
+
+  getNumFmtsCount(): number {
+    return this.numFmts.size;
+  }
+
+  private escapeAttr(text: string): string {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
   }
 
   private normalizeColor(color: string): string {

@@ -12,7 +12,8 @@ A powerful, lightweight Excel manipulation library built with TypeScript and mic
 - 🎨 **Dynamic Styling** - Advanced StyleManager with colors, fonts, borders
 - 📊 **Multi-Sheet Support** - Create workbooks with multiple named sheets
 - 🧮 **Formula Support** - Native Excel formulas (=SUM, =TODAY, custom formulas)
-- 📅 **Date Handling** - Automatic conversion to Excel serial dates
+- 📅 **Date Handling** - Round-trip Date objects to/from Excel serial dates
+- 🔤 **Shared Strings** - Optional shared-strings table for smaller files
 - 🔄 **Merge Cells** - Combine cells across ranges
 - 🧊 **Freeze Panes** - Lock header rows/columns
 - 📏 **Auto-Width Columns** - Automatic column width calculation
@@ -45,8 +46,20 @@ import fs from 'fs';
 const buffer = fs.readFileSync('data.xlsx');
 const workbook = ExcelBridge.read(buffer);
 
-console.log(workbook.sheets[0].data);
+// Each cell is typed. Dates come back as Date objects, and formula
+// cells expose their expression via `.formula`.
+for (const row of workbook.sheets[0].data) {
+  for (const cell of row) {
+    console.log(cell.coordinate, cell.type, cell.value, cell.formula ?? '');
+    // e.g. "B2" "date" 2024-01-15T00:00:00.000Z ""
+    //      "D2" "number" null "B2*C2"
+  }
+}
 ```
+
+> Excel files produced by Excel or other libraries are read correctly too:
+> worksheets are resolved through their relationship ids, sparse rows keep their
+> column alignment, and date-formatted cells are returned as `Date` objects.
 
 ### Writing Excel Files
 
@@ -155,6 +168,45 @@ const sheet = {
 const buffer = writer.createWorkbookBuffer([sheet]);
 ```
 
+### Extended Cell Styling
+
+Beyond background, bold, color and borders, cells support font, alignment and
+number-format options:
+
+```typescript
+import { ExcelWriter } from 'excel-bridge';
+
+const writer = new ExcelWriter();
+
+const sheet = {
+  data: [
+    ['Invoice', 1250.5],
+    ['Tax', 237.6],
+  ],
+  styles: {
+    // Title: large, italic, centered, wrapped
+    '0-0': { bold: true, italic: true, fontSize: 14, fontName: 'Arial', align: 'center', wrapText: true },
+    // Amounts: custom currency number format
+    '0-1': { numberFormat: '#,##0.00' },
+    '1-1': { numberFormat: '#,##0.00', verticalAlign: 'middle' },
+  },
+};
+
+const buffer = writer.createWorkbookBuffer([sheet]);
+```
+
+### Shared Strings (opt-in)
+
+By default strings are written inline (simple and reliable). For workbooks with
+many repeated strings, enable a shared-strings table to reduce file size:
+
+```typescript
+import { ExcelWriter } from 'excel-bridge';
+
+const writer = new ExcelWriter({ sharedStrings: true });
+const buffer = writer.createWorkbookBuffer([{ data }]);
+```
+
 ### Merge Cells & Advanced Layout
 
 ```typescript
@@ -251,14 +303,19 @@ const coordinate = indexToCoordinate(0, 0); // "A1"
 ### Utility Functions
 
 - **dateToExcelSerial(date)** - Convert JavaScript Date to Excel serial number
+- **excelSerialToDate(serial)** - Convert an Excel serial number back to a Date
+- **isDate(value)** - Type guard for valid Date objects
 - **calculateColumnWidths(data)** - Calculate optimal column widths
-- **escapeXml(text)** - Escape XML special characters
 
 ### Types
 
 ```typescript
+// Values accepted in a cell. Dates are converted to Excel serials automatically;
+// strings starting with "=" are treated as formulas.
+type CellValue = string | number | boolean | Date | null | undefined;
+
 interface ExcelData {
-  data: any[][];
+  data: CellValue[][];
   styles?: Record<string, CellStyle>;
   validations?: CellValidation[];
   mergeCells?: string[];
@@ -267,7 +324,7 @@ interface ExcelData {
 
 interface SheetOptions {
   name?: string;
-  freezePane?: { row: number; col: number };
+  freezePane?: { row?: number; col?: number };
   autoWidth?: boolean;
 }
 
@@ -275,10 +332,16 @@ interface CellStyle {
   background?: string;
   border?: boolean;
   bold?: boolean;
-  color?: string;
   italic?: boolean;
+  underline?: boolean;
+  color?: string;
   fontSize?: number;
   fontName?: string;
+  align?: 'left' | 'center' | 'right';
+  verticalAlign?: 'top' | 'middle' | 'bottom';
+  wrapText?: boolean;
+  /** Custom Excel number-format code, e.g. "0.00" or "#,##0". */
+  numberFormat?: string;
 }
 
 interface CellValidation {
@@ -289,14 +352,19 @@ interface CellValidation {
 interface ExcelWriterOptions {
   creator?: string;
   title?: string;
+  subject?: string;
+  /** Write strings to a shared-strings table instead of inline. Default: false. */
+  sharedStrings?: boolean;
 }
 
 interface ParsedCell {
   value: any;
-  type: 'string' | 'number' | 'boolean' | 'empty';
+  type: 'string' | 'number' | 'boolean' | 'date' | 'empty';
   coordinate: string;
   rowIndex: number;
   columnIndex: number;
+  /** Present when the cell holds a formula (without the leading "="). */
+  formula?: string;
 }
 ```
 
@@ -307,7 +375,8 @@ interface ParsedCell {
 ```bash
 npm run build         # Build for production
 npm run dev           # Watch mode for development
-npm run test          # Run tests with Vitest
+npm run test          # Run tests with Vitest (watch mode)
+npm run test:run      # Run tests once (CI / pre-publish)
 ```
 
 ### Code Quality
@@ -340,9 +409,9 @@ excel-bridge/
 │   ├── basic.test.ts          # Core functionality tests
 │   ├── read-write.test.ts     # Read/Write integration tests
 │   ├── zip-structure.test.ts  # ZIP structure validation
-│   ├── numbers-only.test.ts    # Numeric data handling
-│   └── special-characters.test.ts # Special character handling
-├── FEATURES.md                # Detailed feature documentation
+│   ├── numbers-only.test.ts   # Numeric data handling
+│   ├── special-characters.test.ts # Special character handling
+│   └── features.test.ts       # Dates, formulas, shared strings, styles
 ├── package.json
 ├── tsconfig.json
 ├── eslint.config.js           # ESLint configuration (flat config)
@@ -371,7 +440,7 @@ This library follows a **micro-package architecture** for optimal tree-shaking a
 - **ExcelWriter class** - Creates Excel files with advanced features
 - **StyleManager integration** - Optimized style generation and management
 - **Multi-sheet creation** - Support for multiple named sheets with options
-- **Formula support** - Native Excel formula handling with placeholders
+- **Formula support** - Native Excel formulas, recalculated on open (`fullCalcOnLoad`)
 - **Date handling** - Automatic JavaScript Date to Excel serial conversion
 - **Layout features** - Merge cells, freeze panes, auto-width columns
 - **Validation** - Data validation and sanitization
@@ -387,15 +456,15 @@ This library follows a **micro-package architecture** for optimal tree-shaking a
 ### Dependencies
 
 **Production:**
-- **fflate** (^0.8.2) - Fast ZIP compression/decompression
-- **fast-xml-parser** (^5.5.1) - High-performance XML parsing
+- **fflate** (^0.8.3) - Fast ZIP compression/decompression
+- **fast-xml-parser** (^5.9.3) - High-performance XML parsing
 
 **Development:**
 - **TypeScript** (^5.9.3) - Type safety and development
 - **tsup** (^8.5.1) - Ultra-fast bundler for ESM/CJS output
-- **Vitest** (^4.0.18) - Modern testing framework
-- **ESLint** (^10.0.3) - Code quality and linting
-- **Prettier** (^3.8.1) - Code formatting
+- **Vitest** (^4.1.9) - Modern testing framework
+- **ESLint** (^10.5.0) - Code quality and linting
+- **Prettier** (^3.8.4) - Code formatting
 
 ### Browser Compatibility
 
@@ -409,8 +478,8 @@ This library follows a **micro-package architecture** for optimal tree-shaking a
 - Built with SSL support (standard in official distributions)
 
 ### 📋 Known Limitations
-- **Standard Warnings** - Excel may show warnings when opening programmatically generated files (harmless)
-- **No Shared Strings** - Uses inline strings for simplicity and reliability
+- **Inline strings by default** - Strings are written inline for reliability; a shared-strings table is available opt-in via `new ExcelWriter({ sharedStrings: true })`
+- **Formula values are recalculated on open** - Formula cells are written without a cached value; Excel computes them when the file is opened (`fullCalcOnLoad`)
 - **Excel 2016+** - Requires modern Excel versions for full compatibility
 
 ### 🚀 Performance

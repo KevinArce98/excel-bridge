@@ -65,12 +65,11 @@ export const extractExcelFiles = (buffer: Uint8Array): ExcelFiles => {
 };
 
 export const validateExcelStructure = (files: ExcelFiles): boolean => {
-  const requiredFiles = [
-    '[Content_Types].xml',
-    '_rels/.rels',
-    'xl/workbook.xml',
-    'xl/worksheets/sheet1.xml',
-  ];
+  const requiredFiles = ['[Content_Types].xml', '_rels/.rels', 'xl/workbook.xml'];
 
-  return requiredFiles.every(file => files[file]);
+  const hasRequired = requiredFiles.every(file => files[file]);
+  // At least one worksheet must exist; do not assume it is named sheet1.xml.
+  const hasWorksheet = Object.keys(files).some(path => /^xl\/worksheets\/.+\.xml$/.test(path));
+
+  return hasRequired && hasWorksheet;
 };

@@ -1,12 +1,15 @@
 import { XMLParser } from 'fast-xml-parser';
 import { extractExcelFiles, validateExcelStructure } from '../core/zip-manager';
+import { excelSerialToDate, isDateNumFmtId } from '../core/date-utils';
 
 export interface ParsedCell {
   value: any;
-  type: 'string' | 'number' | 'boolean' | 'empty';
+  type: 'string' | 'number' | 'boolean' | 'date' | 'empty';
   coordinate: string;
   rowIndex: number;
   columnIndex: number;
+  /** Present when the cell holds a formula (without the leading '='). */
+  formula?: string;
 }
 
 export interface ParsedSheet {
@@ -27,6 +30,13 @@ export interface ParsedWorkbook {
   };
 }
 
+type DateStyleIndices = Set<number>;
+
+const toArray = <T>(value: T | T[] | undefined): T[] => {
+  if (value === undefined || value === null) return [];
+  return Array.isArray(value) ? value : [value];
+};
+
 export class ExcelReader {
   private parser: XMLParser;
 
@@ -37,6 +47,7 @@ export class ExcelReader {
       textNodeName: '#text',
       parseAttributeValue: true,
       parseTagValue: true,
+      trimValues: false, // preserve intentional leading/trailing whitespace in strings
     });
   }
 
@@ -53,35 +64,23 @@ export class ExcelReader {
         throw new Error('Invalid Excel file structure');
       }
 
-      const workbookXml = files['xl/workbook.xml'];
-      const workbook = this.parser.parse(workbookXml);
-
+      const workbook = this.parser.parse(files['xl/workbook.xml']);
       const sharedStrings = this.parseSharedStrings(files);
+      const dateStyles = this.parseDateStyles(files);
+      const relMap = this.parseWorkbookRels(files);
 
       const sheets: ParsedSheet[] = [];
-      const sheetElements = workbook.workbook?.sheets?.sheet || [];
+      const sheetElements = toArray(workbook.workbook?.sheets?.sheet);
 
-      if (Array.isArray(sheetElements)) {
-        for (const sheetElement of sheetElements) {
-          const sheetName = sheetElement.name || 'Sheet1';
-          const sheetPath = `xl/worksheets/sheet${sheetElement.sheetId || 1}.xml`;
+      sheetElements.forEach((sheetElement, index) => {
+        const sheetName = sheetElement.name ?? `Sheet${index + 1}`;
+        const sheetPath = this.resolveSheetPath(sheetElement, relMap, index);
 
-          if (files[sheetPath]) {
-            const sheetData = this.parseSheet(files[sheetPath], sharedStrings);
-            sheets.push({
-              name: sheetName,
-              ...sheetData,
-            });
-          }
+        if (sheetPath && files[sheetPath]) {
+          const sheetData = this.parseSheet(files[sheetPath], sharedStrings, dateStyles);
+          sheets.push({ name: String(sheetName), ...sheetData });
         }
-      } else if (sheetElements) {
-        const sheetName = sheetElements.name || 'Sheet1';
-        const sheetData = this.parseSheet(files['xl/worksheets/sheet1.xml'], sharedStrings);
-        sheets.push({
-          name: sheetName,
-          ...sheetData,
-        });
-      }
+      });
 
       return {
         sheets,
@@ -94,6 +93,50 @@ export class ExcelReader {
     }
   }
 
+  /** Map relationship ids (r:id) to their target part paths, resolved relative to xl/. */
+  private parseWorkbookRels(files: Record<string, string>): Record<string, string> {
+    const relsXml = files['xl/_rels/workbook.xml.rels'];
+    const map: Record<string, string> = {};
+    if (!relsXml) return map;
+
+    try {
+      const parsed = this.parser.parse(relsXml);
+      const rels = toArray(parsed.Relationships?.Relationship);
+      for (const rel of rels) {
+        if (!rel.Id || !rel.Target) continue;
+        let target: string = String(rel.Target);
+        if (target.startsWith('/')) {
+          target = target.slice(1); // absolute package path
+        } else {
+          target = `xl/${target}`; // relative to the workbook part
+        }
+        map[String(rel.Id)] = target;
+      }
+    } catch {
+      // Ignore malformed rels; fall back to sheetId-based resolution.
+    }
+
+    return map;
+  }
+
+  /**
+   * Resolve a worksheet's part path. Prefer the relationship target (r:id),
+   * falling back to sheetId, then positional ordering.
+   */
+  private resolveSheetPath(
+    sheetElement: any,
+    relMap: Record<string, string>,
+    index: number
+  ): string | undefined {
+    const rId = sheetElement['r:id'] ?? sheetElement.id;
+    if (rId && relMap[String(rId)]) {
+      return relMap[String(rId)];
+    }
+
+    const sheetId = sheetElement.sheetId ?? index + 1;
+    return `xl/worksheets/sheet${sheetId}.xml`;
+  }
+
   private parseSharedStrings(files: Record<string, string>): string[] {
     const sharedStringsXml = files['xl/sharedStrings.xml'];
     if (!sharedStringsXml) {
@@ -102,79 +145,115 @@ export class ExcelReader {
 
     try {
       const parsed = this.parser.parse(sharedStringsXml);
-      const sst = parsed.sst;
-
-      if (!sst || !sst.si) {
-        return [];
-      }
-
-      const items = Array.isArray(sst.si) ? sst.si : [sst.si];
-      return items.map((item: any) => {
-        if (item.t) {
-          return item.t['#text'] || item.t || '';
-        }
-        return '';
-      });
+      const items = toArray(parsed.sst?.si);
+      return items.map((item: any) => this.extractStringItem(item));
     } catch {
       return [];
     }
   }
 
-  private parseSheet(sheetXml: string, sharedStrings: string[]): Omit<ParsedSheet, 'name'> {
+  /** Extract text from a shared-string <si>, handling rich-text runs (<r>). */
+  private extractStringItem(item: any): string {
+    if (item == null) return '';
+    if (typeof item === 'string' || typeof item === 'number') return String(item);
+
+    if (item.t !== undefined) {
+      return this.extractText(item.t);
+    }
+    // Rich text: concatenate the text of each run.
+    if (item.r !== undefined) {
+      return toArray(item.r)
+        .map((run: any) => this.extractText(run?.t))
+        .join('');
+    }
+    return '';
+  }
+
+  private extractText(t: any): string {
+    if (t == null) return '';
+    if (typeof t === 'object') {
+      return t['#text'] !== undefined ? String(t['#text']) : '';
+    }
+    return String(t);
+  }
+
+  /**
+   * Parse styles.xml to find which cell-style indices map to a date/time number format.
+   */
+  private parseDateStyles(files: Record<string, string>): DateStyleIndices {
+    const dateStyles: DateStyleIndices = new Set();
+    const stylesXml = files['xl/styles.xml'];
+    if (!stylesXml) return dateStyles;
+
+    try {
+      const parsed = this.parser.parse(stylesXml);
+      const styleSheet = parsed.styleSheet;
+      if (!styleSheet) return dateStyles;
+
+      const customFormats: Record<number, string> = {};
+      for (const fmt of toArray(styleSheet.numFmts?.numFmt)) {
+        if (fmt.numFmtId !== undefined && fmt.formatCode !== undefined) {
+          customFormats[Number(fmt.numFmtId)] = String(fmt.formatCode);
+        }
+      }
+
+      const xfs = toArray(styleSheet.cellXfs?.xf);
+      xfs.forEach((xf: any, index: number) => {
+        const numFmtId = xf?.numFmtId !== undefined ? Number(xf.numFmtId) : 0;
+        if (isDateNumFmtId(numFmtId, customFormats)) {
+          dateStyles.add(index);
+        }
+      });
+    } catch {
+      // Ignore malformed styles.
+    }
+
+    return dateStyles;
+  }
+
+  private parseSheet(
+    sheetXml: string,
+    sharedStrings: string[],
+    dateStyles: DateStyleIndices
+  ): Omit<ParsedSheet, 'name'> {
     const parsed = this.parser.parse(sheetXml);
     const worksheet = parsed.worksheet;
 
-    const rows = worksheet?.sheetData?.row || [];
-    const validations = worksheet?.dataValidations?.dataValidation || [];
+    const rows = toArray(worksheet?.sheetData?.row);
+    const validations = toArray(worksheet?.dataValidations?.dataValidation);
+
+    const parsedValidations = validations.map((validation: any) => ({
+      range: validation.sqref,
+      options: this.extractText(validation.formula1).replace(/"/g, '') || '',
+    }));
 
     const data: ParsedCell[][] = [];
-    const parsedValidations = [];
 
-    if (Array.isArray(validations)) {
-      for (const validation of validations) {
-        parsedValidations.push({
-          range: validation.sqref,
-          options: validation.formula1?.replace(/"/g, '') || '',
-        });
-      }
-    } else if (validations) {
-      parsedValidations.push({
-        range: validations.sqref,
-        options: validations.formula1?.replace(/"/g, '') || '',
-      });
-    }
+    for (const rowElement of rows) {
+      const rowIndex = parseInt(rowElement.r, 10) - 1;
+      const cells = toArray(rowElement.c);
 
-    if (Array.isArray(rows)) {
-      for (const rowElement of rows) {
-        const rowIndex = parseInt(rowElement.r) - 1;
-        const cells = rowElement.c || [];
-        const rowData: ParsedCell[] = [];
-
-        if (Array.isArray(cells)) {
-          for (const cell of cells) {
-            const cellData = this.parseCell(cell, rowIndex, sharedStrings);
-            rowData.push(cellData);
-          }
-        } else if (cells) {
-          const cellData = this.parseCell(cells, rowIndex, sharedStrings);
-          rowData.push(cellData);
-        }
-
-        data.push(rowData);
-      }
-    } else if (rows) {
-      const rowIndex = parseInt(rows.r) - 1;
-      const cells = rows.c || [];
+      // Place each cell at its real column index so sparse rows stay aligned.
       const rowData: ParsedCell[] = [];
+      let maxCol = -1;
 
-      if (Array.isArray(cells)) {
-        for (const cell of cells) {
-          const cellData = this.parseCell(cell, rowIndex, sharedStrings);
-          rowData.push(cellData);
+      for (const cell of cells) {
+        const parsedCell = this.parseCell(cell, rowIndex, sharedStrings, dateStyles);
+        rowData[parsedCell.columnIndex] = parsedCell;
+        maxCol = Math.max(maxCol, parsedCell.columnIndex);
+      }
+
+      // Fill any gaps with explicit empty cells.
+      for (let c = 0; c <= maxCol; c++) {
+        if (!rowData[c]) {
+          rowData[c] = {
+            value: null,
+            type: 'empty',
+            coordinate: `${this.columnIndexToLetter(c)}${rowIndex + 1}`,
+            rowIndex,
+            columnIndex: c,
+          };
         }
-      } else if (cells) {
-        const cellData = this.parseCell(cells, rowIndex, sharedStrings);
-        rowData.push(cellData);
       }
 
       data.push(rowData);
@@ -186,36 +265,50 @@ export class ExcelReader {
     };
   }
 
-  private parseCell(cell: any, rowIndex: number, sharedStrings: string[]): ParsedCell {
-    const coordinate = cell.r;
-    const columnIndex = this.columnLetterToIndex(coordinate.replace(/\d+/, ''));
+  private parseCell(
+    cell: any,
+    rowIndex: number,
+    sharedStrings: string[],
+    dateStyles: DateStyleIndices
+  ): ParsedCell {
+    const coordinate = String(cell.r ?? '');
+    const columnIndex = this.columnLetterToIndex(coordinate.replace(/\d+/g, ''));
+    const styleIndex = cell.s !== undefined ? Number(cell.s) : undefined;
 
     let value: any = null;
     let type: ParsedCell['type'] = 'empty';
+    let formula: string | undefined;
 
-    if (cell.v !== undefined) {
-      value = cell.v;
+    if (cell.f !== undefined) {
+      formula = this.extractText(cell.f);
+    }
+
+    if (cell.t === 'inlineStr' || (cell.t === undefined && cell.is !== undefined)) {
+      value = this.extractText(cell.is?.t);
+      type = 'string';
+    } else if (cell.v !== undefined) {
+      const raw = cell.v;
 
       if (cell.t === 'b') {
-        value = value === '1' || value === 1 || value === true;
+        value = raw === '1' || raw === 1 || raw === true;
         type = 'boolean';
-      } else if (cell.t === 'inlineStr') {
-        value = cell.is?.t?.['#text'] || cell.is?.t || '';
-        type = 'string';
       } else if (cell.t === 's') {
-        const stringIndex = parseInt(cell.v);
-        value = sharedStrings[stringIndex] || '';
+        value = sharedStrings[parseInt(raw, 10)] ?? '';
         type = 'string';
       } else if (cell.t === 'str') {
-        value = value.toString();
+        value = String(raw);
         type = 'string';
       } else {
-        value = parseFloat(value);
-        type = 'number';
+        // Numeric cell. Convert to a Date when the style says so.
+        const num = typeof raw === 'number' ? raw : parseFloat(raw);
+        if (styleIndex !== undefined && dateStyles.has(styleIndex) && !isNaN(num)) {
+          value = excelSerialToDate(num);
+          type = 'date';
+        } else {
+          value = num;
+          type = 'number';
+        }
       }
-    } else if (cell.is?.t) {
-      value = cell.is.t['#text'] || cell.is.t || '';
-      type = 'string';
     }
 
     return {
@@ -224,6 +317,7 @@ export class ExcelReader {
       coordinate,
       rowIndex,
       columnIndex,
+      ...(formula !== undefined ? { formula } : {}),
     };
   }
 
@@ -233,6 +327,17 @@ export class ExcelReader {
       index = index * 26 + (letters.charCodeAt(i) - 64);
     }
     return index - 1;
+  }
+
+  private columnIndexToLetter(index: number): string {
+    let letter = '';
+    let num = index + 1;
+    while (num > 0) {
+      const remainder = (num - 1) % 26;
+      letter = String.fromCharCode(65 + remainder) + letter;
+      num = Math.floor((num - 1) / 26);
+    }
+    return letter;
   }
 
   private extractMetadata(files: Record<string, string>): ParsedWorkbook['metadata'] {
@@ -248,6 +353,18 @@ export class ExcelReader {
           metadata.creator = properties.Creator;
           metadata.created = properties.Created;
           metadata.modified = properties.Modified;
+        }
+      }
+
+      // Core properties carry the canonical created/modified timestamps and creator.
+      const coreXml = files['docProps/core.xml'];
+      if (coreXml) {
+        const parsed = this.parser.parse(coreXml);
+        const core = parsed['cp:coreProperties'];
+        if (core) {
+          metadata.creator = this.extractText(core['dc:creator']) || metadata.creator;
+          metadata.created = this.extractText(core['dcterms:created']) || metadata.created;
+          metadata.modified = this.extractText(core['dcterms:modified']) || metadata.modified;
         }
       }
     } catch {
