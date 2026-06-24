@@ -361,7 +361,6 @@ const escapeXml = (text: string): string => {
     .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '') // strip invalid XML 1.0 control chars
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+    .replace(/>/g, '&gt;');
+  // ' and " don't need escaping in XML text content, only in attribute values.
 };
