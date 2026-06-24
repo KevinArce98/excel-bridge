@@ -40,9 +40,12 @@ jobs:
       - name: Update package.json version
         run: npm version ${{ steps.get_version.outputs.VERSION }} --no-git-tag-version
       
+      - name: Test
+        run: pnpm run test:run
+
       - name: Build
         run: pnpm run build
-      
+
       - name: Check NPM_TOKEN
         run: |
           if [ -z "${{ secrets.NPM_TOKEN }}" ]; then
