@@ -1,3 +1,14 @@
+# [1.2.0](https://github.com/KevinArce98/excel-bridge/compare/v1.1.0...v1.2.0) (2026-08-29)
+
+
+### Features
+
+* **reader:** read back cell styles, layout and document metadata ([fab3d47](https://github.com/KevinArce98/excel-bridge/commit/fab3d478fbe3d51dc6095570b6ae41864fb2214b))
+* **types:** add conditional formatting types ([fea3a9b](https://github.com/KevinArce98/excel-bridge/commit/fea3a9bf4588a5052557581d42167159b1d08785))
+* **workbook:** add high-level Workbook API ([3b37058](https://github.com/KevinArce98/excel-bridge/commit/3b3705816e1921845477ab97c34af197d28c5e89)), closes [hi#level](https://github.com/hi/issues/level)
+* **writer:** add streaming workbook writer ([d0787d9](https://github.com/KevinArce98/excel-bridge/commit/d0787d9ff2a2a138a8b7fd5bba45deb96720dc19))
+* **writer:** conditional formats, explicit column widths and docProps ([3162ac7](https://github.com/KevinArce98/excel-bridge/commit/3162ac7df974aad39fdce15a1388389e2d575e38))
+
 # Changelog
 
 All notable changes to this project are documented here. The format is based on
