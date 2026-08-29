@@ -177,10 +177,24 @@ export const generateSheetXml = (
     validationsXml = `
   <dataValidations count="${validations.length}">`;
     validations.forEach(v => {
-      validationsXml += `
-    <dataValidation type="list" allowBlank="1" showInputMessage="1" showErrorMessage="1" sqref="${v.range}">
-      <formula1>"${escapeXml(v.options)}"</formula1>
+      const type = v.type ?? 'list';
+      const allowBlank = v.allowBlank === false ? '0' : '1';
+
+      if (type === 'list') {
+        const formula1 = v.formula1 ?? `"${escapeXml(v.options)}"`;
+        validationsXml += `
+    <dataValidation type="list" allowBlank="${allowBlank}" showInputMessage="1" showErrorMessage="1" sqref="${v.range}">
+      <formula1>${formula1}</formula1>
     </dataValidation>`;
+        return;
+      }
+
+      const operator = v.operator ?? 'between';
+      let formulas = '';
+      if (v.formula1 !== undefined) formulas += `<formula1>${escapeXml(v.formula1)}</formula1>`;
+      if (v.formula2 !== undefined) formulas += `<formula2>${escapeXml(v.formula2)}</formula2>`;
+      validationsXml += `
+    <dataValidation type="${type}" operator="${operator}" allowBlank="${allowBlank}" showInputMessage="1" showErrorMessage="1" sqref="${v.range}">${formulas}</dataValidation>`;
     });
     validationsXml += `
   </dataValidations>`;

@@ -3,7 +3,7 @@ export type { ParsedCell, ParsedSheet, ParsedWorkbook } from './reader';
 export { Workbook } from './workbook';
 export type { WorkbookMetadata } from './workbook';
 
-export { ExcelWriter, createExcelFile, createExcelFileBuffer } from './writer';
+export { ExcelWriter, createExcelFile, createExcelFileBuffer, dataValidation } from './writer';
 export type {
   ExcelWriterOptions,
   ExcelData,
@@ -12,6 +12,8 @@ export type {
   CellValue,
   SheetOptions,
   ConditionalFormat,
+  DataValidationType,
+  DataValidationOperator,
 } from './writer';
 export type {
   ConditionalFormatStyle,

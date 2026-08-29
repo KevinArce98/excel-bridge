@@ -15,7 +15,15 @@ import { StyleManager } from '../core/style-manager';
 import { isDate } from '../core/date-utils';
 import { CellValue, CellValidation, CellStyle, ConditionalFormat } from '../core/types';
 
-export type { CellValue, CellValidation, CellStyle, ConditionalFormat } from '../core/types';
+export type {
+  CellValue,
+  CellValidation,
+  CellStyle,
+  ConditionalFormat,
+  DataValidationType,
+  DataValidationOperator,
+} from '../core/types';
+export { dataValidation } from './validation';
 
 export interface SheetOptions {
   name?: string;

@@ -1,8 +1,26 @@
 export type CellValue = string | number | boolean | Date | null | undefined;
 
+export type DataValidationType = 'list' | 'whole' | 'decimal' | 'textLength' | 'date';
+
+export type DataValidationOperator =
+  | 'between'
+  | 'notBetween'
+  | 'equal'
+  | 'notEqual'
+  | 'greaterThan'
+  | 'lessThan'
+  | 'greaterThanOrEqual'
+  | 'lessThanOrEqual';
+
 export interface CellValidation {
   range: string;
+  /** Legacy list shorthand: comma-separated allowed values (used when `type` is 'list' or unset). */
   options: string;
+  type?: DataValidationType;
+  operator?: DataValidationOperator;
+  formula1?: string;
+  formula2?: string;
+  allowBlank?: boolean;
 }
 
 export interface ConditionalFormatStyle {
