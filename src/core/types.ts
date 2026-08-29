@@ -1,13 +1,52 @@
-/** A value that can be written into a worksheet cell. */
 export type CellValue = string | number | boolean | Date | null | undefined;
 
-/** A list data-validation applied to a cell range. */
 export interface CellValidation {
   range: string;
   options: string;
 }
 
-/** Visual and number-format options for a single cell. */
+export interface ConditionalFormatStyle {
+  background?: string;
+  color?: string;
+  bold?: boolean;
+  italic?: boolean;
+}
+
+export type ConditionalFormatOperator =
+  | 'greaterThan'
+  | 'greaterThanOrEqual'
+  | 'lessThan'
+  | 'lessThanOrEqual'
+  | 'equal'
+  | 'notEqual'
+  | 'between'
+  | 'notBetween';
+
+export interface CellValueConditionalFormat {
+  type: 'cellValue';
+  range: string;
+  operator: ConditionalFormatOperator;
+  value: number | string;
+  value2?: number | string;
+  style: ConditionalFormatStyle;
+}
+
+export interface ExpressionConditionalFormat {
+  type: 'expression';
+  range: string;
+  formula: string;
+  style: ConditionalFormatStyle;
+}
+
+export interface ColorScaleConditionalFormat {
+  type: 'colorScale';
+  range: string;
+  colors: [string, string] | [string, string, string];
+}
+
+export type ConditionalFormat =
+  CellValueConditionalFormat | ExpressionConditionalFormat | ColorScaleConditionalFormat;
+
 export interface CellStyle {
   background?: string;
   border?: boolean;
@@ -20,6 +59,5 @@ export interface CellStyle {
   align?: 'left' | 'center' | 'right';
   verticalAlign?: 'top' | 'middle' | 'bottom';
   wrapText?: boolean;
-  /** Custom Excel number-format code, e.g. "0.00" or "#,##0". */
   numberFormat?: string;
 }
