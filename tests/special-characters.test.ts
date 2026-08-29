@@ -15,8 +15,7 @@ describe('Special Characters Handling', () => {
     const result = ExcelBridge.read(buffer);
 
     const sheet = result.sheets[0];
-    
-    // Verify all special characters are preserved
+
     expect(sheet.data[1][0].value).toBe('R&D Corp');
     expect(sheet.data[1][1].value).toBe('Research & Development');
     expect(sheet.data[2][0].value).toBe('Tech <Solutions>');

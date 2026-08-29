@@ -1,6 +1,3 @@
-/**
- * Calculate the maximum width needed for each column based on cell content
- */
 export function calculateColumnWidths(data: any[][]): number[] {
   if (data.length === 0) return [];
 
@@ -15,35 +12,24 @@ export function calculateColumnWidths(data: any[][]): number[] {
     });
   });
 
-  // Apply min/max constraints
   return widths.map(w => Math.min(Math.max(w, 8), 50));
 }
 
-/**
- * Estimate text width in Excel units
- * Excel width units are approximately the width of '0' in the default font
- */
 function estimateTextWidth(text: string): number {
   if (!text) return 8;
 
-  // Base calculation: character count + padding
   let width = text.length * 1.2;
 
-  // Add extra width for wide characters
   const wideChars = text.match(/[WMm@]/g);
   if (wideChars) {
     width += wideChars.length * 0.5;
   }
 
-  // Add padding
   width += 2;
 
   return Math.ceil(width);
 }
 
-/**
- * Generate <cols> XML for column widths
- */
 export function generateColsXml(widths: number[]): string {
   if (widths.length === 0) return '';
 
