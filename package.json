@@ -2,6 +2,24 @@
   "name": "excel-bridge",
   "version": "1.0.5",
   "description": "A lightweight, modular Excel manipulation library based on micro-packages",
+  "keywords": [
+    "excel",
+    "xlsx",
+    "spreadsheet",
+    "xlsx-parser",
+    "xlsx-writer",
+    "excel-reader",
+    "excel-writer",
+    "office-open-xml",
+    "ooxml",
+    "typescript",
+    "browser",
+    "nodejs",
+    "tree-shakeable",
+    "lightweight",
+    "exceljs-alternative",
+    "sheetjs-alternative"
+  ],
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
@@ -19,9 +37,6 @@
     "format": "prettier --write src/**/*.ts",
     "format:check": "prettier --check src/**/*.ts",
     "prepublishOnly": "npm run test:run && npm run build"
-  },
-  "peerDependencies": {
-    "react": ">=18"
   },
   "dependencies": {
     "fflate": "^0.8.3",

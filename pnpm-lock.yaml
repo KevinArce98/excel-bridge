@@ -14,9 +14,6 @@ importers:
       fflate:
         specifier: ^0.8.3
         version: 0.8.3
-      react:
-        specifier: '>=18'
-        version: 19.2.4
     devDependencies:
       '@eslint/js':
         specifier: ^10.0.1
@@ -934,10 +931,6 @@ packages:
   punycode@2.3.1:
     resolution: {integrity: sha512-vYt7UD1U9Wg6138shLtLOvdAu+8DsC/ilFtEVHcH+wydcSpNE20AfSOduf6MkRFahL5FY7X1oU7nKVZFtfq8Fg==}
     engines: {node: '>=6'}
-
-  react@19.2.4:
-    resolution: {integrity: sha512-9nfp2hYpCwOjAN+8TZFGhtWEwgvWHXqESH8qT89AT/lWklpLON22Lc8pEtnpsZz7VmawabSU0gCjnj8aC0euHQ==}
-    engines: {node: '>=0.10.0'}
 
   readdirp@4.1.2:
     resolution: {integrity: sha512-GDhwkLfywWL2s6vEjyhri+eXmfH6j1L7JE27WhqLeYzoh/A3DBaYGEj2H/HFZCn/kMfim73FXxEJTw06WtxQwg==}
@@ -1913,8 +1906,6 @@ snapshots:
   prettier@3.9.6: {}
 
   punycode@2.3.1: {}
-
-  react@19.2.4: {}
 
   readdirp@4.1.2: {}
 
