@@ -21,6 +21,9 @@ export type {
   ColorScaleConditionalFormat,
 } from './core/types';
 
+export { createExcelWorkbookStream, streamToBuffer } from './writer/stream';
+export type { StreamingSheetInput } from './writer/stream';
+
 export {
   createExcelBlob,
   createExcelBuffer,
