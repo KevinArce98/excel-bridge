@@ -39,7 +39,8 @@
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
     "format": "prettier --write src/**/*.ts",
-    "format:check": "prettier --check src/**/*.ts"
+    "format:check": "prettier --check src/**/*.ts",
+    "bench": "pnpm run build && node benchmarks/bench.mjs"
   },
   "dependencies": {
     "fast-xml-parser": "^5.11.1",
