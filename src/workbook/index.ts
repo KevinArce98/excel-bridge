@@ -54,7 +54,7 @@ export class Workbook {
       styles: sheet.styles ?? {},
       validations: sheet.validations.map(v => ({ range: v.range, options: v.options })),
       mergeCells: sheet.mergeCells ?? [],
-      conditionalFormats: [],
+      conditionalFormats: sheet.conditionalFormats ?? [],
       freezePane: sheet.freezePane,
       columnWidths: sheet.columnWidths,
     }));

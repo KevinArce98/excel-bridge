@@ -1,7 +1,12 @@
 import { XMLParser } from 'fast-xml-parser';
 import { extractExcelFiles, validateExcelStructure } from '../core/zip-manager';
 import { excelSerialToDate, isDateNumFmtId } from '../core/date-utils';
-import { CellStyle } from '../core/types';
+import {
+  CellStyle,
+  ConditionalFormat,
+  ConditionalFormatStyle,
+  ConditionalFormatOperator,
+} from '../core/types';
 
 export interface ParsedCell {
   value: any;
@@ -23,6 +28,7 @@ export interface ParsedSheet {
   mergeCells?: string[];
   freezePane?: { row?: number; col?: number };
   columnWidths?: number[];
+  conditionalFormats?: ConditionalFormat[];
 }
 
 export interface ParsedWorkbook {
@@ -76,6 +82,7 @@ interface StyleSheetData {
   customFormats: Record<number, string>;
   cellXfs: DecodedXf[];
   dateStyles: Set<number>;
+  dxfs: ConditionalFormatStyle[];
 }
 
 const toArray = <T>(value: T | T[] | undefined): T[] => {
@@ -222,6 +229,7 @@ export class ExcelReader {
       customFormats: {},
       cellXfs: [],
       dateStyles: new Set(),
+      dxfs: [],
     };
 
     const stylesXml = files['xl/styles.xml'];
@@ -285,6 +293,19 @@ export class ExcelReader {
         if (isDateNumFmtId(xf.numFmtId, result.customFormats)) {
           result.dateStyles.add(index);
         }
+      });
+
+      result.dxfs = toArray(styleSheet.dxfs?.dxf).map((dxf: any) => {
+        const style: ConditionalFormatStyle = {};
+        const font = dxf?.font;
+        if (font) {
+          if (font.b !== undefined) style.bold = true;
+          if (font.i !== undefined) style.italic = true;
+          if (font.color?.rgb !== undefined) style.color = this.argbToHex(String(font.color.rgb));
+        }
+        const bgColor = dxf?.fill?.patternFill?.bgColor?.rgb;
+        if (bgColor !== undefined) style.background = this.argbToHex(String(bgColor));
+        return style;
       });
     } catch {}
 
@@ -401,6 +422,7 @@ export class ExcelReader {
 
     const freezePane = this.parseFreezePane(worksheet);
     const columnWidths = this.parseColumnWidths(worksheet);
+    const conditionalFormats = this.parseConditionalFormats(worksheet, styleSheet);
 
     return {
       data,
@@ -409,7 +431,75 @@ export class ExcelReader {
       ...(mergeCells.length > 0 ? { mergeCells } : {}),
       ...(freezePane ? { freezePane } : {}),
       ...(columnWidths ? { columnWidths } : {}),
+      ...(conditionalFormats.length > 0 ? { conditionalFormats } : {}),
     };
+  }
+
+  private parseConditionalFormats(worksheet: any, styleSheet: StyleSheetData): ConditionalFormat[] {
+    const formats: ConditionalFormat[] = [];
+
+    for (const block of toArray(worksheet?.conditionalFormatting)) {
+      const range = block?.sqref !== undefined ? String(block.sqref) : '';
+      if (!range) continue;
+
+      for (const rule of toArray(block?.cfRule)) {
+        const cf = this.parseCfRule(rule, range, styleSheet);
+        if (cf) formats.push(cf);
+      }
+    }
+
+    return formats;
+  }
+
+  private parseCfRule(
+    rule: any,
+    range: string,
+    styleSheet: StyleSheetData
+  ): ConditionalFormat | undefined {
+    const type = rule?.type;
+
+    if (type === 'colorScale') {
+      const colors = toArray(rule?.colorScale?.color)
+        .map((c: any) => (c?.rgb !== undefined ? this.argbToHex(String(c.rgb)) : undefined))
+        .filter((c): c is string => c !== undefined);
+      if (colors.length === 2 || colors.length === 3) {
+        return {
+          type: 'colorScale',
+          range,
+          colors: colors as [string, string] | [string, string, string],
+        };
+      }
+      return undefined;
+    }
+
+    const style = styleSheet.dxfs[Number(rule?.dxfId ?? -1)] ?? {};
+
+    if (type === 'expression') {
+      return { type: 'expression', range, formula: this.extractText(rule?.formula), style };
+    }
+
+    if (type === 'cellIs') {
+      const formulas = toArray(rule?.formula).map((f: any) => this.parseCfValue(f));
+      return {
+        type: 'cellValue',
+        range,
+        operator: rule?.operator as ConditionalFormatOperator,
+        value: formulas[0],
+        ...(formulas.length > 1 ? { value2: formulas[1] } : {}),
+        style,
+      };
+    }
+
+    return undefined;
+  }
+
+  private parseCfValue(raw: any): number | string {
+    const value = raw && typeof raw === 'object' && raw['#text'] !== undefined ? raw['#text'] : raw;
+    if (typeof value === 'number') return value;
+    const text = String(value ?? '');
+    if (text.startsWith('"') && text.endsWith('"')) return text.slice(1, -1);
+    const num = Number(text);
+    return text !== '' && !Number.isNaN(num) ? num : text;
   }
 
   private parseFreezePane(worksheet: any): { row?: number; col?: number } | undefined {
