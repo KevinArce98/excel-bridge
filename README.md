@@ -123,6 +123,19 @@ full-import size. Check current, exact numbers on Bundlephobia:
 [excel-bridge](https://bundlephobia.com/package/excel-bridge) ·
 [exceljs](https://bundlephobia.com/package/exceljs) · [xlsx](https://bundlephobia.com/package/xlsx).</sub>
 
+### Performance
+
+Writing **50,000 rows × 10 columns** (median of 3 runs, Node 22, Apple Silicon):
+
+| Library | Write time | Output size |
+| --- | ---: | ---: |
+| **excel-bridge** | **662 ms** | **2.41 MB** |
+| exceljs | 1667 ms | 2.82 MB |
+| xlsx / SheetJS | 578 ms | 18.23 MB |
+
+~2.5× faster than ExcelJS, and a fraction of SheetJS's default output size. Numbers vary by
+machine — reproduce them with [`pnpm run bench`](./benchmarks/README.md).
+
 ## Guide
 
 - [High-level `Workbook` API](#high-level-workbook-api)
@@ -132,6 +145,7 @@ full-import size. Check current, exact numbers on Bundlephobia:
 - [Formulas & dates](#formulas--dates)
 - [Merged cells & layout](#merged-cells--layout)
 - [Conditional formatting](#conditional-formatting)
+- [Data validation](#data-validation)
 - [Streaming large workbooks](#streaming-large-workbooks)
 - [Shared strings (opt-in)](#shared-strings-opt-in)
 - [Reading in depth](#reading-in-depth)
@@ -170,9 +184,9 @@ Available on an instance: `getSheetNames`, `getSheetData`, `getCellValue`/`setCe
 `getMetadata`/`setMetadata`, `toBuffer`/`toBlob`. In the browser, load with
 `await Workbook.fromFile(file)`.
 
-> **Round-trip note:** `Workbook.fromBuffer`/`fromFile` restore data, styles, merges, freeze panes
-> and column widths, but **conditional formatting rules are not read back** — re-apply them with
-> `addConditionalFormat` before saving.
+> **Round-trip note:** `Workbook.fromBuffer`/`fromFile` restore data, styles, merges, freeze panes,
+> column widths **and conditional formatting rules** — so load / edit / save is lossless for the
+> features this library writes.
 
 ### Multi-sheet workbooks
 
@@ -370,6 +384,33 @@ const buffer = writer.createWorkbookBuffer([
 ]);
 ```
 
+### Data validation
+
+Use the typed `dataValidation` builders instead of hand-writing raw rule strings. Each returns a
+`CellValidation` you can drop into a sheet's `validations` array (or `Workbook.addValidation`).
+
+```typescript
+import { ExcelWriter, dataValidation } from 'excel-bridge';
+
+const writer = new ExcelWriter();
+const buffer = writer.createWorkbookBuffer([
+  {
+    data: [['Status', 'Priority', 'Score', 'Due']],
+    validations: [
+      dataValidation.list('A2:A100', ['Open', 'In Progress', 'Done']), // dropdown
+      dataValidation.wholeNumber('B2:B100', 'between', 1, 5),
+      dataValidation.decimal('C2:C100', 'greaterThanOrEqual', 0),
+      dataValidation.dateBetween('D2:D100', new Date(2024, 0, 1), new Date(2024, 11, 31)),
+    ],
+  },
+]);
+```
+
+Builders: `list(range, values)`, `wholeNumber`, `decimal`, `textLength` (each
+`(range, operator, value, value2?)`) and `dateBetween(range, start, end)`. Operators are
+`between`, `notBetween`, `equal`, `notEqual`, `greaterThan`, `lessThan`, `greaterThanOrEqual`,
+`lessThanOrEqual`.
+
 ### Streaming large workbooks
 
 For exports too large to hold in memory, `createExcelWorkbookStream` yields the `.xlsx` as
@@ -434,6 +475,7 @@ sheet.mergeCells; // ["A1:D1", ...]
 sheet.freezePane; // { row?: number; col?: number }
 sheet.columnWidths; // number[]
 sheet.validations; // Array<{ range: string; options: string }>
+sheet.conditionalFormats; // ConditionalFormat[] — read back for lossless round-trips
 
 workbook.metadata; // { created?, modified?, creator?, title?, subject? }
 ```
@@ -475,6 +517,7 @@ indexToCoordinate(0, 0);    // "A1"
 | --- | --- |
 | `createExcelWorkbookStream(sheets, options?)` | Async generator yielding `.xlsx` chunks for large exports. |
 | `streamToBuffer(stream)` | Collect a workbook stream into a single `Uint8Array`. |
+| `dataValidation.*` | Typed builders (`list`, `wholeNumber`, `decimal`, `textLength`, `dateBetween`) returning `CellValidation`. |
 | `coordinateToIndex(coord)` | `"A1"` → `{ row, col }`. |
 | `indexToCoordinate(row, col)` | `{ row, col }` → `"A1"`. |
 | `dateToExcelSerial(date)` | `Date` → Excel serial number. |
@@ -608,7 +651,6 @@ stable but lower-level — most apps only need the entry points above.
 
 - **Inline strings by default** — enable a shared-strings table with `new ExcelWriter({ sharedStrings: true })` for smaller files with lots of repeated text.
 - **Formulas recalculate on open** — formula cells are written without a cached value; Excel computes them on load (`fullCalcOnLoad`).
-- **Conditional formats are write-only** — reading a workbook does not parse conditional formatting rules back.
 
 ## Contributing
 
