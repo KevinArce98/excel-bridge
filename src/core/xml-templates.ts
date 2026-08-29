@@ -250,7 +250,7 @@ export const generateSheetXml = (
   return `<?xml version="1.0"?>
 <worksheet xmlns="${XML_NS.spreadsheetml}">${sheetViewsXml}${colsXml}
   <sheetData>${rowsXml}
-  </sheetData>${validationsXml}${mergeCellsXml}${conditionalFormattingXml}
+  </sheetData>${mergeCellsXml}${conditionalFormattingXml}${validationsXml}
 </worksheet>`;
 };
 
@@ -373,10 +373,10 @@ export const generateWorkbookXml = (sheetNames: string[] = ['Sheet1']) => {
   <bookViews>
     <workbookView xWindow="0" yWindow="0" windowWidth="22260" windowHeight="12645"/>
   </bookViews>
-  <calcPr calcId="162913" fullCalcOnLoad="1"/>
   <sheets>
 ${sheetsXml}
   </sheets>
+  <calcPr calcId="162913" fullCalcOnLoad="1"/>
 </workbook>`;
 };
 
