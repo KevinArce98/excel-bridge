@@ -1,4 +1,21 @@
-import { CellStyle } from './types';
+import { CellStyle, ConditionalFormatStyle } from './types';
+
+export function normalizeColor(color: string): string {
+  let normalized = color.replace('#', '');
+
+  if (normalized.length === 3) {
+    normalized = normalized
+      .split('')
+      .map(c => c + c)
+      .join('');
+  }
+
+  if (normalized.length === 6) {
+    normalized = 'FF' + normalized;
+  }
+
+  return normalized.toUpperCase();
+}
 
 export interface CellAlignment {
   horizontal?: 'left' | 'center' | 'right';
@@ -47,22 +64,19 @@ export class StyleManager {
   private borders: Border[] = [];
   private cellXfs: ExcelStyle[] = [];
   private styleMap: Map<string, number> = new Map();
-  // Custom number formats: format code -> numFmtId (>= 164)
   private numFmts: Map<string, number> = new Map();
   private nextNumFmtId = 164;
+  private dxfs: ConditionalFormatStyle[] = [];
+  private dxfMap: Map<string, number> = new Map();
 
   constructor() {
-    // Add default font
     this.fonts.push({ size: 11, name: 'Calibri' });
 
-    // Add default fills (required by Excel)
     this.fills.push({ patternType: 'none' });
     this.fills.push({ patternType: 'gray125' });
 
-    // Add default border
     this.borders.push({});
 
-    // Add default cellXf
     this.cellXfs.push({
       fontId: 0,
       fillId: 0,
@@ -154,7 +168,7 @@ export class StyleManager {
       fontId: 0,
       fillId: 0,
       borderId: 0,
-      numFmtId: 14, // Standard date format
+      numFmtId: 14,
       applyNumberFormat: true,
     };
 
@@ -308,7 +322,6 @@ export class StyleManager {
 
         if (xf.alignment) {
           const { horizontal, vertical, wrapText } = xf.alignment;
-          // Excel uses "center" for vertical middle alignment.
           const verticalValue = vertical === 'middle' ? 'center' : vertical;
           let alignXml = '      <alignment';
           if (horizontal) alignXml += ` horizontal="${horizontal}"`;
@@ -334,6 +347,43 @@ export class StyleManager {
     return this.numFmts.size;
   }
 
+  getDxfId(style: ConditionalFormatStyle): number {
+    const hash = JSON.stringify(style);
+    const existing = this.dxfMap.get(hash);
+    if (existing !== undefined) return existing;
+
+    const id = this.dxfs.length;
+    this.dxfs.push(style);
+    this.dxfMap.set(hash, id);
+    return id;
+  }
+
+  generateDxfsXml(): string {
+    return this.dxfs
+      .map(style => {
+        let fontXml = '';
+        if (style.bold || style.italic || style.color) {
+          fontXml = '<font>';
+          if (style.bold) fontXml += '<b/>';
+          if (style.italic) fontXml += '<i/>';
+          if (style.color) fontXml += `<color rgb="${normalizeColor(style.color)}"/>`;
+          fontXml += '</font>';
+        }
+
+        let fillXml = '';
+        if (style.background) {
+          fillXml = `<fill><patternFill><bgColor rgb="${normalizeColor(style.background)}"/></patternFill></fill>`;
+        }
+
+        return `    <dxf>${fontXml}${fillXml}</dxf>`;
+      })
+      .join('\n');
+  }
+
+  getDxfsCount(): number {
+    return this.dxfs.length;
+  }
+
   private escapeAttr(text: string): string {
     return text
       .replace(/&/g, '&amp;')
@@ -343,23 +393,7 @@ export class StyleManager {
   }
 
   private normalizeColor(color: string): string {
-    // Remove # if present
-    let normalized = color.replace('#', '');
-
-    // If 3-digit hex, expand to 6-digit
-    if (normalized.length === 3) {
-      normalized = normalized
-        .split('')
-        .map(c => c + c)
-        .join('');
-    }
-
-    // Add alpha channel if not present (FF = opaque)
-    if (normalized.length === 6) {
-      normalized = 'FF' + normalized;
-    }
-
-    return normalized.toUpperCase();
+    return normalizeColor(color);
   }
 
   getFontsCount(): number {

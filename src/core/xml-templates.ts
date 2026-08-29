@@ -1,5 +1,5 @@
 import { XML_NS } from './constants';
-import { StyleManager } from './style-manager';
+import { StyleManager, normalizeColor } from './style-manager';
 import {
   dateToExcelSerial,
   isDate,
@@ -8,11 +8,11 @@ import {
   validateCellValue,
 } from './date-utils';
 import { calculateColumnWidths, generateColsXml } from './column-width';
-import { CellValue, CellValidation, CellStyle } from './types';
+import { CellValue, CellValidation, CellStyle, ConditionalFormat } from './types';
 
 export type { CellValidation, CellStyle } from './types';
 
-const indexToColumnLetter = (index: number): string => {
+export const indexToColumnLetter = (index: number): string => {
   let letter = '';
   let num = index + 1;
 
@@ -28,10 +28,136 @@ const indexToColumnLetter = (index: number): string => {
 export interface SheetGenerationOptions {
   freezePane?: { row?: number; col?: number };
   autoWidth?: boolean;
+  columnWidths?: number[];
   mergeCells?: string[];
-  /** When provided, strings are written as shared-string references instead of inline. */
+  conditionalFormats?: ConditionalFormat[];
   sharedStrings?: Map<string, number>;
 }
+
+const CF_OPERATOR_XML: Record<string, string> = {
+  greaterThan: 'greaterThan',
+  greaterThanOrEqual: 'greaterThanOrEqual',
+  lessThan: 'lessThan',
+  lessThanOrEqual: 'lessThanOrEqual',
+  equal: 'equal',
+  notEqual: 'notEqual',
+  between: 'between',
+  notBetween: 'notBetween',
+};
+
+const cfFormulaValue = (value: number | string): string =>
+  typeof value === 'number' ? String(value) : `&quot;${escapeXml(value)}&quot;`;
+
+const generateConditionalFormattingXml = (
+  formats: ConditionalFormat[] = [],
+  styleManager?: StyleManager
+): string => {
+  if (formats.length === 0) return '';
+
+  return formats
+    .map((cf, index) => {
+      const priority = index + 1;
+
+      if (cf.type === 'colorScale') {
+        const cfvos =
+          cf.colors.length === 3
+            ? '<cfvo type="min"/><cfvo type="percentile" val="50"/><cfvo type="max"/>'
+            : '<cfvo type="min"/><cfvo type="max"/>';
+        const colorsXml = cf.colors.map(c => `<color rgb="${normalizeColor(c)}"/>`).join('');
+        return `\n  <conditionalFormatting sqref="${cf.range}">\n    <cfRule type="colorScale" priority="${priority}">\n      <colorScale>${cfvos}${colorsXml}</colorScale>\n    </cfRule>\n  </conditionalFormatting>`;
+      }
+
+      const dxfId = styleManager ? styleManager.getDxfId(cf.style) : 0;
+
+      if (cf.type === 'expression') {
+        return `\n  <conditionalFormatting sqref="${cf.range}">\n    <cfRule type="expression" dxfId="${dxfId}" priority="${priority}">\n      <formula>${escapeXml(cf.formula)}</formula>\n    </cfRule>\n  </conditionalFormatting>`;
+      }
+
+      const operator = CF_OPERATOR_XML[cf.operator];
+      const formulasXml =
+        cf.operator === 'between' || cf.operator === 'notBetween'
+          ? `<formula>${cfFormulaValue(cf.value)}</formula><formula>${cfFormulaValue(cf.value2!)}</formula>`
+          : `<formula>${cfFormulaValue(cf.value)}</formula>`;
+      return `\n  <conditionalFormatting sqref="${cf.range}">\n    <cfRule type="cellIs" dxfId="${dxfId}" priority="${priority}" operator="${operator}">${formulasXml}</cfRule>\n  </conditionalFormatting>`;
+    })
+    .join('');
+};
+
+export const generateRowXml = (
+  row: CellValue[],
+  rowIndex: number,
+  styles: Record<string, CellStyle> = {},
+  styleManager?: StyleManager,
+  sharedStrings?: Map<string, number>
+): string => {
+  validateRowIndex(rowIndex);
+  let rowXml = `\n    <row r="${rowIndex + 1}">`;
+
+  row.forEach((cellValue, colIndex) => {
+    validateColIndex(colIndex);
+    const ref = `${indexToColumnLetter(colIndex)}${rowIndex + 1}`;
+    const styleKey = `${rowIndex}-${colIndex}`;
+    const cellStyle = styles[styleKey];
+
+    let cellXml = `<c r="${ref}"`;
+
+    if (cellStyle && styleManager) {
+      const styleId = styleManager.getStyleId(cellStyle);
+      cellXml += ` s="${styleId}"`;
+    }
+
+    if (cellValue === null || cellValue === undefined) {
+      rowXml += cellXml + '/>';
+      return;
+    }
+
+    if (typeof cellValue === 'string' && cellValue.startsWith('=')) {
+      const formula = escapeXml(cellValue.substring(1));
+      cellXml += `><f>${formula}</f></c>`;
+      rowXml += cellXml;
+      return;
+    }
+
+    if (isDate(cellValue)) {
+      const serial = dateToExcelSerial(cellValue);
+      const dateStyleId = styleManager ? styleManager.getDateStyleId() : 0;
+      cellXml = `<c r="${ref}" s="${dateStyleId}"><v>${serial}</v></c>`;
+      rowXml += cellXml;
+      return;
+    }
+
+    if (typeof cellValue === 'number') {
+      cellXml += `><v>${cellValue}</v></c>`;
+      rowXml += cellXml;
+      return;
+    }
+
+    if (typeof cellValue === 'boolean') {
+      cellXml += ` t="b"><v>${cellValue ? 1 : 0}</v></c>`;
+      rowXml += cellXml;
+      return;
+    }
+
+    const stringValue = cellValue.toString();
+    validateCellValue(stringValue);
+
+    if (sharedStrings) {
+      const index = sharedStrings.get(stringValue);
+      if (index !== undefined) {
+        cellXml += ` t="s"><v>${index}</v></c>`;
+        rowXml += cellXml;
+        return;
+      }
+    }
+
+    const space = stringValue !== stringValue.trim() ? ' xml:space="preserve"' : '';
+    cellXml += ` t="inlineStr"><is><t${space}>${escapeXml(stringValue)}</t></is></c>`;
+    rowXml += cellXml;
+  });
+
+  rowXml += `</row>`;
+  return rowXml;
+};
 
 export const generateSheetXml = (
   data: CellValue[][],
@@ -43,84 +169,9 @@ export const generateSheetXml = (
   let rowsXml = '';
 
   data.forEach((row, rowIndex) => {
-    validateRowIndex(rowIndex);
-    rowsXml += `\n    <row r="${rowIndex + 1}">`;
-
-    row.forEach((cellValue, colIndex) => {
-      validateColIndex(colIndex);
-      const ref = `${indexToColumnLetter(colIndex)}${rowIndex + 1}`;
-      const styleKey = `${rowIndex}-${colIndex}`;
-      const cellStyle = styles[styleKey];
-
-      let cellXml = `<c r="${ref}"`;
-
-      // Apply style if present
-      if (cellStyle && styleManager) {
-        const styleId = styleManager.getStyleId(cellStyle);
-        cellXml += ` s="${styleId}"`;
-      }
-
-      // Handle null/undefined
-      if (cellValue === null || cellValue === undefined) {
-        rowsXml += cellXml + '/>';
-        return;
-      }
-
-      // Handle formulas (strings starting with =)
-      if (typeof cellValue === 'string' && cellValue.startsWith('=')) {
-        const formula = escapeXml(cellValue.substring(1));
-        // No cached <v>: Excel recalculates on open (fullCalcOnLoad is set in workbook.xml).
-        cellXml += `><f>${formula}</f></c>`;
-        rowsXml += cellXml;
-        return;
-      }
-
-      // Handle dates
-      if (isDate(cellValue)) {
-        const serial = dateToExcelSerial(cellValue);
-        const dateStyleId = styleManager ? styleManager.getDateStyleId() : 0;
-        cellXml = `<c r="${ref}" s="${dateStyleId}"><v>${serial}</v></c>`;
-        rowsXml += cellXml;
-        return;
-      }
-
-      // Handle numbers
-      if (typeof cellValue === 'number') {
-        cellXml += `><v>${cellValue}</v></c>`;
-        rowsXml += cellXml;
-        return;
-      }
-
-      // Handle booleans
-      if (typeof cellValue === 'boolean') {
-        cellXml += ` t="b"><v>${cellValue ? 1 : 0}</v></c>`;
-        rowsXml += cellXml;
-        return;
-      }
-
-      // Handle strings
-      const stringValue = cellValue.toString();
-      validateCellValue(stringValue);
-
-      if (options.sharedStrings) {
-        const index = options.sharedStrings.get(stringValue);
-        if (index !== undefined) {
-          cellXml += ` t="s"><v>${index}</v></c>`;
-          rowsXml += cellXml;
-          return;
-        }
-      }
-
-      // Preserve leading/trailing whitespace in inline strings.
-      const space = stringValue !== stringValue.trim() ? ' xml:space="preserve"' : '';
-      cellXml += ` t="inlineStr"><is><t${space}>${escapeXml(stringValue)}</t></is></c>`;
-      rowsXml += cellXml;
-    });
-
-    rowsXml += `</row>`;
+    rowsXml += generateRowXml(row, rowIndex, styles, styleManager, options.sharedStrings);
   });
 
-  // Build validations XML (MUST come after sheetData)
   let validationsXml = '';
   if (validations.length > 0) {
     validationsXml = `
@@ -135,10 +186,12 @@ export const generateSheetXml = (
   </dataValidations>`;
   }
 
-  // Generate column widths if auto-width is enabled
-  const colsXml = options.autoWidth ? generateColsXml(calculateColumnWidths(data)) : '';
+  const colsXml = options.columnWidths
+    ? generateColsXml(options.columnWidths)
+    : options.autoWidth
+      ? generateColsXml(calculateColumnWidths(data))
+      : '';
 
-  // Generate freeze pane if specified
   let sheetViewsXml = '';
   if (options.freezePane) {
     const { row = 0, col = 0 } = options.freezePane;
@@ -166,7 +219,6 @@ export const generateSheetXml = (
   </sheetViews>`;
   }
 
-  // Generate merge cells if specified
   let mergeCellsXml = '';
   if (options.mergeCells && options.mergeCells.length > 0) {
     mergeCellsXml = `\n  <mergeCells count="${options.mergeCells.length}">`;
@@ -176,10 +228,15 @@ export const generateSheetXml = (
     mergeCellsXml += `\n  </mergeCells>`;
   }
 
+  const conditionalFormattingXml = generateConditionalFormattingXml(
+    options.conditionalFormats,
+    styleManager
+  );
+
   return `<?xml version="1.0"?>
 <worksheet xmlns="${XML_NS.spreadsheetml}">${sheetViewsXml}${colsXml}
   <sheetData>${rowsXml}
-  </sheetData>${validationsXml}${mergeCellsXml}
+  </sheetData>${validationsXml}${mergeCellsXml}${conditionalFormattingXml}
 </worksheet>`;
 };
 
@@ -199,7 +256,6 @@ export const generateSharedStringsXml = (strings: string[]) => {
 
 export const generateStylesXml = (styleManager?: StyleManager) => {
   if (!styleManager) {
-    // Return default static styles if no StyleManager provided
     return `<?xml version="1.0"?>
 <styleSheet xmlns="${XML_NS.spreadsheetml}">
   <fonts count="1">
@@ -229,7 +285,6 @@ export const generateStylesXml = (styleManager?: StyleManager) => {
 </styleSheet>`;
   }
 
-  // Generate dynamic styles using StyleManager
   const numFmtsCount = styleManager.getNumFmtsCount();
   const numFmtsXml =
     numFmtsCount > 0
@@ -256,7 +311,9 @@ ${styleManager.generateCellXfsXml()}
   <cellStyles count="1">
     <cellStyle name="Normal" xfId="0" builtinId="0"/>
   </cellStyles>
-  <dxfs count="0"/>
+  <dxfs count="${styleManager.getDxfsCount()}">
+${styleManager.generateDxfsXml()}
+  </dxfs>
   <tableStyles count="0" defaultTableStyle="TableStyleMedium2" defaultPivotStyle="PivotStyleLight16"/>
 </styleSheet>`;
 };
@@ -328,14 +385,20 @@ ${worksheetRels}
 </Relationships>`;
 };
 
-export const generateCorePropsXml = (creator: string = 'Excel Bridge') => {
+export const generateCorePropsXml = (
+  creator: string = 'Excel Bridge',
+  title?: string,
+  subject?: string
+) => {
   const now = new Date().toISOString();
+  const titleXml = title ? `\n  <dc:title>${escapeXml(title)}</dc:title>` : '';
+  const subjectXml = subject ? `\n  <dc:subject>${escapeXml(subject)}</dc:subject>` : '';
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <dc:creator>${escapeXml(creator)}</dc:creator>
   <cp:lastModifiedBy>${escapeXml(creator)}</cp:lastModifiedBy>
   <dcterms:created xsi:type="dcterms:W3CDTF">${now}</dcterms:created>
-  <dcterms:modified xsi:type="dcterms:W3CDTF">${now}</dcterms:modified>
+  <dcterms:modified xsi:type="dcterms:W3CDTF">${now}</dcterms:modified>${titleXml}${subjectXml}
 </cp:coreProperties>`;
 };
 
@@ -358,9 +421,8 @@ export const generateRootRelsXml = () => {
 
 const escapeXml = (text: string): string => {
   return text
-    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '') // strip invalid XML 1.0 control chars
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
-  // ' and " don't need escaping in XML text content, only in attribute values.
 };

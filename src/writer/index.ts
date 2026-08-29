@@ -3,29 +3,31 @@ import {
   generateSheetXml,
   generateStylesXml,
   generateSharedStringsXml,
+  generateContentTypesXml,
+  generateWorkbookXml,
   generateWorkbookRelsXml,
+  generateRootRelsXml,
+  generateCorePropsXml,
+  generateAppPropsXml,
   SheetGenerationOptions,
 } from '../core/xml-templates';
 import { StyleManager } from '../core/style-manager';
 import { isDate } from '../core/date-utils';
-import { CellValue, CellValidation, CellStyle } from '../core/types';
+import { CellValue, CellValidation, CellStyle, ConditionalFormat } from '../core/types';
 
-export type { CellValue, CellValidation, CellStyle } from '../core/types';
-
-const escapeXmlAttr = (text: string): string =>
-  text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+export type { CellValue, CellValidation, CellStyle, ConditionalFormat } from '../core/types';
 
 export interface SheetOptions {
   name?: string;
   freezePane?: { row?: number; col?: number };
   autoWidth?: boolean;
+  columnWidths?: number[];
 }
 
 export interface ExcelWriterOptions {
   creator?: string;
   title?: string;
   subject?: string;
-  /** Write strings to a shared-strings table instead of inline (smaller files with repeated text). */
   sharedStrings?: boolean;
 }
 
@@ -34,6 +36,7 @@ export interface ExcelData {
   validations?: CellValidation[];
   styles?: Record<string, CellStyle>;
   mergeCells?: string[];
+  conditionalFormats?: ConditionalFormat[];
   options?: SheetOptions;
 }
 
@@ -60,14 +63,11 @@ export class ExcelWriter {
   private generateFiles(data: ExcelData[]): ExcelFiles {
     const sheetCount = data.length;
 
-    // Optionally build a shared-strings table.
     const shared = this._options.sharedStrings ? this.buildSharedStrings(data) : null;
     const hasSharedStrings = !!shared && shared.list.length > 0;
 
-    // Create a single StyleManager for all sheets
     const styleManager = new StyleManager();
 
-    // Pre-process all styles to populate StyleManager
     data.forEach(sheetData => {
       if (sheetData.styles) {
         Object.values(sheetData.styles).forEach(style => {
@@ -76,7 +76,6 @@ export class ExcelWriter {
       }
     });
 
-    // Ensure date style is registered before generating styles.xml
     const containsDates = data.some(sheetData =>
       sheetData.data.some(row => row.some(cell => isDate(cell)))
     );
@@ -85,10 +84,8 @@ export class ExcelWriter {
       styleManager.getDateStyleId();
     }
 
-    // Extract sheet names
     const sheetNames = data.map((sheet, index) => sheet.options?.name || `Sheet${index + 1}`);
 
-    // Generate worksheet XML first to capture style usage
     const worksheetEntries: Array<{ path: string; xml: string }> = [];
 
     data.forEach((sheetData, index) => {
@@ -96,7 +93,9 @@ export class ExcelWriter {
       const sheetOptions: SheetGenerationOptions = {
         freezePane: sheetData.options?.freezePane,
         autoWidth: sheetData.options?.autoWidth,
+        columnWidths: sheetData.options?.columnWidths,
         mergeCells: sheetData.mergeCells,
+        conditionalFormats: sheetData.conditionalFormats,
         sharedStrings: hasSharedStrings ? shared!.map : undefined,
       };
 
@@ -111,53 +110,32 @@ export class ExcelWriter {
       worksheetEntries.push({ path: `xl/worksheets/sheet${sheetIndex}.xml`, xml: sheetXml });
     });
 
-    // SAFE FUNCTIONAL VERSION - NO DOCPROPS
     const files: ExcelFiles = {};
 
-    // 1. [Content_Types].xml - MUST BE FIRST
-    const sharedStringsOverride = hasSharedStrings
-      ? '\n  <Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/>'
-      : '';
+    files['[Content_Types].xml'] = generateContentTypesXml(sheetCount, hasSharedStrings);
 
-    files['[Content_Types].xml'] = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
-  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
-  <Default Extension="xml" ContentType="application/xml"/>
-  <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
-${Array.from({ length: sheetCount }, (_, i) => `  <Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('\n')}
-  <Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>${sharedStringsOverride}
-</Types>`;
+    files['_rels/.rels'] = generateRootRelsXml();
 
-    // 2. _rels/.rels
-    files['_rels/.rels'] = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
-</Relationships>`;
-
-    // 3. xl/_rels/workbook.xml.rels
     files['xl/_rels/workbook.xml.rels'] = generateWorkbookRelsXml(sheetCount, hasSharedStrings);
 
-    // 4. xl/workbook.xml - SIMPLE VERSION
-    files['xl/workbook.xml'] = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
-  <sheets>
-${sheetNames.map((name, index) => `    <sheet name="${escapeXmlAttr(name)}" sheetId="${index + 1}" r:id="rId${index + 1}"/>`).join('\n')}
-  </sheets>
-  <calcPr calcId="0" fullCalcOnLoad="1"/>
-</workbook>`;
+    files['xl/workbook.xml'] = generateWorkbookXml(sheetNames);
 
-    // 5. xl/styles.xml (after worksheets so StyleManager has all styles)
     files['xl/styles.xml'] = generateStylesXml(styleManager);
 
-    // 6. xl/worksheets/sheet*.xml
     worksheetEntries.forEach(entry => {
       files[entry.path] = entry.xml;
     });
 
-    // 7. xl/sharedStrings.xml (only when enabled)
     if (hasSharedStrings) {
       files['xl/sharedStrings.xml'] = generateSharedStringsXml(shared!.list);
     }
+
+    files['docProps/core.xml'] = generateCorePropsXml(
+      this._options.creator,
+      this._options.title,
+      this._options.subject
+    );
+    files['docProps/app.xml'] = generateAppPropsXml();
 
     return files;
   }
@@ -169,7 +147,6 @@ ${sheetNames.map((name, index) => `    <sheet name="${escapeXmlAttr(name)}" shee
     data.forEach(sheetData => {
       sheetData.data.forEach(row => {
         row.forEach(cell => {
-          // Only plain strings are shared; formulas (=...) and dates are handled separately.
           if (typeof cell === 'string' && !cell.startsWith('=') && !map.has(cell)) {
             map.set(cell, list.length);
             list.push(cell);
