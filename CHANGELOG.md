@@ -1,3 +1,16 @@
+# [1.3.0](https://github.com/KevinArce98/excel-bridge/compare/v1.2.0...v1.3.0) (2026-08-29)
+
+
+### Bug Fixes
+
+* **writer:** emit worksheet and workbook elements in schema order ([b9743af](https://github.com/KevinArce98/excel-bridge/commit/b9743afeddbe51fa0cfa2d1e23ecd5a49ce3544c))
+
+
+### Features
+
+* **reader:** parse conditional formatting rules ([3648a42](https://github.com/KevinArce98/excel-bridge/commit/3648a421ea07d37c751b9e50b9f4eff8d236761e))
+* **writer:** support whole, decimal, textLength and date validations ([4039317](https://github.com/KevinArce98/excel-bridge/commit/40393171c1ce916a09cc6fba6237e13929d564ba))
+
 # [1.2.0](https://github.com/KevinArce98/excel-bridge/compare/v1.1.0...v1.2.0) (2026-08-29)
 
 
