@@ -1,8 +1,8 @@
-// Reader exports
 export { ExcelReader, parseExcel } from './reader';
 export type { ParsedCell, ParsedSheet, ParsedWorkbook } from './reader';
+export { Workbook } from './workbook';
+export type { WorkbookMetadata } from './workbook';
 
-// Writer exports
 export { ExcelWriter, createExcelFile, createExcelFileBuffer } from './writer';
 export type {
   ExcelWriterOptions,
@@ -11,9 +11,16 @@ export type {
   CellStyle,
   CellValue,
   SheetOptions,
+  ConditionalFormat,
 } from './writer';
+export type {
+  ConditionalFormatStyle,
+  ConditionalFormatOperator,
+  CellValueConditionalFormat,
+  ExpressionConditionalFormat,
+  ColorScaleConditionalFormat,
+} from './core/types';
 
-// Core utilities
 export {
   createExcelBlob,
   createExcelBuffer,
@@ -36,11 +43,9 @@ export {
 } from './core/xml-templates';
 export type { SheetGenerationOptions } from './core/xml-templates';
 
-// Style management
 export { StyleManager } from './core/style-manager';
 export type { ExcelStyle, Font, Fill, Border, CellAlignment } from './core/style-manager';
 
-// Date utilities
 export {
   dateToExcelSerial,
   excelSerialToDate,
@@ -53,10 +58,8 @@ export {
   validateCellValue,
 } from './core/date-utils';
 
-// Column width utilities
 export { calculateColumnWidths, generateColsXml } from './core/column-width';
 
-// Utility functions
 export const coordinateToIndex = (coordinate: string): { row: number; col: number } => {
   const match = coordinate.match(/^([A-Z]+)(\d+)$/);
   if (!match) {
@@ -89,31 +92,28 @@ export const indexToCoordinate = (row: number, col: number): string => {
   return `${colLetters}${rowNumber}`;
 };
 
-// Main API for quick usage
 import { ExcelReader as ReaderClass, parseExcel as parseFunction } from './reader';
 import {
   ExcelWriter as WriterClass,
   createExcelFile as createFile,
   createExcelFileBuffer as createFileBuffer,
 } from './writer';
+import { Workbook as WorkbookClass } from './workbook';
 
 export const ExcelBridge = {
-  // Reading
   read: parseFunction,
   readFromFile: (file: File) => {
     const reader = new ReaderClass();
     return reader.parseFromFile(file);
   },
 
-  // Writing
   write: createFile,
   writeBuffer: createFileBuffer,
 
-  // Utilities
   coordinateToIndex,
   indexToCoordinate,
 
-  // Advanced
   Writer: WriterClass,
   Reader: ReaderClass,
+  Workbook: WorkbookClass,
 };
