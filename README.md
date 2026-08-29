@@ -4,13 +4,14 @@
 
 <br />
 
-**Read and write `.xlsx` files in the browser and Node.js — with styling, formulas, dates and multi-sheet support, and no heavy dependencies.**
+**The lightweight, tree-shakeable `.xlsx` toolkit for TypeScript — read and write spreadsheets in the browser and Node.js without pulling in ExcelJS or SheetJS.**
 
 <br />
 
 [![npm version](https://img.shields.io/npm/v/excel-bridge?logo=npm&label=npm&color=22c55e)](https://www.npmjs.com/package/excel-bridge)
 [![downloads](https://img.shields.io/npm/dm/excel-bridge?label=downloads&color=22c55e)](https://www.npmjs.com/package/excel-bridge)
 [![min+gzip](https://img.shields.io/bundlephobia/minzip/excel-bridge?label=min%2Bgzip&color=22c55e)](https://bundlephobia.com/package/excel-bridge)
+[![provenance](https://img.shields.io/badge/provenance-signed-22c55e?logo=npm)](https://www.npmjs.com/package/excel-bridge)
 [![CI](https://img.shields.io/github/actions/workflow/status/KevinArce98/excel-bridge/ci.yml?branch=main&label=CI&logo=github)](https://github.com/KevinArce98/excel-bridge/actions)
 [![types](https://img.shields.io/npm/types/excel-bridge?color=22c55e)](https://www.npmjs.com/package/excel-bridge)
 [![license](https://img.shields.io/npm/l/excel-bridge?color=22c55e)](./LICENSE)
@@ -23,14 +24,13 @@
 
 ## Highlights
 
-- **Read & write `.xlsx`** — parse existing workbooks or generate new ones from plain arrays.
 - **Zero heavy dependencies** — no ExcelJS or SheetJS under the hood, just `fflate` + `fast-xml-parser`.
-- **Tiny & tree-shakeable** — micro-package architecture ships only what you import (ESM + CJS).
+- **Tiny & tree-shakeable** — a micro-package architecture ships only what you import (ESM **and** CJS).
 - **TypeScript-first** — complete types and IntelliSense for every public API.
 - **Cross-platform** — one API for the browser (`File`/`Blob`) and Node.js (`Buffer`).
-- **Rich styling** — background, fonts, borders, alignment, wrapping and custom number formats.
-- **Real spreadsheet features** — formulas, dates, merged cells, freeze panes, auto-width and data validation.
-- **Multi-sheet workbooks** — build named sheets with per-sheet options in a single file.
+- **Full read & write** — styling, fonts, borders, formulas, dates, merged cells, freeze panes, **conditional formatting**, data validation and multi-sheet workbooks.
+- **Scales up** — a **streaming writer** for million-row exports and a **high-level `Workbook` API** to load, edit and save existing files.
+- **Signed releases** — every version is published to npm with [provenance](https://docs.npmjs.com/generating-provenance-statements).
 
 ## Installation
 
@@ -46,6 +46,8 @@ pnpm add excel-bridge
 yarn add excel-bridge
 ```
 
+> Try it online without installing (Node sandbox): [runkit.com/npm/excel-bridge](https://npm.runkit.com/excel-bridge).
+
 ## Quick Start
 
 ### Read a workbook
@@ -57,7 +59,7 @@ import { ExcelBridge } from 'excel-bridge';
 const file = document.querySelector<HTMLInputElement>('input[type="file"]')!.files![0];
 const workbook = await ExcelBridge.readFromFile(file);
 
-// Node.js — from a Buffer
+// Node.js — from a Buffer (synchronous)
 import fs from 'node:fs';
 const buffer = fs.readFileSync('data.xlsx');
 const workbook = ExcelBridge.read(buffer);
@@ -107,26 +109,70 @@ enough to drop into a front-end bundle.
 | Read `.xlsx` | ✅ | ✅ | ✅ |
 | Write `.xlsx` | ✅ | ✅ | ✅ |
 | Cell styling (color, font, border) | ✅ | ✅ | ⚠️ Pro edition |
+| Conditional formatting | ✅ | ✅ | ⚠️ Pro edition |
 | Formulas | ✅ | ✅ | ✅ |
 | Merged cells & freeze panes | ✅ | ✅ | ✅ |
+| Streaming writer | ✅ | ✅ | ⚠️ Pro edition |
 | First-class TypeScript types | ✅ | ✅ | ✅ |
-| ESM **and** CJS, tree-shakeable | ✅ | ⚠️ | ✅ |
+| ESM **and** CJS, tree-shakeable | ✅ | ⚠️ CJS-first | ✅ |
 | Heavy runtime dependencies | **None** | Several | None |
 | Bundle footprint | **Tiny** ¹ | Large ¹ | Large ¹ |
 
-<sub>¹ Comparisons refer to the free/community distributions. Check current, exact sizes on
-Bundlephobia: [excel-bridge](https://bundlephobia.com/package/excel-bridge) ·
+<sub>¹ Because the package is tree-shakeable, importing a single helper pulls in far less than the
+full-import size. Check current, exact numbers on Bundlephobia:
+[excel-bridge](https://bundlephobia.com/package/excel-bridge) ·
 [exceljs](https://bundlephobia.com/package/exceljs) · [xlsx](https://bundlephobia.com/package/xlsx).</sub>
 
 ## Guide
 
+- [High-level `Workbook` API](#high-level-workbook-api)
 - [Multi-sheet workbooks](#multi-sheet-workbooks)
 - [Styling cells](#styling-cells)
 - [Extended cell styles](#extended-cell-styles)
 - [Formulas & dates](#formulas--dates)
 - [Merged cells & layout](#merged-cells--layout)
+- [Conditional formatting](#conditional-formatting)
+- [Streaming large workbooks](#streaming-large-workbooks)
 - [Shared strings (opt-in)](#shared-strings-opt-in)
+- [Reading in depth](#reading-in-depth)
 - [Coordinate helpers](#coordinate-helpers)
+
+### High-level `Workbook` API
+
+`Workbook` is the friendliest way to **load an existing file, modify it, and save it back** —
+no need to rebuild sheet data by hand.
+
+```typescript
+import { Workbook } from 'excel-bridge';
+
+// Start from scratch…
+const wb = Workbook.create();
+wb.addSheet('Sales', [
+  ['Product', 'Price', 'Qty'],
+  ['Laptop', 999.99, 5],
+]);
+wb.setCellStyle('Sales', 0, 0, { bold: true, background: '#4472C4', color: '#FFFFFF' });
+wb.setFreezePane('Sales', { row: 1 });
+wb.setMetadata({ creator: 'My App', title: 'Sales Report' });
+
+import fs from 'node:fs';
+fs.writeFileSync('sales.xlsx', wb.toBuffer());
+
+// …or load, edit and save an existing workbook
+const existing = Workbook.fromBuffer(fs.readFileSync('sales.xlsx'));
+existing.setCellValue('Sales', 1, 1, 899.99); // drop the laptop price
+const blob = existing.toBlob(); // in the browser
+```
+
+Available on an instance: `getSheetNames`, `getSheetData`, `getCellValue`/`setCellValue`,
+`getCellStyle`/`setCellStyle`, `setMergeCells`, `setFreezePane`, `setColumnWidths`,
+`setAutoWidth`, `addValidation`, `addConditionalFormat`, `addSheet`/`removeSheet`,
+`getMetadata`/`setMetadata`, `toBuffer`/`toBlob`. In the browser, load with
+`await Workbook.fromFile(file)`.
+
+> **Round-trip note:** `Workbook.fromBuffer`/`fromFile` restore data, styles, merges, freeze panes
+> and column widths, but **conditional formatting rules are not read back** — re-apply them with
+> `addConditionalFormat` before saving.
 
 ### Multi-sheet workbooks
 
@@ -271,11 +317,93 @@ const reportSheet = {
     '4-0': { background: '#70AD47', bold: true, color: '#FFFFFF' },
   },
   mergeCells: ['A1:D1'], // merge the title row
-  options: { name: 'Quarterly Report', freezePane: { row: 2 }, autoWidth: true },
+  // Fixed widths instead of autoWidth
+  options: { name: 'Quarterly Report', freezePane: { row: 2 }, columnWidths: [24, 12, 12, 12] },
 };
 
 const buffer = writer.createWorkbookBuffer([reportSheet]);
 ```
+
+### Conditional formatting
+
+Attach `conditionalFormats` to a sheet to highlight cells by value, formula, or a color scale.
+
+```typescript
+import { ExcelWriter } from 'excel-bridge';
+import type { ConditionalFormat } from 'excel-bridge';
+
+const conditionalFormats: ConditionalFormat[] = [
+  // Highlight low stock in red
+  {
+    type: 'cellValue',
+    range: 'C2:C4',
+    operator: 'lessThan',
+    value: 10,
+    style: { background: '#FFC7CE', color: '#9C0006' },
+  },
+  // Flag rows where a formula is true
+  {
+    type: 'expression',
+    range: 'A2:D4',
+    formula: '$D2="Out of Stock"',
+    style: { background: '#FFE6E6', bold: true },
+  },
+  // Three-color scale across a numeric range
+  {
+    type: 'colorScale',
+    range: 'B2:B4',
+    colors: ['#F8696B', '#FFEB84', '#63BE7B'],
+  },
+];
+
+const writer = new ExcelWriter();
+const buffer = writer.createWorkbookBuffer([
+  {
+    data: [
+      ['Product', 'Price', 'Stock', 'Status'],
+      ['Laptop', 999.99, 15, 'Available'],
+      ['Mouse', 29.99, 5, 'Low Stock'],
+      ['Keyboard', 79.99, 0, 'Out of Stock'],
+    ],
+    conditionalFormats,
+  },
+]);
+```
+
+### Streaming large workbooks
+
+For exports too large to hold in memory, `createExcelWorkbookStream` yields the `.xlsx` as
+`Uint8Array` chunks. Rows come from a **sync or async iterable**, so they never all live in memory
+at once.
+
+```typescript
+import { createExcelWorkbookStream, streamToBuffer } from 'excel-bridge';
+import fs from 'node:fs';
+
+// Rows are produced lazily — here, a million of them
+function* generateRows() {
+  yield ['Id', 'Name', 'Value'];
+  for (let i = 1; i <= 1_000_000; i++) {
+    yield [i, `Row ${i}`, i * 2];
+  }
+}
+
+// Option A — pipe chunks straight to disk, nothing is buffered whole
+const out = fs.createWriteStream('big.xlsx');
+for await (const chunk of createExcelWorkbookStream([{ name: 'Data', rows: generateRows() }])) {
+  out.write(chunk);
+}
+out.end();
+
+// Option B — collect into a single Uint8Array when you still need a buffer
+const buffer = await streamToBuffer(
+  createExcelWorkbookStream([{ name: 'Data', rows: generateRows() }])
+);
+```
+
+A streaming sheet (`StreamingSheetInput`) supports `name`, `rows`, `styles`, `freezePane`,
+`columnWidths` and `mergeCells`. It does **not** support `autoWidth`, `validations` or
+`conditionalFormats` — use `ExcelWriter`/`Workbook` when you need those.
 
 ### Shared strings (opt-in)
 
@@ -287,6 +415,27 @@ import { ExcelWriter } from 'excel-bridge';
 
 const writer = new ExcelWriter({ sharedStrings: true });
 const buffer = writer.createWorkbookBuffer([{ data }]);
+```
+
+### Reading in depth
+
+`ExcelBridge.read` returns the full workbook — not just cell values. Each `ParsedSheet` also
+exposes its layout, and the workbook carries document metadata.
+
+```typescript
+import { ExcelBridge } from 'excel-bridge';
+
+const workbook = ExcelBridge.read(buffer);
+
+const sheet = workbook.sheets[0];
+sheet.name; // "Sales Report"
+sheet.styles; // Record<"row-col", CellStyle>
+sheet.mergeCells; // ["A1:D1", ...]
+sheet.freezePane; // { row?: number; col?: number }
+sheet.columnWidths; // number[]
+sheet.validations; // Array<{ range: string; options: string }>
+
+workbook.metadata; // { created?, modified?, creator?, title?, subject? }
 ```
 
 ### Coordinate helpers
@@ -304,23 +453,28 @@ indexToCoordinate(0, 0);    // "A1"
 
 | Export | Description |
 | --- | --- |
-| `ExcelBridge.read(buffer)` | Parse an `.xlsx` from a `Buffer`/`Uint8Array`. |
-| `ExcelBridge.readFromFile(file)` | Parse an `.xlsx` from a browser `File`. |
+| `ExcelBridge.read(buffer)` | Parse an `.xlsx` from a `Buffer`/`Uint8Array` (synchronous). |
+| `ExcelBridge.readFromFile(file)` | Parse an `.xlsx` from a browser `File` (async). |
 | `ExcelBridge.write(data)` | Create an `.xlsx` `Blob` from a 2D array. |
 | `ExcelBridge.writeBuffer(data)` | Create an `.xlsx` `Buffer` from a 2D array. |
+| `ExcelBridge.Reader` / `.Writer` / `.Workbook` | The `ExcelReader`, `ExcelWriter` and `Workbook` classes. |
+| `ExcelBridge.coordinateToIndex` / `.indexToCoordinate` | The coordinate helpers below. |
 
 ### Classes
 
 | Class | Description |
 | --- | --- |
+| `Workbook` | High-level load / edit / save API over the reader and writer. |
 | `ExcelReader` | Full-featured `.xlsx` parser. |
 | `ExcelWriter` | Multi-sheet `.xlsx` writer with styling, formulas and layout. |
 | `StyleManager` | Deduplicated style registry used internally by the writer. |
 
-### Utilities
+### Functions
 
 | Function | Description |
 | --- | --- |
+| `createExcelWorkbookStream(sheets, options?)` | Async generator yielding `.xlsx` chunks for large exports. |
+| `streamToBuffer(stream)` | Collect a workbook stream into a single `Uint8Array`. |
 | `coordinateToIndex(coord)` | `"A1"` → `{ row, col }`. |
 | `indexToCoordinate(row, col)` | `{ row, col }` → `"A1"`. |
 | `dateToExcelSerial(date)` | `Date` → Excel serial number. |
@@ -339,6 +493,7 @@ interface ExcelData {
   styles?: Record<string, CellStyle>;
   validations?: CellValidation[];
   mergeCells?: string[];
+  conditionalFormats?: ConditionalFormat[];
   options?: SheetOptions;
 }
 
@@ -346,6 +501,7 @@ interface SheetOptions {
   name?: string;
   freezePane?: { row?: number; col?: number };
   autoWidth?: boolean;
+  columnWidths?: number[];
 }
 
 interface CellStyle {
@@ -362,6 +518,53 @@ interface CellStyle {
   wrapText?: boolean;
   /** Custom Excel number-format code, e.g. "0.00" or "#,##0". */
   numberFormat?: string;
+}
+
+/** A data-validation rule. `options` is a raw Excel `dataValidation` spec string. */
+interface CellValidation {
+  range: string;
+  options: string;
+}
+
+// Conditional formatting — a discriminated union on `type`.
+type ConditionalFormat =
+  | CellValueConditionalFormat
+  | ExpressionConditionalFormat
+  | ColorScaleConditionalFormat;
+
+type ConditionalFormatOperator =
+  | 'greaterThan' | 'greaterThanOrEqual'
+  | 'lessThan' | 'lessThanOrEqual'
+  | 'equal' | 'notEqual'
+  | 'between' | 'notBetween';
+
+interface ConditionalFormatStyle {
+  background?: string;
+  color?: string;
+  bold?: boolean;
+  italic?: boolean;
+}
+
+interface CellValueConditionalFormat {
+  type: 'cellValue';
+  range: string;
+  operator: ConditionalFormatOperator;
+  value: number | string;
+  value2?: number | string; // for "between" / "notBetween"
+  style: ConditionalFormatStyle;
+}
+
+interface ExpressionConditionalFormat {
+  type: 'expression';
+  range: string;
+  formula: string;
+  style: ConditionalFormatStyle;
+}
+
+interface ColorScaleConditionalFormat {
+  type: 'colorScale';
+  range: string;
+  colors: [string, string] | [string, string, string]; // 2- or 3-color scale
 }
 
 interface ParsedCell {
@@ -383,11 +586,20 @@ interface ExcelWriterOptions {
 }
 ```
 
+### Advanced / low-level exports
+
+For custom pipelines, `excel-bridge` also exports its building blocks: the functional
+`parseExcel`, `createExcelFile`/`createExcelFileBuffer`; the ZIP layer
+(`createExcelBlob`, `createExcelBuffer`, `extractExcelFiles`, `validateExcelStructure`); the XML
+template generators (`generateSheetXml`, `generateStylesXml`, …); and date/validation utilities
+(`dateToExcelSerial`, `excelSerialToDate`, `EXCEL_LIMITS`, `validateCellValue`, …). These are
+stable but lower-level — most apps only need the entry points above.
+
 ## Compatibility
 
 | Environment | Support |
 | --- | --- |
-| Node.js | `^20.19.0`, `^22.13.0`, or `>=24` |
+| Node.js | `^20.19.0`, `^22.13.0`, or `>=24` (matches `engines`) |
 | Browsers | Modern browsers with ES2022, `File` and `Blob` APIs |
 | Module formats | ESM (`import`) and CommonJS (`require`) |
 | Excel | Excel 2016+ for full feature compatibility |
@@ -396,6 +608,7 @@ interface ExcelWriterOptions {
 
 - **Inline strings by default** — enable a shared-strings table with `new ExcelWriter({ sharedStrings: true })` for smaller files with lots of repeated text.
 - **Formulas recalculate on open** — formula cells are written without a cached value; Excel computes them on load (`fullCalcOnLoad`).
+- **Conditional formats are write-only** — reading a workbook does not parse conditional formatting rules back.
 
 ## Contributing
 
@@ -410,7 +623,8 @@ pnpm run lint           # ESLint
 pnpm run format:check   # Prettier
 ```
 
-See the [CHANGELOG](./CHANGELOG.md) for release notes.
+Commits follow [Conventional Commits](https://www.conventionalcommits.org/); releases are
+published automatically by semantic-release. See the [CHANGELOG](./CHANGELOG.md) for release notes.
 
 ## License
 
