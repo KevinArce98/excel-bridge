@@ -8,6 +8,7 @@
 
 <br />
 
+[![Live demo](https://img.shields.io/badge/demo-live-22c55e?labelColor=1e293b)](https://kevinarce98.github.io/excel-bridge/)
 [![npm version](https://img.shields.io/npm/v/excel-bridge?logo=npm&label=npm&color=22c55e)](https://www.npmjs.com/package/excel-bridge)
 [![downloads](https://img.shields.io/npm/dm/excel-bridge?label=downloads&color=22c55e)](https://www.npmjs.com/package/excel-bridge)
 [![min+gzip](https://img.shields.io/bundlephobia/minzip/excel-bridge?label=min%2Bgzip&color=22c55e)](https://bundlephobia.com/package/excel-bridge)
@@ -16,7 +17,7 @@
 [![types](https://img.shields.io/npm/types/excel-bridge?color=22c55e)](https://www.npmjs.com/package/excel-bridge)
 [![license](https://img.shields.io/npm/l/excel-bridge?color=22c55e)](./LICENSE)
 
-<sub>[Quick Start](#quick-start) · [Why excel-bridge?](#why-excel-bridge) · [Guide](#guide) · [API Reference](#api-reference) · [Compatibility](#compatibility)</sub>
+<sub>[Live Demo](https://kevinarce98.github.io/excel-bridge/) · [Quick Start](#quick-start) · [Why excel-bridge?](#why-excel-bridge) · [Guide](#guide) · [API Reference](#api-reference) · [Compatibility](#compatibility)</sub>
 
 </div>
 
@@ -46,7 +47,7 @@ pnpm add excel-bridge
 yarn add excel-bridge
 ```
 
-> Try it online without installing (Node sandbox): [runkit.com/npm/excel-bridge](https://npm.runkit.com/excel-bridge).
+> **[Try the live demo →](https://kevinarce98.github.io/excel-bridge/)** — build a styled workbook and download it, or read an `.xlsx` back, right in your browser. Prefer a Node sandbox? Run it on [RunKit](https://npm.runkit.com/excel-bridge).
 
 ## Quick Start
 
