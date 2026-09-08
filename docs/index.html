@@ -1,0 +1,1362 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>excel-bridge — read & write .xlsx, without the weight</title>
+<meta name="description" content="A lightweight, tree-shakeable .xlsx toolkit for TypeScript. Read and write spreadsheets in the browser and Node.js — styling, formulas, conditional formatting — without ExcelJS or SheetJS. Try it live." />
+<meta name="theme-color" content="#0F172A" />
+<link rel="canonical" href="https://kevinarce98.github.io/excel-bridge/" />
+<meta property="og:type" content="website" />
+<meta property="og:title" content="excel-bridge — read & write .xlsx, without the weight" />
+<meta property="og:description" content="A lightweight, tree-shakeable .xlsx toolkit for TypeScript. Read and write in the browser and Node.js — no ExcelJS, no SheetJS. Try it live." />
+<meta property="og:url" content="https://kevinarce98.github.io/excel-bridge/" />
+<meta property="og:image" content="https://raw.githubusercontent.com/KevinArce98/excel-bridge/main/assets/banner.svg" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="excel-bridge — read & write .xlsx, without the weight" />
+<meta name="twitter:description" content="A lightweight, tree-shakeable .xlsx toolkit for TypeScript. Try the reader and writer live in your browser." />
+<meta name="twitter:image" content="https://raw.githubusercontent.com/KevinArce98/excel-bridge/main/assets/banner.svg" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231B2336'/%3E%3Crect x='5' y='6' width='22' height='6' rx='2' fill='%2322C55E'/%3E%3Crect x='5' y='15' width='9' height='4' rx='1.5' fill='%23334155'/%3E%3Crect x='18' y='15' width='9' height='4' rx='1.5' fill='%23334155'/%3E%3Crect x='5' y='22' width='9' height='4' rx='1.5' fill='%23334155'/%3E%3Crect x='18' y='22' width='9' height='4' rx='1.5' fill='%2322C55E' fill-opacity='0.5'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --navy-0: #0B1120;
+    --navy-1: #0F172A;
+    --navy-2: #1E293B;
+    --surface: #1b2336;
+    --surface-2: #212c44;
+    --surface-3: #273049;
+    --line: #334155;
+    --line-soft: #24304a;
+    --green: #22c55e;
+    --green-hi: #34d399;
+    --green-deep: #15803d;
+    --green-dim: rgba(34, 197, 94, 0.13);
+    --green-glow: rgba(34, 197, 94, 0.28);
+    --text-hi: #f8fafc;
+    --text: #cbd5e1;
+    --text-mid: #a3b0c2;
+    --text-dim: #8d9bb0;
+    --amber: #fbbf24;
+
+    --sheet-bg: #ffffff;
+    --sheet-alt: #f8fafc;
+    --sheet-line: #e2e8f0;
+    --sheet-head: #f1f5f9;
+    --sheet-head-tx: #475569;
+    --sheet-tx: #0f172a;
+    --sheet-tx-dim: #64748b;
+
+    --cf-low: #f8696b;
+    --cf-mid: #ffeb84;
+    --cf-high: #63be7b;
+
+    --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+    --sans: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+
+    --r-sm: 8px;
+    --r-md: 12px;
+    --r-lg: 16px;
+    --r-xl: 22px;
+
+    --shadow-sheet: 0 24px 60px -18px rgba(0, 0, 0, 0.7), 0 6px 18px -8px rgba(0, 0, 0, 0.5);
+    --shadow-card: 0 14px 34px -20px rgba(0, 0, 0, 0.65);
+    --shadow-pop: 0 18px 44px -14px rgba(0, 0, 0, 0.6);
+
+    --maxw: 1200px;
+    --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  * { box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+  body {
+    margin: 0;
+    font-family: var(--sans);
+    color: var(--text);
+    background: var(--navy-1);
+    background-image:
+      radial-gradient(1200px 720px at 80% -14%, rgba(34, 197, 94, 0.05), transparent 60%),
+      linear-gradient(180deg, var(--navy-1), var(--navy-0));
+    background-attachment: fixed;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  ::selection { background: var(--green-glow); color: var(--text-hi); }
+  ::-webkit-scrollbar { width: 12px; height: 12px; }
+  ::-webkit-scrollbar-track { background: var(--navy-0); }
+  ::-webkit-scrollbar-thumb { background: #2b3852; border: 3px solid var(--navy-0); border-radius: 999px; }
+  ::-webkit-scrollbar-thumb:hover { background: #3a4a68; }
+  * { scrollbar-color: #2b3852 var(--navy-0); scrollbar-width: thin; }
+
+  :focus-visible { outline: 2px solid var(--green); outline-offset: 2px; border-radius: 4px; }
+
+  a { color: var(--green-hi); text-decoration: none; }
+  a:hover { color: var(--green); }
+
+  .wrap { width: 100%; max-width: var(--maxw); margin-inline: auto; padding-inline: 24px; position: relative; z-index: 1; }
+
+  code, kbd, .mono { font-family: var(--mono); font-variant-ligatures: none; }
+
+  .tnum { font-variant-numeric: tabular-nums; }
+
+  /* ---------- Top bar ---------- */
+  header.topbar {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    backdrop-filter: saturate(140%) blur(10px);
+    -webkit-backdrop-filter: saturate(140%) blur(10px);
+    background: linear-gradient(180deg, rgba(11, 17, 32, 0.92), rgba(11, 17, 32, 0.72));
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 60px;
+    gap: 18px;
+  }
+  .brand { display: inline-flex; align-items: center; gap: 11px; }
+  .brand .glyph { width: 30px; height: 30px; border-radius: 8px; box-shadow: var(--shadow-card); }
+  .brand .word { font-family: var(--mono); font-weight: 700; font-size: 18px; letter-spacing: -0.02em; color: var(--text-hi); white-space: nowrap; }
+  .brand .word .dash { color: var(--text-dim); }
+  .brand .word .b { color: var(--green); }
+
+  .nav-links { display: flex; align-items: center; gap: 6px; }
+  .nav-links a.nlink {
+    color: var(--text-mid);
+    font-size: 14px;
+    font-weight: 500;
+    padding: 7px 12px;
+    border-radius: var(--r-sm);
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    transition: color 0.18s, background 0.18s;
+  }
+  .nav-links a.nlink:hover { color: var(--text-hi); background: var(--surface); }
+  .nav-links a.nlink svg { width: 17px; height: 17px; }
+  .verpill {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--green);
+    background: var(--green-dim);
+    border: 1px solid rgba(34, 197, 94, 0.32);
+    padding: 4px 9px;
+    border-radius: 999px;
+    letter-spacing: 0.01em;
+  }
+
+  /* formula bar */
+  .fxbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--line-soft);
+    background: rgba(15, 23, 42, 0.5);
+    font-family: var(--mono);
+    font-size: 12.5px;
+    color: var(--text-mid);
+  }
+  .fxbar .fx {
+    color: var(--text-dim);
+    font-style: italic;
+    padding: 2px 9px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--surface);
+    flex: none;
+  }
+  .fxbar .fxval { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .fxbar .fxval .tok-fn { color: var(--green-hi); }
+  .fxbar .fxval .tok-str { color: var(--amber); }
+  .fxbar .fxval .tok-arrow { color: var(--text-dim); padding: 0 4px; }
+
+  /* ---------- Hero ---------- */
+  .hero { padding: clamp(38px, 6vw, 78px) 0 clamp(34px, 5vw, 60px); }
+  .hero-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 0.86fr) minmax(0, 1.14fr);
+    gap: clamp(30px, 4vw, 64px);
+    align-items: center;
+  }
+  .hero-grid > * { min-width: 0; }
+  h1.headline {
+    font-size: clamp(2.5rem, 5.4vw, 4.15rem);
+    line-height: 1.02;
+    letter-spacing: -0.032em;
+    font-weight: 800;
+    color: var(--text-hi);
+    margin: 0 0 20px;
+    text-wrap: balance;
+  }
+  h1.headline .xl { color: var(--green); }
+  .lede {
+    font-size: clamp(1.05rem, 1.5vw, 1.24rem);
+    color: var(--text-mid);
+    max-width: 42ch;
+    margin: 0 0 28px;
+  }
+  .lede strong { color: var(--text); font-weight: 600; }
+
+  .install {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    font-family: var(--mono);
+    font-size: 15px;
+    color: var(--text-hi);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    padding: 12px 12px 12px 16px;
+  }
+  .install .dollar { color: var(--green); user-select: none; }
+  .install .cmd { letter-spacing: -0.01em; }
+  .install .cmd .pkg { color: var(--green-hi); }
+  .copybtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px; height: 34px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: var(--surface-2);
+    color: var(--text-mid);
+    cursor: pointer;
+    flex: none;
+    transition: color 0.16s, background 0.16s, border-color 0.16s;
+  }
+  .copybtn:hover { color: var(--text-hi); background: var(--surface-3); border-color: #415072; }
+  .copybtn svg { width: 16px; height: 16px; }
+  .copybtn.copied { color: var(--green); border-color: rgba(34, 197, 94, 0.4); background: var(--green-dim); }
+
+  .cta-row { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 22px; }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    font-family: var(--sans);
+    font-size: 14.5px;
+    font-weight: 600;
+    padding: 11px 17px;
+    border-radius: var(--r-md);
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: transform 0.15s var(--ease), background 0.18s, border-color 0.18s, color 0.18s, box-shadow 0.18s;
+  }
+  .btn svg { width: 17px; height: 17px; }
+  .btn-ghost { background: var(--surface); border-color: var(--line); color: var(--text); }
+  .btn-ghost:hover { border-color: #45557a; color: var(--text-hi); background: var(--surface-2); }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 26px; }
+  .chip {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-mid);
+    background: var(--surface);
+    border: 1px solid var(--line-soft);
+    border-radius: 7px;
+    padding: 5px 10px;
+  }
+  .chip b { color: var(--green); font-weight: 600; }
+  .badges { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 16px; align-items: center; }
+  .badges img { height: 20px; display: block; border-radius: 4px; }
+
+  /* ---------- The Sheet ---------- */
+  .sheet-shell {
+    background: var(--sheet-bg);
+    border-radius: var(--r-lg);
+    box-shadow: var(--shadow-sheet);
+    overflow: hidden;
+    position: relative;
+    outline: 1px solid rgba(255, 255, 255, 0.06);
+    min-width: 0;
+  }
+  .sheet-titlebar {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 10px 14px;
+    background: linear-gradient(180deg, #fdfefe, #f4f6f9);
+    border-bottom: 1px solid var(--sheet-line);
+  }
+  .sheet-dots { display: flex; gap: 6px; }
+  .sheet-dots i { width: 11px; height: 11px; border-radius: 50%; display: block; }
+  .sheet-dots i:nth-child(1) { background: #f6685e; }
+  .sheet-dots i:nth-child(2) { background: #fbbf24; }
+  .sheet-dots i:nth-child(3) { background: #34c759; }
+  .sheet-filename { font-family: var(--mono); font-size: 12.5px; color: var(--sheet-tx-dim); display: inline-flex; align-items: center; gap: 7px; }
+  .sheet-filename b { color: var(--sheet-tx); font-weight: 600; }
+  .sheet-live {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--green-deep);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .sheet-live .dot { width: 7px; height: 7px; border-radius: 2px; background: var(--green); }
+
+  .grid-scroll { overflow-x: auto; min-width: 0; max-width: 100%; -webkit-overflow-scrolling: touch; }
+  table.xl {
+    border-collapse: separate;
+    border-spacing: 0;
+    width: 100%;
+    min-width: 440px;
+    background: var(--sheet-bg);
+    color: var(--sheet-tx);
+    font-family: var(--mono);
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+  }
+  table.xl th, table.xl td { border-right: 1px solid var(--sheet-line); border-bottom: 1px solid var(--sheet-line); padding: 0; }
+  table.xl thead .corner, table.xl thead .colh {
+    background: var(--sheet-head);
+    color: var(--sheet-head-tx);
+    font-weight: 600;
+    text-align: center;
+    height: 26px;
+    font-size: 11.5px;
+    position: sticky;
+    top: 0;
+  }
+  table.xl .rowh {
+    background: var(--sheet-head);
+    color: var(--sheet-head-tx);
+    font-weight: 600;
+    text-align: center;
+    width: 34px;
+    min-width: 34px;
+    font-size: 11.5px;
+    user-select: none;
+  }
+  table.xl td.cell { height: 34px; position: relative; }
+  table.xl td.cell .cval { display: block; padding: 0 10px; line-height: 34px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  table.xl td.cell.num .cval, table.xl td.cell.num input { text-align: right; }
+  table.xl td.cell input {
+    width: 100%;
+    height: 34px;
+    border: 0;
+    background: transparent;
+    font: inherit;
+    color: inherit;
+    padding: 0 10px;
+    caret-color: var(--green);
+    outline: none;
+  }
+  table.xl td.cell:focus-within { box-shadow: inset 0 0 0 2px var(--green); border-radius: 2px; z-index: 2; }
+  table.xl tr.headrow td { background: var(--green); color: #08260f; font-weight: 700; }
+  table.xl tr.headrow td .cval { line-height: 30px; }
+  table.xl tr.totalrow td { background: #ecfdf5; font-weight: 700; color: #0f172a; }
+  table.xl td.formula { color: #0f766e; }
+  table.xl td.fx-tag::after {
+    content: "fx";
+    position: absolute;
+    top: 3px; right: 4px;
+    font-size: 8px;
+    font-weight: 700;
+    color: #14b8a6;
+    opacity: 0.7;
+  }
+
+  .sheet-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 14px; background: linear-gradient(180deg, #f8fafc, #eef2f7); border-top: 1px solid var(--sheet-line); }
+  .btn-primary {
+    background: var(--green);
+    color: #06230f;
+    font-weight: 700;
+    box-shadow: 0 8px 18px -10px rgba(6, 35, 15, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  }
+  .btn-primary:hover { background: #26d364; transform: translateY(-1px); box-shadow: 0 12px 24px -12px rgba(6, 35, 15, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.3); }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .btn-mini { background: transparent; border: 1px solid var(--sheet-line); color: var(--sheet-tx-dim); font-size: 13px; padding: 9px 13px; }
+  .btn-mini:hover { color: var(--sheet-tx); border-color: #cbd5e1; background: #fff; }
+  .result-chip {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    color: var(--sheet-tx);
+    background: #fff;
+    border: 1px solid var(--sheet-line);
+    border-radius: 9px;
+    padding: 7px 12px;
+  }
+  .result-chip svg { width: 15px; height: 15px; color: var(--green-deep); flex: none; }
+  .result-chip b { color: var(--green-deep); }
+  .result-chip .sz { color: var(--sheet-tx-dim); }
+  .result-chip[hidden] { display: none; }
+  @media (prefers-reduced-motion: no-preference) {
+    .result-chip.pop { animation: chiprise 0.5s var(--ease); }
+    @keyframes chiprise { from { opacity: 0; transform: translateY(9px) scale(0.96); } to { opacity: 1; transform: none; } }
+    table.xl.flowing td.cell:not(.rowh) { animation: cellflash 0.62s var(--ease); }
+    @keyframes cellflash { 0% { background-color: transparent; } 22% { background-color: rgba(34, 197, 94, 0.4); } 100% { background-color: transparent; } }
+    table.xl.flowing tr.headrow td, table.xl.flowing tr.totalrow td { animation: none; }
+  }
+
+  /* ---------- Section frame ---------- */
+  section.band { padding: clamp(58px, 8vw, 104px) 0; position: relative; }
+  .band-line { height: 1px; background: linear-gradient(to right, transparent, var(--line), transparent); }
+  .sec-head { max-width: 62ch; margin-bottom: clamp(30px, 4vw, 46px); }
+  h2 { font-size: clamp(1.8rem, 3.4vw, 2.7rem); line-height: 1.08; letter-spacing: -0.026em; font-weight: 800; color: var(--text-hi); margin: 0 0 14px; text-wrap: balance; }
+  .sec-sub { font-size: clamp(1rem, 1.4vw, 1.12rem); color: var(--text-mid); margin: 0; max-width: 58ch; }
+
+  /* read demo */
+  .read-grid { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 26px; align-items: start; }
+  .drop {
+    border: 1.5px dashed var(--line);
+    border-radius: var(--r-lg);
+    background: var(--surface);
+    padding: 30px 22px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s, transform 0.2s var(--ease);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 13px;
+  }
+  .drop:hover, .drop:focus-visible { border-color: var(--green); background: var(--surface-2); }
+  .drop.over { border-color: var(--green); background: var(--green-dim); transform: scale(1.01); }
+  .drop .updot { color: var(--green); display: inline-flex; }
+  .drop .updot svg { width: 30px; height: 30px; }
+  .drop h3 { margin: 0; font-size: 15.5px; color: var(--text-hi); font-weight: 600; }
+  .drop p { margin: 0; font-size: 13px; color: var(--text-dim); }
+  .drop .browse { color: var(--green-hi); text-decoration: underline; text-underline-offset: 2px; }
+  .read-aside { display: flex; flex-direction: column; gap: 12px; }
+  .aside-note { font-size: 13px; color: var(--text-dim); line-height: 1.5; }
+  .btn-block { width: 100%; justify-content: center; }
+  .btn-outline-green { background: var(--green-dim); border: 1px solid rgba(34, 197, 94, 0.35); color: var(--green-hi); }
+  .btn-outline-green:hover:not(:disabled) { background: rgba(34, 197, 94, 0.2); color: var(--green); }
+  .btn-outline-green:disabled { opacity: 0.42; cursor: not-allowed; }
+
+  .read-out { min-height: 240px; }
+  .empty-state {
+    height: 100%;
+    min-height: 240px;
+    border: 1px dashed var(--line);
+    border-radius: var(--r-lg);
+    background: var(--surface);
+    display: grid;
+    place-items: center;
+    color: var(--text-dim);
+    font-size: 14px;
+    text-align: center;
+    padding: 20px;
+  }
+  .meta-strip { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+  .meta-item { font-family: var(--mono); font-size: 12px; color: var(--text-mid); background: var(--surface); border: 1px solid var(--line-soft); border-radius: 7px; padding: 5px 10px; }
+  .meta-item b { color: var(--text-hi); font-weight: 600; }
+  .meta-item.tag-str b { color: #7dd3fc; }
+  .meta-item.tag-num b { color: var(--green-hi); }
+  .meta-item.tag-date b { color: #c4b5fd; }
+  .meta-item.tag-fx b { color: #5eead4; }
+  .sheet-tabs { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+  .sheet-tab { font-family: var(--mono); font-size: 12.5px; padding: 6px 12px; border-radius: 7px 7px 0 0; border: 1px solid var(--line-soft); border-bottom: none; background: var(--surface); color: var(--text-mid); cursor: pointer; }
+  .sheet-tab.active { background: var(--sheet-bg); color: var(--sheet-tx); border-color: var(--sheet-line); }
+  .read-error { border: 1px solid rgba(248, 113, 113, 0.4); background: rgba(248, 113, 113, 0.09); color: #fca5a5; border-radius: var(--r-md); padding: 16px 18px; font-size: 14px; }
+  .read-error b { color: #fecaca; }
+
+  table.xl.readonly td.cell .cval { color: var(--sheet-tx); }
+  table.xl.readonly td.cell.empty { background: var(--sheet-alt); }
+  .type-num { color: #0f766e; }
+  .type-date { color: #6d28d9; }
+  .type-bool { color: #b45309; }
+
+  /* features region */
+  .feat-region {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 1px;
+    background: var(--line-soft);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--r-lg);
+    overflow: hidden;
+  }
+  .feat {
+    background: var(--surface);
+    padding: 22px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    transition: background 0.2s;
+  }
+  .feat:hover { background: var(--surface-2); }
+  .feat .addr { font-family: var(--mono); font-size: 11px; color: var(--text-dim); letter-spacing: 0.04em; }
+  .feat .ficon { color: var(--green); width: 22px; height: 22px; }
+  .feat .ficon svg { width: 22px; height: 22px; }
+  .feat h3 { margin: 2px 0 0; font-size: 16px; color: var(--text-hi); font-weight: 600; letter-spacing: -0.01em; }
+  .feat p { margin: 0; font-size: 13.5px; color: var(--text-mid); line-height: 1.5; }
+  .feat code { font-size: 12px; color: var(--green-hi); background: var(--green-dim); padding: 1px 5px; border-radius: 4px; }
+  .feat.span-3 { grid-column: span 3; }
+  .feat.span-2 { grid-column: span 2; }
+
+  /* comparison */
+  .cmp-wrap { overflow-x: auto; border-radius: var(--r-lg); }
+  table.cmp { border-collapse: separate; border-spacing: 0; width: 100%; min-width: 620px; background: var(--surface); font-size: 14px; }
+  table.cmp th, table.cmp td { padding: 13px 18px; text-align: left; border-bottom: 1px solid var(--line-soft); }
+  table.cmp thead th { background: var(--surface-2); color: var(--text-mid); font-weight: 600; font-size: 12.5px; letter-spacing: 0.03em; text-transform: uppercase; position: sticky; top: 0; }
+  table.cmp thead th.us { color: var(--green); }
+  table.cmp td.rowlabel { color: var(--text); font-weight: 500; }
+  table.cmp td.col-us { background: var(--green-dim); }
+  table.cmp tbody tr:last-child td { border-bottom: none; }
+  table.cmp td.center, table.cmp th.center { text-align: center; }
+  .mk { display: inline-flex; width: 20px; height: 20px; }
+  .mk.yes { color: var(--green); }
+  .mk.no { color: var(--text-dim); }
+  .mk.warn { color: var(--amber); }
+  .cmp-note { font-size: 12.5px; color: var(--text-dim); margin-top: 14px; }
+  table.cmp td .lbl-strong { color: var(--text-hi); font-weight: 600; }
+  table.cmp td .lbl-dim { color: var(--text-dim); }
+
+  .perf { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 28px; }
+  .perf .pcard { background: var(--surface); border: 1px solid var(--line-soft); border-radius: var(--r-md); padding: 20px; }
+  .perf .pcard.us { border-color: rgba(34, 197, 94, 0.4); background: linear-gradient(180deg, var(--green-dim), var(--surface)); }
+  .perf .plib { font-family: var(--mono); font-size: 13px; color: var(--text-mid); margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; }
+  .perf .pcard.us .plib { color: var(--green); }
+  .perf .pnum { font-size: 30px; font-weight: 800; color: var(--text-hi); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  .perf .pcard.us .pnum { color: var(--green); }
+  .perf .plabel { font-size: 12.5px; color: var(--text-dim); margin-top: 3px; }
+  .perf .pbar { height: 6px; border-radius: 999px; background: var(--surface-3); margin-top: 15px; overflow: hidden; }
+  .perf .pbar i { display: block; height: 100%; border-radius: 999px; background: var(--text-dim); }
+  .perf .pcard.us .pbar i { background: var(--green); }
+  .perf-cap { font-size: 12.5px; color: var(--text-dim); margin-top: 16px; }
+
+  /* code examples */
+  .code-tabs { display: flex; gap: 4px; margin-bottom: -1px; flex-wrap: wrap; position: relative; z-index: 2; }
+  .code-tab { font-family: var(--mono); font-size: 13px; padding: 9px 15px; border-radius: 9px 9px 0 0; border: 1px solid transparent; background: transparent; color: var(--text-mid); cursor: pointer; }
+  .code-tab.active { background: var(--surface); color: var(--text-hi); border-color: var(--line); border-bottom-color: var(--surface); }
+  .code-win { border: 1px solid var(--line); border-radius: 0 var(--r-md) var(--r-md) var(--r-md); background: var(--surface); overflow: hidden; }
+  .code-top { display: flex; align-items: center; gap: 9px; padding: 10px 14px; border-bottom: 1px solid var(--line-soft); background: var(--surface-2); }
+  .code-top .sheet-dots i { width: 10px; height: 10px; }
+  .code-top .fname { font-family: var(--mono); font-size: 12px; color: var(--text-dim); }
+  .code-top .copybtn { margin-left: auto; width: 30px; height: 30px; }
+  pre.code { margin: 0; padding: 20px 20px 22px; overflow-x: auto; font-family: var(--mono); font-size: 13px; line-height: 1.72; color: #c8d3e6; tab-size: 2; }
+  pre.code .tok-kw { color: #f472b6; }
+  pre.code .tok-str { color: #86efac; }
+  pre.code .tok-com { color: var(--text-dim); font-style: italic; }
+  pre.code .tok-num { color: #fbbf24; }
+  pre.code .tok-fn { color: #7dd3fc; }
+  pre.code .tok-cls { color: #67e8f9; }
+
+  /* footer */
+  footer.foot { border-top: 1px solid var(--line-soft); padding: 54px 0 44px; margin-top: 30px; }
+  .foot-grid { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 34px; align-items: start; }
+  .foot-brand .word { font-family: var(--mono); font-weight: 700; font-size: 20px; color: var(--text-hi); letter-spacing: -0.02em; }
+  .foot-brand .word .dash { color: var(--text-dim); } .foot-brand .word .b { color: var(--green); }
+  .foot-brand p { color: var(--text-mid); font-size: 14px; max-width: 34ch; margin: 12px 0 18px; }
+  .foot-col h3 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dim); margin: 0 0 14px; font-weight: 600; }
+  .foot-col a { display: block; color: var(--text-mid); font-size: 14px; padding: 5px 0; }
+  .foot-col a:hover { color: var(--green); }
+  .foot-bottom { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: center; margin-top: 42px; padding-top: 22px; border-top: 1px solid var(--line-soft); color: var(--text-dim); font-size: 13px; }
+  .foot-bottom .mono { font-size: 12.5px; }
+
+
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: 26px;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--surface-2);
+    color: var(--text-hi);
+    font-size: 14px;
+    padding: 12px 18px;
+    border-radius: var(--r-md);
+    box-shadow: var(--shadow-pop);
+    z-index: 90;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s, transform 0.35s var(--ease);
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast svg { width: 17px; height: 17px; color: var(--green); }
+  .toast.err svg { color: #f87171; }
+
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+  @media (max-width: 940px) {
+    .hero-grid { grid-template-columns: minmax(0, 1fr); }
+    .hero .order-2 { order: 2; }
+    .read-grid { grid-template-columns: minmax(0, 1fr); }
+    .feat-region { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .feat.span-3, .feat.span-2 { grid-column: span 2; }
+    .foot-grid { grid-template-columns: 1fr 1fr; }
+    .foot-brand { grid-column: span 2; }
+    .perf { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 560px) {
+    .wrap { padding-inline: 18px; }
+    .nav-links .hide-sm { display: none !important; }
+    .verpill { display: none; }
+    .brand .word { font-size: 16px; }
+    .nav { gap: 10px; }
+    .fxbar { display: none; }
+    .feat-region { grid-template-columns: minmax(0, 1fr); }
+    .feat.span-3, .feat.span-2 { grid-column: span 1; }
+    .foot-grid { grid-template-columns: 1fr; }
+    .foot-brand { grid-column: span 1; }
+    .sheet-actions { flex-direction: column; align-items: stretch; }
+    .result-chip { margin-left: 0; justify-content: center; }
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap">
+    <nav class="nav" aria-label="Primary">
+      <a class="brand" href="#top" aria-label="excel-bridge home">
+        <svg class="glyph" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#1b2336"/><rect x="5" y="6" width="22" height="6" rx="2" fill="#22c55e"/><rect x="5" y="15" width="9" height="4" rx="1.5" fill="#334155"/><rect x="18" y="15" width="9" height="4" rx="1.5" fill="#334155"/><rect x="5" y="22" width="9" height="4" rx="1.5" fill="#334155"/><rect x="18" y="22" width="9" height="4" rx="1.5" fill="#22c55e" fill-opacity="0.5"/></svg>
+        <span class="word">excel<span class="dash">-</span><span class="b">bridge</span></span>
+      </a>
+      <div class="nav-links">
+        <span class="verpill">v1.3.0</span>
+        <a class="nlink hide-sm" href="#read">Live demo</a>
+        <a class="nlink hide-sm" href="#code">Code</a>
+        <a class="nlink" href="https://github.com/KevinArce98/excel-bridge#readme" target="_blank" rel="noopener">Docs</a>
+        <a class="nlink" href="https://www.npmjs.com/package/excel-bridge" target="_blank" rel="noopener" aria-label="excel-bridge on npm">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M2 4v16h20V4H2zm11 13h-2v-8H8v8H4V6h9v11zm7 0h-3V9h-2v8h-2V6h7v11z"/></svg>
+          <span class="hide-sm">npm</span>
+        </a>
+        <a class="nlink" href="https://github.com/KevinArce98/excel-bridge" target="_blank" rel="noopener" aria-label="excel-bridge on GitHub">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.2.8-.6v-2c-3.2.7-3.9-1.5-3.9-1.5-.5-1.3-1.3-1.7-1.3-1.7-1.1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0C17.3 4.8 18.3 5.1 18.3 5.1c.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6 4.6-1.5 7.9-5.8 7.9-10.9C23.5 5.7 18.3.5 12 .5z"/></svg>
+        </a>
+      </div>
+    </nav>
+  </div>
+  <div class="wrap">
+    <div class="fxbar" aria-hidden="true">
+      <span class="fx">fx</span>
+      <span class="fxval" id="fxval"><span class="tok-fn">new ExcelWriter()</span>.createWorkbook([sheet])<span class="tok-arrow">→</span><span class="tok-str">Blob</span></span>
+    </div>
+  </div>
+</header>
+
+<span id="top"></span>
+
+<main>
+  <section class="hero">
+    <div class="wrap">
+      <div class="hero-grid">
+        <div class="order-1">
+          <h1 class="headline">Read &amp; write <span class="xl">.xlsx</span>, without the weight.</h1>
+          <p class="lede">A lightweight, tree-shakeable spreadsheet toolkit for TypeScript. Full read <strong>and</strong> write (styling, formulas, conditional formatting) in the browser and Node.js, <strong>without pulling in ExcelJS or SheetJS</strong>.</p>
+          <div class="install" role="group" aria-label="Install command">
+            <span class="dollar" aria-hidden="true">$</span>
+            <span class="cmd">npm i <span class="pkg">excel-bridge</span></span>
+            <button class="copybtn" id="copyInstall" aria-label="Copy install command" data-copy="npm i excel-bridge">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+          </div>
+          <div class="cta-row">
+            <a class="btn btn-ghost" href="https://github.com/KevinArce98/excel-bridge#readme" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+              Read the docs
+            </a>
+            <a class="btn btn-ghost" href="#read">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>
+              Try it live
+            </a>
+          </div>
+          <div class="chips">
+            <span class="chip"><b>0</b> heavy deps</span>
+            <span class="chip">ESM <b>+</b> CJS</span>
+            <span class="chip">TypeScript-first</span>
+            <span class="chip">browser <b>+</b> Node</span>
+          </div>
+          <div class="badges" aria-label="Package badges">
+            <a href="https://www.npmjs.com/package/excel-bridge" target="_blank" rel="noopener"><img src="https://img.shields.io/npm/v/excel-bridge?style=flat-square&labelColor=1E293B&color=22c55e&logo=npm" alt="npm version" loading="lazy" /></a>
+            <a href="https://bundlephobia.com/package/excel-bridge" target="_blank" rel="noopener" class="chip" style="text-decoration:none">min+gzip <b>on Bundlephobia →</b></a>
+            <a href="https://github.com/KevinArce98/excel-bridge/blob/main/LICENSE" target="_blank" rel="noopener" class="chip" style="text-decoration:none">MIT <b>licensed</b></a>
+          </div>
+        </div>
+
+        <div class="order-2">
+          <div class="sheet-shell" id="writeSheet">
+            <div class="sheet-titlebar">
+              <span class="sheet-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+              <span class="sheet-filename"><b>sales-report.xlsx</b> · Sales</span>
+              <span class="sheet-live"><span class="dot"></span> live</span>
+            </div>
+            <div class="grid-scroll">
+              <table class="xl" id="writeGrid" aria-label="Editable sample spreadsheet"></table>
+            </div>
+            <div class="sheet-actions">
+              <button class="btn btn-primary" id="downloadBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+                Download .xlsx
+              </button>
+              <button class="btn btn-mini" id="resetBtn">Reset data</button>
+              <span class="result-chip" id="genChip" hidden aria-live="polite">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+                <span><b id="genName">sales-report.xlsx</b> <span class="sz" id="genSize"></span></span>
+              </span>
+            </div>
+          </div>
+          <p class="aside-note" style="text-align:center;margin-top:12px;">Edit any cell, then download. Open it in Excel, Numbers or Google Sheets: the styling, formulas and conditional formatting travel with the file.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="wrap"><div class="band-line"></div></div>
+
+  <section class="band" id="read">
+    <div class="wrap">
+      <div class="sec-head">
+        <h2>Now read one back.</h2>
+        <p class="sec-sub">Drop any <code>.xlsx</code> and excel-bridge parses it entirely in your browser: values, cell types, formulas and styles. Nothing is uploaded to a server.</p>
+      </div>
+      <div class="read-grid">
+        <div>
+          <div class="drop" id="drop" role="button" tabindex="0" aria-label="Drop an .xlsx file here or press Enter to browse">
+            <span class="updot" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/></svg>
+            </span>
+            <h3>Drop an .xlsx here</h3>
+            <p>or <span class="browse">browse your files</span></p>
+            <input type="file" id="fileInput" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" class="sr-only" />
+          </div>
+          <div class="read-aside" style="margin-top:14px;">
+            <button class="btn btn-outline-green btn-block" id="roundtripBtn" disabled>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 9-9 9 9 0 0 1 6.7 3L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9 9 0 0 1-6.7-3L3 16"/><path d="M3 21v-5h5"/></svg>
+              Read the file I just made
+            </button>
+            <p class="aside-note">Generate a file above first, then read it straight back: a lossless round-trip, all client-side.</p>
+          </div>
+        </div>
+        <div class="read-out" id="readOut">
+          <div class="empty-state">Parsed cells will appear here.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="wrap"><div class="band-line"></div></div>
+
+  <section class="band" id="features">
+    <div class="wrap">
+      <div class="sec-head">
+        <h2>Everything you need to move a spreadsheet.</h2>
+        <p class="sec-sub">One typed API for both directions and both runtimes, from a two-line export to million-row streaming.</p>
+      </div>
+      <div class="feat-region">
+        <div class="feat span-3">
+          <span class="addr">A1</span>
+          <span class="ficon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v2"/><path d="M9 20h6"/><path d="M12 4v16"/></svg></span>
+          <h3>Full read &amp; write</h3>
+          <p>Styling, fonts, borders, formulas, dates, merged cells, freeze panes, conditional formatting and data validation — parsed back losslessly for the features it writes.</p>
+        </div>
+        <div class="feat span-3">
+          <span class="addr">D1</span>
+          <span class="ficon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v12"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="6" r="3"/><path d="M18 9v1a5 5 0 0 1-5 5H8"/></svg></span>
+          <h3>Zero heavy dependencies</h3>
+          <p>No ExcelJS or SheetJS under the hood, just <code>fflate</code> and <code>fast-xml-parser</code>. A micro-package architecture ships only what you import.</p>
+        </div>
+        <div class="feat span-2">
+          <span class="addr">A2</span>
+          <span class="ficon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></span>
+          <h3>Browser &amp; Node</h3>
+          <p>One API for <code>File</code>/<code>Blob</code> in the browser and <code>Buffer</code> in Node.js.</p>
+        </div>
+        <div class="feat span-2">
+          <span class="addr">C2</span>
+          <span class="ficon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 14 4-4 3 3 5-6"/></svg></span>
+          <h3>Streaming writer</h3>
+          <p>Export a million rows from a sync or async iterable without holding them in memory.</p>
+        </div>
+        <div class="feat span-2">
+          <span class="addr">E2</span>
+          <span class="ficon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 7v6c0 4 3.5 7 8 8 4.5-1 8-4 8-8V7z"/><path d="m9 12 2 2 4-4"/></svg></span>
+          <h3>Signed releases</h3>
+          <p>Every version is published to npm with build provenance.</p>
+        </div>
+        <div class="feat span-3">
+          <span class="addr">A3</span>
+          <span class="ficon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 9 5-9 5-9-5 9-5z"/><path d="m3 12 9 5 9-5"/><path d="m3 17 9 5 9-5"/></svg></span>
+          <h3>High-level <code>Workbook</code> API</h3>
+          <p>Load an existing file, edit cells, styles, merges and freeze panes, then save it back. No rebuilding sheet data by hand.</p>
+        </div>
+        <div class="feat span-3">
+          <span class="addr">D3</span>
+          <span class="ficon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 18 22 12 16 6"/><path d="M8 6 2 12 8 18"/></svg></span>
+          <h3>TypeScript-first, tree-shakeable</h3>
+          <p>Complete types and IntelliSense for every export, in both ESM and CJS. Import one helper and bundle only that.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="wrap"><div class="band-line"></div></div>
+
+  <section class="band" id="compare">
+    <div class="wrap">
+      <div class="sec-head">
+        <h2>How it compares.</h2>
+        <p class="sec-sub">The same common case (styled, multi-sheet reports read and written from typed data) while staying small enough for a front-end bundle.</p>
+      </div>
+      <div class="cmp-wrap">
+        <table class="cmp">
+          <thead>
+            <tr>
+              <th scope="col">Capability</th>
+              <th scope="col" class="center us">excel-bridge</th>
+              <th scope="col" class="center">ExcelJS</th>
+              <th scope="col" class="center">SheetJS (community)</th>
+            </tr>
+          </thead>
+          <tbody id="cmpBody"></tbody>
+        </table>
+      </div>
+      <p class="cmp-note">¹ Because the package is tree-shakeable, importing a single helper pulls in far less than the full-import size. Check exact numbers on <a href="https://bundlephobia.com/package/excel-bridge" target="_blank" rel="noopener">Bundlephobia</a>.</p>
+
+      <div class="perf" aria-label="Write benchmark, 50,000 rows by 10 columns">
+        <div class="pcard us">
+          <div class="plib">excel-bridge <span>1×</span></div>
+          <div class="pnum tnum">662<span style="font-size:16px;font-weight:600;"> ms</span></div>
+          <div class="plabel">2.41 MB output</div>
+          <div class="pbar"><i style="width:40%"></i></div>
+        </div>
+        <div class="pcard">
+          <div class="plib">exceljs <span>2.5×</span></div>
+          <div class="pnum tnum">1667<span style="font-size:16px;font-weight:600;"> ms</span></div>
+          <div class="plabel">2.82 MB output</div>
+          <div class="pbar"><i style="width:100%"></i></div>
+        </div>
+        <div class="pcard">
+          <div class="plib">xlsx / SheetJS <span>0.9×</span></div>
+          <div class="pnum tnum">578<span style="font-size:16px;font-weight:600;"> ms</span></div>
+          <div class="plabel">18.23 MB output</div>
+          <div class="pbar"><i style="width:35%"></i></div>
+        </div>
+      </div>
+      <p class="perf-cap">Writing 50,000 rows × 10 columns, median of 3 runs (Node 22, Apple Silicon). Numbers vary by machine; reproduce them with <code>pnpm run bench</code>. SheetJS is fast to write but its default output is far larger.</p>
+    </div>
+  </section>
+
+  <div class="wrap"><div class="band-line"></div></div>
+
+  <section class="band" id="code">
+    <div class="wrap">
+      <div class="sec-head">
+        <h2>Real code, no ceremony.</h2>
+        <p class="sec-sub">Typed from the first import. Here are the calls behind the demo above.</p>
+      </div>
+      <div>
+        <div class="code-tabs" id="codeTabs" role="tablist" aria-label="Code examples"></div>
+        <div class="code-win">
+          <div class="code-top">
+            <span class="sheet-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+            <span class="fname" id="codeFname">write.ts</span>
+            <button class="copybtn" id="copyCode" aria-label="Copy code">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+          </div>
+          <pre class="code" id="codeBlock" tabindex="0"></pre>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="foot-brand">
+        <span class="word">excel<span class="dash">-</span><span class="b">bridge</span></span>
+        <p>The lightweight, tree-shakeable <code style="font-size:13px;color:var(--green-hi)">.xlsx</code> toolkit for TypeScript. Read and write, browser and Node.</p>
+        <div class="install" style="font-size:14px;">
+          <span class="dollar" aria-hidden="true">$</span>
+          <span class="cmd">npm i <span class="pkg">excel-bridge</span></span>
+          <button class="copybtn" aria-label="Copy install command" data-copy="npm i excel-bridge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="foot-col">
+        <h3>Package</h3>
+        <a href="https://www.npmjs.com/package/excel-bridge" target="_blank" rel="noopener">npm</a>
+        <a href="https://bundlephobia.com/package/excel-bridge" target="_blank" rel="noopener">Bundlephobia</a>
+        <a href="https://npm.runkit.com/excel-bridge" target="_blank" rel="noopener">RunKit sandbox</a>
+      </div>
+      <div class="foot-col">
+        <h3>Project</h3>
+        <a href="https://github.com/KevinArce98/excel-bridge" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://github.com/KevinArce98/excel-bridge#readme" target="_blank" rel="noopener">Documentation</a>
+        <a href="https://github.com/KevinArce98/excel-bridge/issues" target="_blank" rel="noopener">Issues</a>
+        <a href="https://github.com/KevinArce98/excel-bridge/blob/main/CHANGELOG.md" target="_blank" rel="noopener">Changelog</a>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>MIT © Kevin Arias</span>
+      <span class="mono">runs excel-bridge@1.3.0 live from jsDelivr</span>
+    </div>
+  </div>
+</footer>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script type="module">
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  let EB = null;
+  let libError = null;
+  try {
+    const mod = await import("https://cdn.jsdelivr.net/npm/excel-bridge@1.3.0/+esm");
+    EB = mod.ExcelBridge || mod.default?.ExcelBridge || mod;
+  } catch (e) {
+    libError = e;
+  }
+
+  const COLS = ["Product", "Q1", "Q2", "Q3", "Total"];
+  const seed = [
+    ["Laptops", 45000, 52000, 48000],
+    ["Monitors", 18000, 21000, 19500],
+    ["Keyboards", 9000, 11000, 10500],
+    ["Mice", 6000, 7200, 6800],
+  ];
+  let rows = seed.map((r) => r.slice());
+  let lastBlob = null;
+
+  const fmt = (n) => n.toLocaleString("en-US");
+  const colLetter = (i) => {
+    let s = "", n = i + 1;
+    while (n > 0) { const r = (n - 1) % 26; s = String.fromCharCode(65 + r) + s; n = Math.floor((n - 1) / 26); }
+    return s;
+  };
+
+  function lerpHex(a, b, t) {
+    const pa = [parseInt(a.slice(1, 3), 16), parseInt(a.slice(3, 5), 16), parseInt(a.slice(5, 7), 16)];
+    const pb = [parseInt(b.slice(1, 3), 16), parseInt(b.slice(3, 5), 16), parseInt(b.slice(5, 7), 16)];
+    const c = pa.map((v, i) => Math.round(v + (pb[i] - v) * t));
+    return "#" + c.map((v) => v.toString(16).padStart(2, "0")).join("");
+  }
+  const CF = ["#f8696b", "#ffeb84", "#63be7b"];
+  function scaleColor(v, min, max) {
+    if (max === min) return CF[1];
+    const t = (v - min) / (max - min);
+    return t <= 0.5 ? lerpHex(CF[0], CF[1], t * 2) : lerpHex(CF[1], CF[2], (t - 0.5) * 2);
+  }
+
+  const rowTotal = (r) => r[1] + r[2] + r[3];
+  const colTotal = (c) => rows.reduce((s, r) => s + r[c], 0);
+
+  function renderWriteGrid() {
+    const grid = $("#writeGrid");
+    const quarters = rows.flatMap((r) => [r[1], r[2], r[3]]);
+    const min = Math.min(...quarters), max = Math.max(...quarters);
+
+    let html = "<thead><tr><th class='corner rowh' aria-hidden='true'></th>";
+    COLS.forEach((_, i) => (html += `<th class='colh' scope='col'>${colLetter(i)}</th>`));
+    html += "</tr></thead><tbody>";
+
+    html += "<tr class='headrow'><td class='rowh'>1</td>";
+    COLS.forEach((c, i) => (html += `<td class='cell${i === 0 ? "" : " num"}'><span class='cval'>${c}</span></td>`));
+    html += "</tr>";
+
+    rows.forEach((r, ri) => {
+      const sheetRow = ri + 2;
+      html += `<tr><td class='rowh'>${sheetRow}</td>`;
+      html += `<td class='cell'><input type='text' value='${r[0]}' data-r='${ri}' data-c='0' aria-label='Product, row ${sheetRow}' /></td>`;
+      for (let c = 1; c <= 3; c++) {
+        const bg = scaleColor(r[c], min, max);
+        html += `<td class='cell num' style='background:${bg}'><input type='text' inputmode='numeric' value='${r[c]}' data-r='${ri}' data-c='${c}' aria-label='${COLS[c]} for ${r[0]}' /></td>`;
+      }
+      html += `<td class='cell num formula fx-tag' title='=SUM(B${sheetRow}:D${sheetRow})'><span class='cval'>${fmt(rowTotal(r))}</span></td>`;
+      html += "</tr>";
+    });
+
+    html += "<tr class='totalrow'><td class='rowh'>6</td><td class='cell'><span class='cval'>Total</span></td>";
+    for (let c = 1; c <= 3; c++) html += `<td class='cell num fx-tag' title='=SUM(${colLetter(c)}2:${colLetter(c)}5)'><span class='cval'>${fmt(colTotal(c))}</span></td>`;
+    const grand = rows.reduce((s, r) => s + rowTotal(r), 0);
+    html += `<td class='cell num fx-tag' title='=SUM(E2:E5)'><span class='cval'>${fmt(grand)}</span></td>`;
+    html += "</tr></tbody>";
+
+    grid.innerHTML = html;
+    $$("#writeGrid input").forEach((inp) => {
+      inp.addEventListener("input", onCellInput);
+      inp.addEventListener("focus", () => inp.select());
+    });
+  }
+
+  function onCellInput(e) {
+    const r = +e.target.dataset.r, c = +e.target.dataset.c;
+    if (c === 0) { rows[r][0] = e.target.value; return; }
+    const v = parseFloat(e.target.value.replace(/[^0-9.-]/g, ""));
+    rows[r][c] = isNaN(v) ? 0 : v;
+    updateComputed();
+  }
+
+  function updateComputed() {
+    const grid = $("#writeGrid");
+    const quarters = rows.flatMap((r) => [r[1], r[2], r[3]]);
+    const min = Math.min(...quarters), max = Math.max(...quarters);
+    const body = grid.tBodies[0];
+    rows.forEach((r, ri) => {
+      const tr = body.rows[ri + 1];
+      for (let c = 1; c <= 3; c++) tr.cells[c].style.background = scaleColor(r[c], min, max);
+      tr.cells[4].querySelector(".cval").textContent = fmt(rowTotal(r));
+    });
+    const totalTr = body.rows[body.rows.length - 1];
+    for (let c = 1; c <= 3; c++) totalTr.cells[c].querySelector(".cval").textContent = fmt(colTotal(c));
+    totalTr.cells[4].querySelector(".cval").textContent = fmt(rows.reduce((s, r) => s + rowTotal(r), 0));
+  }
+
+  function buildSheet() {
+    const data = [COLS.slice()];
+    rows.forEach((r, i) => {
+      const sr = i + 2;
+      data.push([r[0], r[1], r[2], r[3], `=SUM(B${sr}:D${sr})`]);
+    });
+    data.push(["Total", "=SUM(B2:B5)", "=SUM(C2:C5)", "=SUM(D2:D5)", "=SUM(E2:E5)"]);
+
+    const styles = {};
+    for (let c = 0; c < 5; c++) styles[`0-${c}`] = { background: "#22C55E", color: "#08260F", bold: true, align: c === 0 ? "left" : "right" };
+    for (let c = 0; c < 5; c++) styles[`5-${c}`] = { background: "#ECFDF5", bold: true, align: c === 0 ? "left" : "right", numberFormat: c === 0 ? undefined : "#,##0" };
+    for (let r = 1; r <= 4; r++) for (let c = 1; c <= 4; c++) styles[`${r}-${c}`] = { numberFormat: "#,##0", align: "right" };
+
+    const conditionalFormats = [{ type: "colorScale", range: "B2:D5", colors: ["#F8696B", "#FFEB84", "#63BE7B"] }];
+
+    return {
+      data,
+      styles,
+      conditionalFormats,
+      options: { name: "Sales", freezePane: { row: 1 }, autoWidth: true },
+    };
+  }
+
+  function setFx(html) { const el = $("#fxval"); if (el) el.innerHTML = html; }
+
+  function download() {
+    if (!EB) { toast("The live library failed to load — check the code samples below.", true); return; }
+    const sheet = buildSheet();
+    let blob;
+    try {
+      blob = new EB.Writer({ creator: "excel-bridge demo", title: "Sales Report" }).createWorkbook([sheet]);
+    } catch (err) { toast("Could not build the workbook: " + err.message, true); return; }
+    lastBlob = blob;
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "sales-report.xlsx";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+
+    const kb = (blob.size / 1024).toFixed(1);
+    const chip = $("#genChip");
+    $("#genSize").textContent = `· ${kb} KB · 6×5`;
+    chip.hidden = false;
+    if (!reduceMotion) {
+      const grid = $("#writeGrid");
+      chip.classList.remove("pop"); void chip.offsetWidth; chip.classList.add("pop");
+      grid.classList.remove("flowing"); void grid.offsetWidth; grid.classList.add("flowing");
+      setTimeout(() => grid.classList.remove("flowing"), 900);
+    }
+    setFx(`<span class="tok-fn">writer.createWorkbook</span>([sheet]) <span class="tok-arrow">→</span> <span class="tok-str">sales-report.xlsx</span> · ${kb} KB`);
+    $("#roundtripBtn").disabled = false;
+    toast("Built sales-report.xlsx — check your downloads.");
+  }
+
+  function resetData() {
+    rows = seed.map((r) => r.slice());
+    renderWriteGrid();
+    $("#genChip").hidden = true;
+    toast("Sample data reset.");
+  }
+
+  // ---------- Read demo ----------
+  const cellDisplay = (cell) => {
+    if (!cell) return { text: "", cls: "empty" };
+    if (cell.formula && (cell.value === null || cell.value === undefined || cell.value === "")) return { text: "=" + cell.formula, cls: "formula fx-tag" };
+    switch (cell.type) {
+      case "number": return { text: typeof cell.value === "number" ? cell.value.toLocaleString("en-US") : String(cell.value), cls: "num type-num" };
+      case "date": {
+        const d = cell.value instanceof Date ? cell.value : new Date(cell.value);
+        return { text: isNaN(d) ? String(cell.value) : d.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }), cls: "type-date" };
+      }
+      case "boolean": return { text: cell.value ? "TRUE" : "FALSE", cls: "num type-bool" };
+      case "empty": return { text: "", cls: "empty" };
+      default: return { text: cell.value == null ? "" : String(cell.value), cls: "" };
+    }
+  };
+
+  function renderParsed(wb, name) {
+    const out = $("#readOut");
+    if (!wb || !wb.sheets || !wb.sheets.length) { out.innerHTML = `<div class='read-error'>No sheets found in <b>${escapeHtml(name)}</b>.</div>`; return; }
+
+    let active = 0;
+    const draw = () => {
+      const sheet = wb.sheets[active];
+      const data = sheet.data || [];
+      const maxCols = data.reduce((m, r) => Math.max(m, r ? r.length : 0), 0);
+      const shown = Math.min(data.length, 60);
+
+      const counts = { string: 0, number: 0, date: 0, formula: 0 };
+      data.forEach((r) => r && r.forEach((c) => { if (!c) return; if (c.formula) counts.formula++; else if (counts[c.type] !== undefined) counts[c.type]++; }));
+
+      let meta = `<div class='meta-strip'>`;
+      meta += `<span class='meta-item'>sheet <b>${escapeHtml(sheet.name || "Sheet1")}</b></span>`;
+      meta += `<span class='meta-item'>dims <b class='tnum'>${data.length}×${maxCols}</b></span>`;
+      if (wb.metadata && wb.metadata.creator) meta += `<span class='meta-item'>creator <b>${escapeHtml(String(wb.metadata.creator))}</b></span>`;
+      if (counts.string) meta += `<span class='meta-item tag-str'>text <b class='tnum'>${counts.string}</b></span>`;
+      if (counts.number) meta += `<span class='meta-item tag-num'>number <b class='tnum'>${counts.number}</b></span>`;
+      if (counts.date) meta += `<span class='meta-item tag-date'>date <b class='tnum'>${counts.date}</b></span>`;
+      if (counts.formula) meta += `<span class='meta-item tag-fx'>formula <b class='tnum'>${counts.formula}</b></span>`;
+      meta += `</div>`;
+
+      let tabs = "";
+      if (wb.sheets.length > 1) {
+        tabs = `<div class='sheet-tabs' role='tablist'>` + wb.sheets.map((s, i) => `<button class='sheet-tab${i === active ? " active" : ""}' data-i='${i}' role='tab' aria-selected='${i === active}'>${escapeHtml(s.name || "Sheet" + (i + 1))}</button>`).join("") + `</div>`;
+      }
+
+      let t = `<div class='sheet-shell'><div class='sheet-titlebar'><span class='sheet-dots' aria-hidden='true'><i></i><i></i><i></i></span><span class='sheet-filename'><b>${escapeHtml(name)}</b></span></div><div class='grid-scroll'><table class='xl readonly' aria-label='Parsed spreadsheet ${escapeHtml(sheet.name || "")}'>`;
+      t += `<thead><tr><th class='corner rowh'></th>`;
+      for (let c = 0; c < maxCols; c++) t += `<th class='colh'>${colLetter(c)}</th>`;
+      t += `</tr></thead><tbody>`;
+      for (let r = 0; r < shown; r++) {
+        const row = data[r] || [];
+        t += `<tr><td class='rowh'>${r + 1}</td>`;
+        for (let c = 0; c < maxCols; c++) {
+          const cell = row[c];
+          const d = cellDisplay(cell);
+          const st = (sheet.styles && sheet.styles[`${r}-${c}`]) || {};
+          let style = "";
+          if (st.background) style += `background:${st.background};`;
+          if (st.color) style += `color:${st.color};`;
+          if (st.bold) style += "font-weight:700;";
+          const title = cell && cell.formula ? ` title='=${escapeHtml(cell.formula)}'` : "";
+          t += `<td class='cell ${d.cls}'${style ? ` style='${style}'` : ""}${title}><span class='cval'>${escapeHtml(d.text)}</span></td>`;
+        }
+        t += `</tr>`;
+      }
+      t += `</tbody></table></div>`;
+      if (data.length > shown) t += `<div style='padding:10px 14px;font-family:var(--mono);font-size:12px;color:var(--sheet-tx-dim);background:var(--sheet-alt);border-top:1px solid var(--sheet-line);'>Showing first ${shown} of ${data.length} rows.</div>`;
+      t += `</div>`;
+
+      out.innerHTML = meta + tabs + t;
+      $$(".sheet-tab", out).forEach((b) => b.addEventListener("click", () => { active = +b.dataset.i; draw(); }));
+    };
+    draw();
+
+    const rc = wb.sheets.reduce((s, sh) => s + (sh.data ? sh.data.length : 0), 0);
+    setFx(`<span class="tok-fn">ExcelBridge.read</span>(file) <span class="tok-arrow">→</span> { sheets: ${wb.sheets.length}, rows: ${rc} }`);
+  }
+
+  async function readFromFile(file) {
+    if (!EB) { toast("The live library failed to load.", true); return; }
+    if (!/\.xlsx$/i.test(file.name)) { $("#readOut").innerHTML = `<div class='read-error'><b>${escapeHtml(file.name)}</b> isn't an .xlsx file. This reader handles Office Open XML spreadsheets (.xlsx).</div>`; return; }
+    $("#readOut").innerHTML = `<div class='empty-state'>Parsing ${escapeHtml(file.name)}…</div>`;
+    try {
+      const wb = await EB.readFromFile(file);
+      renderParsed(wb, file.name);
+    } catch (err) {
+      $("#readOut").innerHTML = `<div class='read-error'>Couldn't parse <b>${escapeHtml(file.name)}</b> — ${escapeHtml(err.message || String(err))}</div>`;
+    }
+  }
+
+  async function readGenerated() {
+    if (!EB || !lastBlob) return;
+    try {
+      const buf = new Uint8Array(await lastBlob.arrayBuffer());
+      const wb = EB.read(buf);
+      renderParsed(wb, "sales-report.xlsx");
+      $("#readOut").scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "nearest" });
+    } catch (err) { toast("Round-trip failed: " + err.message, true); }
+  }
+
+  // ---------- Comparison table ----------
+  const CMP = [
+    ["Read .xlsx", "yes", "yes", "yes"],
+    ["Write .xlsx", "yes", "yes", "yes"],
+    ["Cell styling (color, font, border)", "yes", "yes", "warn-pro"],
+    ["Conditional formatting", "yes", "yes", "warn-pro"],
+    ["Formulas", "yes", "yes", "yes"],
+    ["Merged cells & freeze panes", "yes", "yes", "yes"],
+    ["Streaming writer", "yes", "yes", "warn-pro"],
+    ["First-class TypeScript types", "yes", "yes", "yes"],
+    ["ESM & CJS, tree-shakeable", "yes", "warn-cjs", "yes"],
+    ["Heavy runtime dependencies", "none", "several", "none"],
+  ];
+  const ICONS = {
+    yes: `<span class='mk yes' title='Yes'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><path d='M20 6 9 17l-5-5'/></svg></span>`,
+    no: `<span class='mk no' title='No'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><path d='M18 6 6 18M6 6l12 12'/></svg></span>`,
+    warn: `<span class='mk warn' title='Limited'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z'/></svg></span>`,
+  };
+  function mark(v) {
+    if (v === "yes") return ICONS.yes;
+    if (v === "warn-pro") return ICONS.warn + `<span class='lbl-dim' style='font-size:12px;margin-left:4px'>Pro</span>`;
+    if (v === "warn-cjs") return ICONS.warn + `<span class='lbl-dim' style='font-size:12px;margin-left:4px'>CJS-first</span>`;
+    if (v === "none") return `<span class='lbl-strong'>None</span>`;
+    if (v === "several") return `<span class='lbl-dim'>Several</span>`;
+    return v;
+  }
+  function renderCmp() {
+    $("#cmpBody").innerHTML = CMP.map((row) => {
+      const [label, us, ej, sj] = row;
+      const isText = us === "none";
+      return `<tr><td class='rowlabel'>${label}</td><td class='center col-us'>${mark(us)}</td><td class='center'>${mark(ej)}</td><td class='center'>${mark(sj)}</td></tr>`;
+    }).join("");
+  }
+
+  // ---------- Code examples ----------
+  const SAMPLES = [
+    { id: "write", file: "write.ts", code:
+`import { ExcelWriter } from 'excel-bridge';
+
+const writer = new ExcelWriter({ creator: 'My App' });
+
+const blob = writer.createWorkbook([{
+  data: [
+    ['Product', 'Q1', 'Q2', 'Q3', 'Total'],
+    ['Laptops', 45000, 52000, 48000, '=SUM(B2:D2)'],
+    ['Monitors', 18000, 21000, 19500, '=SUM(B3:D3)'],
+  ],
+  styles: {
+    '0-0': { background: '#22C55E', color: '#08260F', bold: true },
+  },
+  conditionalFormats: [
+    { type: 'colorScale', range: 'B2:D3',
+      colors: ['#F8696B', '#FFEB84', '#63BE7B'] },
+  ],
+  options: { name: 'Sales', freezePane: { row: 1 }, autoWidth: true },
+}]);
+
+// browser: a Blob you can download. Node: writer.createWorkbookBuffer(...)` },
+    { id: "read", file: "read.ts", code:
+`import { ExcelBridge } from 'excel-bridge';
+
+// Browser — from a file <input>
+const workbook = await ExcelBridge.readFromFile(file);
+
+// Node.js — from a Buffer (synchronous)
+// const workbook = ExcelBridge.read(fs.readFileSync('data.xlsx'));
+
+for (const row of workbook.sheets[0].data) {
+  for (const cell of row) {
+    console.log(cell.coordinate, cell.type, cell.value, cell.formula ?? '');
+    // "B2" "number" 45000 ""
+    // "E2" "empty"  null  "SUM(B2:D2)"
+  }
+}` },
+    { id: "workbook", file: "edit.ts", code:
+`import { Workbook } from 'excel-bridge';
+
+// Load, edit and save an existing file — losslessly.
+const wb = Workbook.fromBuffer(fs.readFileSync('sales.xlsx'));
+
+wb.setCellValue('Sales', 1, 1, 899.99);
+wb.setCellStyle('Sales', 0, 0, { bold: true, background: '#4472C4', color: '#FFFFFF' });
+wb.setFreezePane('Sales', { row: 1 });
+
+fs.writeFileSync('sales.xlsx', wb.toBuffer()); // or wb.toBlob() in the browser` },
+    { id: "stream", file: "stream.ts", code:
+`import { createExcelWorkbookStream } from 'excel-bridge';
+
+function* generateRows() {
+  yield ['Id', 'Name', 'Value'];
+  for (let i = 1; i <= 1_000_000; i++) yield [i, \`Row \${i}\`, i * 2];
+}
+
+const out = fs.createWriteStream('big.xlsx');
+for await (const chunk of createExcelWorkbookStream([
+  { name: 'Data', rows: generateRows() },
+])) {
+  out.write(chunk); // nothing is buffered whole
+}
+out.end();` },
+  ];
+
+  const KW = new Set(["import", "from", "const", "let", "var", "function", "return", "for", "of", "await", "async", "new", "if", "else", "type", "interface", "export", "yield", "class"]);
+  function escapeHtml(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+  function highlight(code) {
+    const esc = escapeHtml(code);
+    const re = /(\/\/[^\n]*)|(&#96;(?:[^&]|&(?!#96;))*?&#96;|'(?:\\.|[^'\\])*'|"(?:\\.|[^"\\])*")|\b(\d[\d_]*\.?\d*)\b|\b([A-Za-z_$][\w$]*)\b/g;
+    return esc.replace(/`/g, "&#96;").replace(re, (m, com, str, num, word) => {
+      if (com) return `<span class='tok-com'>${com}</span>`;
+      if (str) return `<span class='tok-str'>${str}</span>`;
+      if (num) return `<span class='tok-num'>${num}</span>`;
+      if (word) {
+        if (KW.has(word)) return `<span class='tok-kw'>${word}</span>`;
+        if (/^[A-Z]/.test(word)) return `<span class='tok-cls'>${word}</span>`;
+        return word;
+      }
+      return m;
+    });
+  }
+  let codeActive = 0;
+  function renderCode() {
+    $("#codeTabs").innerHTML = SAMPLES.map((s, i) => `<button class='code-tab${i === codeActive ? " active" : ""}' role='tab' aria-selected='${i === codeActive}' data-i='${i}'>${s.file}</button>`).join("");
+    const s = SAMPLES[codeActive];
+    $("#codeFname").textContent = s.file;
+    $("#codeBlock").innerHTML = highlight(s.code);
+    $$("#codeTabs .code-tab").forEach((b) => b.addEventListener("click", () => { codeActive = +b.dataset.i; renderCode(); }));
+  }
+
+  // ---------- toast + copy ----------
+  let toastTimer;
+  function toast(msg, err = false) {
+    const t = $("#toast");
+    t.innerHTML = `<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'>${err ? "<path d='M12 9v4M12 17h.01'/><circle cx='12' cy='12' r='9'/>" : "<path d='M20 6 9 17l-5-5'/>"}</svg><span>${escapeHtml(msg)}</span>`;
+    t.classList.toggle("err", err);
+    t.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove("show"), 3200);
+  }
+  async function copyText(text, btn) {
+    try {
+      await navigator.clipboard.writeText(text);
+      if (btn) { btn.classList.add("copied"); setTimeout(() => btn.classList.remove("copied"), 1400); }
+      toast("Copied to clipboard.");
+    } catch { toast("Copy failed — select and copy manually.", true); }
+  }
+
+  // ---------- wire up ----------
+  renderWriteGrid();
+  renderCmp();
+  renderCode();
+
+  $("#downloadBtn").addEventListener("click", download);
+  $("#resetBtn").addEventListener("click", resetData);
+  $("#roundtripBtn").addEventListener("click", readGenerated);
+
+  $$("[data-copy]").forEach((b) => b.addEventListener("click", () => copyText(b.dataset.copy, b)));
+  $("#copyCode").addEventListener("click", () => copyText(SAMPLES[codeActive].code, $("#copyCode")));
+
+  const drop = $("#drop"), fileInput = $("#fileInput");
+  drop.addEventListener("click", () => fileInput.click());
+  drop.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fileInput.click(); } });
+  fileInput.addEventListener("change", (e) => { if (e.target.files[0]) readFromFile(e.target.files[0]); });
+  ["dragenter", "dragover"].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add("over"); }));
+  ["dragleave", "drop"].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); if (ev === "dragleave" && drop.contains(e.relatedTarget)) return; drop.classList.remove("over"); }));
+  drop.addEventListener("drop", (e) => { const f = e.dataTransfer.files[0]; if (f) readFromFile(f); });
+
+  if (libError) {
+    toast("Live demo offline — showing static content.", true);
+    $("#downloadBtn").disabled = true;
+  }
+
+</script>
+</body>
+</html>
