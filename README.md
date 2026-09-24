@@ -17,7 +17,7 @@
 [![types](https://img.shields.io/npm/types/excel-bridge?color=22c55e)](https://www.npmjs.com/package/excel-bridge)
 [![license](https://img.shields.io/npm/l/excel-bridge?color=22c55e)](./LICENSE)
 
-<sub>[Live Demo](https://kevinarce98.github.io/excel-bridge/) · [Quick Start](#quick-start) · [Why excel-bridge?](#why-excel-bridge) · [Guide](#guide) · [API Reference](#api-reference) · [Compatibility](#compatibility)</sub>
+<sub>[Live Demo](https://kevinarce98.github.io/excel-bridge/) · [Quick Start](#quick-start) · [Why excel-bridge?](#why-excel-bridge) · [Bundle size](#bundle-size) · [Guide](#guide) · [API Reference](#api-reference) · [Compatibility](#compatibility)</sub>
 
 </div>
 
@@ -26,7 +26,7 @@
 ## Highlights
 
 - **Zero heavy dependencies** — no ExcelJS or SheetJS under the hood, just `fflate` + `fast-xml-parser`.
-- **Tiny & tree-shakeable** — a micro-package architecture ships only what you import (ESM **and** CJS).
+- **Tiny & tree-shakeable** — a micro-package architecture ships only what you import: `ExcelWriter` alone is 10.6 KB min+gzip ([sizes](#bundle-size)). ESM **and** CJS.
 - **TypeScript-first** — complete types and IntelliSense for every public API.
 - **Cross-platform** — one API for the browser (`File`/`Blob`) and Node.js (`Buffer`).
 - **Full read & write** — styling, fonts, borders, formulas, dates, merged cells, freeze panes, **conditional formatting**, data validation and multi-sheet workbooks.
@@ -51,19 +51,24 @@ yarn add excel-bridge
 
 ## Quick Start
 
+Import the class you need — `ExcelReader`, `ExcelWriter` or [`Workbook`](#high-level-workbook-api) —
+and your bundler ships only that part of the library ([sizes](#bundle-size)).
+
 ### Read a workbook
 
 ```typescript
-import { ExcelBridge } from 'excel-bridge';
+import { ExcelReader } from 'excel-bridge';
+
+const reader = new ExcelReader();
 
 // Browser — from a file <input>
 const file = document.querySelector<HTMLInputElement>('input[type="file"]')!.files![0];
-const workbook = await ExcelBridge.readFromFile(file);
+const workbook = await reader.parseFromFile(file);
 
 // Node.js — from a Buffer (synchronous)
 import fs from 'node:fs';
 const buffer = fs.readFileSync('data.xlsx');
-const workbook = ExcelBridge.read(buffer);
+const workbook = reader.parseFromBuffer(buffer);
 
 // Every cell is typed. Dates come back as `Date`, formula cells expose `.formula`.
 for (const row of workbook.sheets[0].data) {
@@ -82,22 +87,47 @@ for (const row of workbook.sheets[0].data) {
 ### Write a workbook
 
 ```typescript
-import { ExcelBridge } from 'excel-bridge';
+import { ExcelWriter } from 'excel-bridge';
 
-const data = [
-  ['Name', 'Age', 'City'],
-  ['John', 25, 'New York'],
-  ['Jane', 30, 'Los Angeles'],
-];
+const writer = new ExcelWriter();
+
+const sheet = {
+  data: [
+    ['Name', 'Age', 'City'],
+    ['John', 25, 'New York'],
+    ['Jane', 30, 'Los Angeles'],
+  ],
+};
 
 // Browser — get a Blob to download
-const blob = ExcelBridge.write(data);
+const blob = writer.createWorkbook([sheet]);
 const url = URL.createObjectURL(blob);
 
 // Node.js — get a Buffer to write to disk
 import fs from 'node:fs';
-fs.writeFileSync('output.xlsx', ExcelBridge.writeBuffer(data));
+fs.writeFileSync('output.xlsx', writer.createWorkbookBuffer([sheet]));
 ```
+
+### Convenience entry point
+
+`ExcelBridge` puts the reader, the writer and the helpers on a single object — handy for Node.js
+scripts and quick prototypes:
+
+```typescript
+import { ExcelBridge } from 'excel-bridge';
+
+const workbook = ExcelBridge.read(buffer);
+const blob = ExcelBridge.write([
+  ['Name', 'Age'],
+  ['John', 25],
+]);
+```
+
+It also offers `ExcelBridge.readFromFile(file)` for browser `File`s and `ExcelBridge.writeBuffer(data)`
+for Node.js ([all entry points](#entry-points)).
+
+> Bundlers keep an object whole, so even a lone `ExcelBridge.write` call ships the reader too:
+> 37.1 KB min+gzip, against 10.6 KB for `ExcelWriter`. In browser code, prefer the named imports.
 
 ## Why excel-bridge?
 
@@ -117,12 +147,47 @@ enough to drop into a front-end bundle.
 | First-class TypeScript types | ✅ | ✅ | ✅ |
 | ESM **and** CJS, tree-shakeable | ✅ | ⚠️ CJS-first | ✅ |
 | Heavy runtime dependencies | **None** | Several | None |
-| Bundle footprint | **Tiny** ¹ | Large ¹ | Large ¹ |
+| Bundle size to write a file ¹ | **10.6 KB** | 272.1 KB | 95.8 KB |
 
-<sub>¹ Because the package is tree-shakeable, importing a single helper pulls in far less than the
-full-import size. Check current, exact numbers on Bundlephobia:
+<sub>¹ Minified + gzipped code that a browser bundle needs to write an `.xlsx`: `ExcelWriter`, ExcelJS's
+default browser build (not tree-shakeable) and SheetJS `utils` + `write` from npm `xlsx@0.18.5`,
+bundled with esbuild. See [Bundle size](#bundle-size) for the method, reader sizes and more
+libraries. Bundlephobia measures each whole package with its own toolchain, so its numbers differ:
 [excel-bridge](https://bundlephobia.com/package/excel-bridge) ·
 [exceljs](https://bundlephobia.com/package/exceljs) · [xlsx](https://bundlephobia.com/package/xlsx).</sub>
+
+### Bundle size
+
+Bundlers keep the exports you import and drop the rest. What each entry point adds to a browser
+bundle:
+
+| Import from `excel-bridge` | min+gzip |
+| --- | ---: |
+| `createExcelWorkbookStream` | 9.9 KB |
+| `ExcelWriter` | 10.6 KB |
+| `ExcelReader` | 27.3 KB |
+| `Workbook` (reader + writer) | 36.8 KB |
+| `ExcelBridge` (convenience object) | 37.1 KB |
+| Everything | 39.4 KB |
+
+The same measurement for other libraries:
+
+| Library | Import | min+gzip |
+| --- | --- | ---: |
+| hucre 1.1.0 | `writeXlsx` or `readXlsx` | ~40 KB each |
+| SheetJS (`xlsx` 0.18.5 on npm) | `utils` + `write` | 95.8 KB |
+| ExcelJS 4.4.0 | default browser build, not tree-shakeable | 272.1 KB |
+
+Tree-shaking relies on the ESM build, which bundlers pick for `import`; `require('excel-bridge')`
+loads the whole CommonJS build.
+
+<sub>Measured 2026-09-24 on excel-bridge 1.3.0. Each row bundles a one-line
+`export { … } from '<package>'` entry with esbuild 0.27.3
+(`--bundle --minify --platform=browser --format=esm`), then gzips it with Node's zlib at the default
+level; 1 KB = 1,000 bytes. The hucre figures are rounded from a separate run with the `gzip` CLI;
+gzip implementations differ by about 1% (macOS `gzip` comes out slightly smaller). Newer SheetJS
+Community Edition builds ship from the SheetJS CDN and weren't measured. Regenerate the table with
+[`pnpm run size`](./benchmarks/README.md#bundle-size).</sub>
 
 ### Performance
 
@@ -134,8 +199,9 @@ Writing **50,000 rows × 10 columns** (median of 3 runs, Node 22, Apple Silicon)
 | exceljs | 1667 ms | 2.82 MB |
 | xlsx / SheetJS | 578 ms | 18.23 MB |
 
-~2.5× faster than ExcelJS, and a fraction of SheetJS's default output size. Numbers vary by
-machine — reproduce them with [`pnpm run bench`](./benchmarks/README.md).
+~2.5× faster than ExcelJS. SheetJS writes this workload a little faster (578 ms vs 662 ms), but its
+default output is ~7.5× larger. Numbers vary by machine — reproduce them with
+[`pnpm run bench`](./benchmarks/README.md#write-speed).
 
 ## Guide
 
@@ -461,13 +527,13 @@ const buffer = writer.createWorkbookBuffer([{ data }]);
 
 ### Reading in depth
 
-`ExcelBridge.read` returns the full workbook — not just cell values. Each `ParsedSheet` also
+`ExcelReader` returns the full workbook — not just cell values. Each `ParsedSheet` also
 exposes its layout, and the workbook carries document metadata.
 
 ```typescript
-import { ExcelBridge } from 'excel-bridge';
+import { ExcelReader } from 'excel-bridge';
 
-const workbook = ExcelBridge.read(buffer);
+const workbook = new ExcelReader().parseFromBuffer(buffer);
 
 const sheet = workbook.sheets[0];
 sheet.name; // "Sales Report"
@@ -493,6 +559,10 @@ indexToCoordinate(0, 0);    // "A1"
 ## API Reference
 
 ### Entry points
+
+`ExcelBridge` groups the most common calls on one object. It's the simplest way to start, but it
+bundles as a unit; for the smallest browser bundles, import the [classes](#classes) and
+[functions](#functions) below directly ([sizes](#bundle-size)).
 
 | Export | Description |
 | --- | --- |

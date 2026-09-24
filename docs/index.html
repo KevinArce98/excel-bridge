@@ -525,6 +525,8 @@
   .cmp-note { font-size: 12.5px; color: var(--text-dim); margin-top: 14px; }
   table.cmp td .lbl-strong { color: var(--text-hi); font-weight: 600; }
   table.cmp td .lbl-dim { color: var(--text-dim); }
+  table.cmp td .size { font-family: var(--mono); font-size: 13px; color: var(--text); white-space: nowrap; }
+  table.cmp td.col-us .size { color: var(--green); font-weight: 700; }
 
   .perf { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 28px; }
   .perf .pcard { background: var(--surface); border: 1px solid var(--line-soft); border-radius: var(--r-md); padding: 20px; }
@@ -801,7 +803,7 @@
           <span class="addr">D3</span>
           <span class="ficon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 18 22 12 16 6"/><path d="M8 6 2 12 8 18"/></svg></span>
           <h3>TypeScript-first, tree-shakeable</h3>
-          <p>Complete types and IntelliSense for every export, in both ESM and CJS. Import one helper and bundle only that.</p>
+          <p>Complete types and IntelliSense for every export, in both ESM and CJS. Import only what you use: <code>ExcelWriter</code> alone is 10.6 KB min+gzip.</p>
         </div>
       </div>
     </div>
@@ -828,7 +830,7 @@
           <tbody id="cmpBody"></tbody>
         </table>
       </div>
-      <p class="cmp-note">¹ Because the package is tree-shakeable, importing a single helper pulls in far less than the full-import size. Check exact numbers on <a href="https://bundlephobia.com/package/excel-bridge" target="_blank" rel="noopener">Bundlephobia</a>.</p>
+      <p class="cmp-note">¹ Min+gzip of what a browser bundle needs to write an .xlsx: <code>ExcelWriter</code>, ExcelJS's default browser build (not tree-shakeable), and SheetJS <code>utils</code> + <code>write</code> from npm <code>xlsx@0.18.5</code>. Bundled with esbuild 0.27.3 and gzipped on 2026-09-24; reproduce with <code>pnpm run size</code>. Reading adds the XML parser: <code>ExcelReader</code> is 27.3 KB and the whole library 39.4 KB. Bundlephobia measures whole packages with its own toolchain: <a href="https://bundlephobia.com/package/excel-bridge" target="_blank" rel="noopener">excel-bridge</a> · <a href="https://bundlephobia.com/package/exceljs" target="_blank" rel="noopener">exceljs</a> · <a href="https://bundlephobia.com/package/xlsx" target="_blank" rel="noopener">xlsx</a>.</p>
 
       <div class="perf" aria-label="Write benchmark, 50,000 rows by 10 columns">
         <div class="pcard us">
@@ -1161,7 +1163,7 @@
     draw();
 
     const rc = wb.sheets.reduce((s, sh) => s + (sh.data ? sh.data.length : 0), 0);
-    setFx(`<span class="tok-fn">ExcelBridge.read</span>(file) <span class="tok-arrow">→</span> { sheets: ${wb.sheets.length}, rows: ${rc} }`);
+    setFx(`<span class="tok-fn">reader.parseFromFile</span>(file) <span class="tok-arrow">→</span> { sheets: ${wb.sheets.length}, rows: ${rc} }`);
   }
 
   async function readFromFile(file) {
@@ -1198,6 +1200,7 @@
     ["First-class TypeScript types", "yes", "yes", "yes"],
     ["ESM & CJS, tree-shakeable", "yes", "warn-cjs", "yes"],
     ["Heavy runtime dependencies", "none", "several", "none"],
+    ["Bundle size to write a file ¹", "10.6 KB", "272.1 KB", "95.8 KB"],
   ];
   const ICONS = {
     yes: `<span class='mk yes' title='Yes'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><path d='M20 6 9 17l-5-5'/></svg></span>`,
@@ -1210,6 +1213,7 @@
     if (v === "warn-cjs") return ICONS.warn + `<span class='lbl-dim' style='font-size:12px;margin-left:4px'>CJS-first</span>`;
     if (v === "none") return `<span class='lbl-strong'>None</span>`;
     if (v === "several") return `<span class='lbl-dim'>Several</span>`;
+    if (v.endsWith(" KB")) return `<span class='size tnum'>${v}</span>`;
     return v;
   }
   function renderCmp() {
@@ -1245,13 +1249,15 @@ const blob = writer.createWorkbook([{
 
 // browser: a Blob you can download. Node: writer.createWorkbookBuffer(...)` },
     { id: "read", file: "read.ts", code:
-`import { ExcelBridge } from 'excel-bridge';
+`import { ExcelReader } from 'excel-bridge';
+
+const reader = new ExcelReader();
 
 // Browser — from a file <input>
-const workbook = await ExcelBridge.readFromFile(file);
+const workbook = await reader.parseFromFile(file);
 
 // Node.js — from a Buffer (synchronous)
-// const workbook = ExcelBridge.read(fs.readFileSync('data.xlsx'));
+// const workbook = reader.parseFromBuffer(fs.readFileSync('data.xlsx'));
 
 for (const row of workbook.sheets[0].data) {
   for (const cell of row) {
