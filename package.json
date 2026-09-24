@@ -40,7 +40,8 @@
     "lint:fix": "eslint src/**/*.ts --fix",
     "format": "prettier --write src/**/*.ts",
     "format:check": "prettier --check src/**/*.ts",
-    "bench": "pnpm run build && node benchmarks/bench.mjs"
+    "bench": "pnpm run build && node benchmarks/bench.mjs",
+    "size": "pnpm run build && node benchmarks/size.mjs"
   },
   "dependencies": {
     "fast-xml-parser": "^5.11.1",
@@ -56,6 +57,7 @@
     "@semantic-release/release-notes-generator": "^14.1.1",
     "@typescript-eslint/eslint-plugin": "^8.68.0",
     "@typescript-eslint/parser": "^8.68.0",
+    "esbuild": "^0.27.3",
     "eslint": "^10.9.1",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.6",
