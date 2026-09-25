@@ -1,3 +1,16 @@
+# [1.4.0](https://github.com/KevinArce98/excel-bridge/compare/v1.3.0...v1.4.0) (2026-09-25)
+
+
+### Bug Fixes
+
+* **reader:** keep number-like cell text exact ([3b11239](https://github.com/KevinArce98/excel-bridge/commit/3b11239ed1dd33f6a1f3747261eabf727a99561e))
+* **writer:** escape user-supplied attribute values ([f3e843b](https://github.com/KevinArce98/excel-bridge/commit/f3e843b580eb0273beb41523b3ef5edbe0e12edb))
+
+
+### Features
+
+* add autoFilter and hyperlinks ([a1b3750](https://github.com/KevinArce98/excel-bridge/commit/a1b3750e7e125370fe84a19d362bbd45648c3b13))
+
 # [1.3.0](https://github.com/KevinArce98/excel-bridge/compare/v1.2.0...v1.3.0) (2026-08-29)
 
 
