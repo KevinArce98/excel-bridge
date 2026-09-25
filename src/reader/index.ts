@@ -100,6 +100,15 @@ const RAW_ATTRIBUTE_PATHS = [
   'Relationships.Relationship',
 ];
 
+const RAW_TEXT_PATHS = [
+  'worksheet.sheetData.row.c.v',
+  'worksheet.sheetData.row.c.f',
+  'worksheet.sheetData.row.c.is.t',
+  'worksheet.sheetData.row.c.is.r.t',
+  'sst.si.t',
+  'sst.si.r.t',
+];
+
 const relsPathFor = (partPath: string): string =>
   partPath.replace(/[^/]+$/, name => `_rels/${name}.rels`);
 
@@ -116,6 +125,8 @@ export class ExcelReader {
       trimValues: false,
       attributeValueProcessor: (_name, value, jPath) =>
         RAW_ATTRIBUTE_PATHS.includes(String(jPath)) ? null : value,
+      tagValueProcessor: (_name, value, jPath) =>
+        RAW_TEXT_PATHS.includes(String(jPath)) ? null : value,
     });
   }
 
@@ -611,7 +622,7 @@ export class ExcelReader {
     }
 
     if (cell.t === 'inlineStr' || (cell.t === undefined && cell.is !== undefined)) {
-      value = this.extractText(cell.is?.t);
+      value = this.extractStringItem(cell.is);
       type = 'string';
     } else if (cell.v !== undefined) {
       const raw = cell.v;
