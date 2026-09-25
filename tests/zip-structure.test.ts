@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ExcelBridge } from '../src';
+import { ExcelBridge, ExcelWriter } from '../src';
 import { unzipSync } from 'fflate';
 
 describe('ZIP Structure Validation', () => {
@@ -81,5 +81,21 @@ describe('ZIP Structure Validation', () => {
     expect(() => {
       new Blob([buffer], { type: 'application/octet-stream' });
     }).not.toThrow();
+  });
+
+  it('adds sheet relationships only for sheets with external links', () => {
+    const buffer = new ExcelWriter().createWorkbookBuffer([
+      { data: [['a']], hyperlinks: [{ range: 'A1', url: 'https://example.com' }] },
+      { data: [['b']], hyperlinks: [{ range: 'A1', location: "'Sheet1'!A1" }] },
+    ]);
+    const paths = Object.keys(unzipSync(buffer));
+
+    expect(paths).toContain('xl/worksheets/_rels/sheet1.xml.rels');
+    expect(paths).not.toContain('xl/worksheets/_rels/sheet2.xml.rels');
+    expect(paths.some(path => path.startsWith('/'))).toBe(false);
+    expect(paths[0]).toBe('[Content_Types].xml');
+    expect(paths.indexOf('xl/worksheets/_rels/sheet1.xml.rels')).toBe(
+      paths.indexOf('xl/worksheets/sheet1.xml') + 1
+    );
   });
 });

@@ -8,22 +8,18 @@ import {
   validateCellValue,
 } from './date-utils';
 import { calculateColumnWidths, generateColsXml } from './column-width';
-import { CellValue, CellValidation, CellStyle, ConditionalFormat } from './types';
+import { indexToColumnLetter, parseRange, formatRange, quoteSheetName } from './cell-ref';
+import { PreparedHyperlink, prepareHyperlinks, withHyperlinkStyles } from './hyperlinks';
+import {
+  AutoFilter,
+  CellValue,
+  CellValidation,
+  CellStyle,
+  ConditionalFormat,
+  Hyperlink,
+} from './types';
 
 export type { CellValidation, CellStyle } from './types';
-
-export const indexToColumnLetter = (index: number): string => {
-  let letter = '';
-  let num = index + 1;
-
-  while (num > 0) {
-    const remainder = (num - 1) % 26;
-    letter = String.fromCharCode(65 + remainder) + letter;
-    num = Math.floor((num - 1) / 26);
-  }
-
-  return letter;
-};
 
 export interface SheetGenerationOptions {
   freezePane?: { row?: number; col?: number };
@@ -32,18 +28,16 @@ export interface SheetGenerationOptions {
   mergeCells?: string[];
   conditionalFormats?: ConditionalFormat[];
   sharedStrings?: Map<string, number>;
+  autoFilter?: AutoFilter;
+  hyperlinks?: Hyperlink[];
 }
 
-const CF_OPERATOR_XML: Record<string, string> = {
-  greaterThan: 'greaterThan',
-  greaterThanOrEqual: 'greaterThanOrEqual',
-  lessThan: 'lessThan',
-  lessThanOrEqual: 'lessThanOrEqual',
-  equal: 'equal',
-  notEqual: 'notEqual',
-  between: 'between',
-  notBetween: 'notBetween',
-};
+export interface DefinedName {
+  name: string;
+  value: string;
+  localSheetId?: number;
+  hidden?: boolean;
+}
 
 const cfFormulaValue = (value: number | string): string =>
   typeof value === 'number' ? String(value) : `&quot;${escapeXml(value)}&quot;`;
@@ -73,7 +67,7 @@ const generateConditionalFormattingXml = (
         return `\n  <conditionalFormatting sqref="${cf.range}">\n    <cfRule type="expression" dxfId="${dxfId}" priority="${priority}">\n      <formula>${escapeXml(cf.formula)}</formula>\n    </cfRule>\n  </conditionalFormatting>`;
       }
 
-      const operator = CF_OPERATOR_XML[cf.operator];
+      const operator = cf.operator;
       const formulasXml =
         cf.operator === 'between' || cf.operator === 'notBetween'
           ? `<formula>${cfFormulaValue(cf.value)}</formula><formula>${cfFormulaValue(cf.value2!)}</formula>`
@@ -159,19 +153,162 @@ export const generateRowXml = (
   return rowXml;
 };
 
+export const generateSheetViewsXml = (freezePane?: { row?: number; col?: number }): string => {
+  if (!freezePane) return '';
+
+  const { row = 0, col = 0 } = freezePane;
+  let sheetViewsXml = `  <sheetViews>
+    <sheetView workbookViewId="0">`;
+
+  if (row > 0 || col > 0) {
+    const topLeftCell = `${indexToColumnLetter(col)}${row + 1}`;
+    let activePane = 'bottomRight';
+    if (row > 0 && col === 0) {
+      activePane = 'bottomLeft';
+    } else if (col > 0 && row === 0) {
+      activePane = 'topRight';
+    }
+
+    sheetViewsXml += `
+      <pane`;
+    if (col > 0) sheetViewsXml += ` xSplit="${col}"`;
+    if (row > 0) sheetViewsXml += ` ySplit="${row}"`;
+    sheetViewsXml += ` topLeftCell="${topLeftCell}" activePane="${activePane}" state="frozen"/>`;
+  }
+
+  sheetViewsXml += `
+    </sheetView>
+  </sheetViews>`;
+  return sheetViewsXml;
+};
+
+export const generateMergeCellsXml = (ranges: string[] = []): string => {
+  if (ranges.length === 0) return '';
+
+  let mergeCellsXml = `\n  <mergeCells count="${ranges.length}">`;
+  ranges.forEach(range => {
+    mergeCellsXml += `\n    <mergeCell ref="${range}"/>`;
+  });
+  return mergeCellsXml + `\n  </mergeCells>`;
+};
+
+export const generateAutoFilterXml = (autoFilter?: AutoFilter): string =>
+  autoFilter ? `\n  <autoFilter ref="${formatRange(parseRange(autoFilter.range))}"/>` : '';
+
+const optionalAttr = (name: string, value?: string): string =>
+  value === undefined ? '' : ` ${name}="${escapeXmlAttr(value)}"`;
+
+export const generateHyperlinksXml = (links: PreparedHyperlink[]): string => {
+  if (links.length === 0) return '';
+
+  const items = links
+    .map(
+      link =>
+        `\n    <hyperlink ref="${link.ref}"${optionalAttr('r:id', link.rId)}${optionalAttr('location', link.location)}${optionalAttr('tooltip', link.tooltip)}${optionalAttr('display', link.display)}/>`
+    )
+    .join('');
+
+  return `\n  <hyperlinks>${items}\n  </hyperlinks>`;
+};
+
+export const generateHyperlinkRelsXml = (links: PreparedHyperlink[]): string => {
+  const relationships = links
+    .map(link =>
+      link.rId !== undefined && link.target !== undefined
+        ? `\n  <Relationship Id="${link.rId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="${escapeXmlAttr(link.target)}" TargetMode="External"/>`
+        : ''
+    )
+    .join('');
+
+  if (!relationships) return '';
+
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="${XML_NS.main_rel}">${relationships}
+</Relationships>`;
+};
+
+export const generateSheetRelsXml = (hyperlinks: Hyperlink[] = []): string =>
+  generateHyperlinkRelsXml(prepareHyperlinks(hyperlinks));
+
+export const sheetRelsPath = (sheetNumber: number): string =>
+  `xl/worksheets/_rels/sheet${sheetNumber}.xml.rels`;
+
+export const generateWorksheetStart = (
+  sheetViews: string,
+  cols: string,
+  links: PreparedHyperlink[]
+): string => {
+  const relationshipsNs = links.some(link => link.rId !== undefined)
+    ? ` xmlns:r="${XML_NS.relationships}"`
+    : '';
+  return `<?xml version="1.0"?>
+<worksheet xmlns="${XML_NS.spreadsheetml}"${relationshipsNs}>${sheetViews}${cols}
+  <sheetData>`;
+};
+
+export const generateWorksheetEnd = (
+  autoFilter: string,
+  mergeCells: string,
+  conditionalFormatting: string,
+  dataValidations: string,
+  hyperlinks: string
+): string => `
+  </sheetData>${autoFilter}${mergeCells}${conditionalFormatting}${dataValidations}${hyperlinks}
+</worksheet>`;
+
+export const generatePreparedSheetXml = (
+  data: CellValue[][],
+  validations: CellValidation[],
+  styles: Record<string, CellStyle>,
+  styleManager: StyleManager | undefined,
+  options: SheetGenerationOptions,
+  links: PreparedHyperlink[]
+): string => {
+  const sheetStyles = withHyperlinkStyles(styles, links);
+  const autoFilterXml = generateAutoFilterXml(options.autoFilter);
+
+  let rowsXml = '';
+
+  data.forEach((row, rowIndex) => {
+    rowsXml += generateRowXml(row, rowIndex, sheetStyles, styleManager, options.sharedStrings);
+  });
+
+  const colsXml = options.columnWidths
+    ? generateColsXml(options.columnWidths)
+    : options.autoWidth
+      ? generateColsXml(calculateColumnWidths(data))
+      : '';
+
+  return (
+    generateWorksheetStart(generateSheetViewsXml(options.freezePane), colsXml, links) +
+    rowsXml +
+    generateWorksheetEnd(
+      autoFilterXml,
+      generateMergeCellsXml(options.mergeCells),
+      generateConditionalFormattingXml(options.conditionalFormats, styleManager),
+      generateDataValidationsXml(validations),
+      generateHyperlinksXml(links)
+    )
+  );
+};
+
 export const generateSheetXml = (
   data: CellValue[][],
   validations: CellValidation[] = [],
   styles: Record<string, CellStyle> = {},
   styleManager?: StyleManager,
   options: SheetGenerationOptions = {}
-) => {
-  let rowsXml = '';
+) =>
+  generatePreparedSheetXml(
+    data,
+    validations,
+    styles,
+    styleManager,
+    options,
+    prepareHyperlinks(options.hyperlinks)
+  );
 
-  data.forEach((row, rowIndex) => {
-    rowsXml += generateRowXml(row, rowIndex, styles, styleManager, options.sharedStrings);
-  });
-
+export const generateDataValidationsXml = (validations: CellValidation[] = []): string => {
   let validationsXml = '';
   if (validations.length > 0) {
     validationsXml = `
@@ -200,58 +337,7 @@ export const generateSheetXml = (
   </dataValidations>`;
   }
 
-  const colsXml = options.columnWidths
-    ? generateColsXml(options.columnWidths)
-    : options.autoWidth
-      ? generateColsXml(calculateColumnWidths(data))
-      : '';
-
-  let sheetViewsXml = '';
-  if (options.freezePane) {
-    const { row = 0, col = 0 } = options.freezePane;
-    const topLeftCell = `${indexToColumnLetter(col)}${row + 1}`;
-    sheetViewsXml = `  <sheetViews>
-    <sheetView workbookViewId="0">`;
-
-    if (row > 0 || col > 0) {
-      let activePane = 'bottomRight';
-      if (row > 0 && col === 0) {
-        activePane = 'bottomLeft';
-      } else if (col > 0 && row === 0) {
-        activePane = 'topRight';
-      }
-
-      sheetViewsXml += `
-      <pane`;
-      if (col > 0) sheetViewsXml += ` xSplit="${col}"`;
-      if (row > 0) sheetViewsXml += ` ySplit="${row}"`;
-      sheetViewsXml += ` topLeftCell="${topLeftCell}" activePane="${activePane}" state="frozen"/>`;
-    }
-
-    sheetViewsXml += `
-    </sheetView>
-  </sheetViews>`;
-  }
-
-  let mergeCellsXml = '';
-  if (options.mergeCells && options.mergeCells.length > 0) {
-    mergeCellsXml = `\n  <mergeCells count="${options.mergeCells.length}">`;
-    options.mergeCells.forEach(range => {
-      mergeCellsXml += `\n    <mergeCell ref="${range}"/>`;
-    });
-    mergeCellsXml += `\n  </mergeCells>`;
-  }
-
-  const conditionalFormattingXml = generateConditionalFormattingXml(
-    options.conditionalFormats,
-    styleManager
-  );
-
-  return `<?xml version="1.0"?>
-<worksheet xmlns="${XML_NS.spreadsheetml}">${sheetViewsXml}${colsXml}
-  <sheetData>${rowsXml}
-  </sheetData>${mergeCellsXml}${conditionalFormattingXml}${validationsXml}
-</worksheet>`;
+  return validationsXml;
 };
 
 export const generateSharedStringsXml = (strings: string[]) => {
@@ -357,7 +443,42 @@ ${worksheetOverrides}${sharedStringsOverride}
 </Types>`;
 };
 
-export const generateWorkbookXml = (sheetNames: string[] = ['Sheet1']) => {
+export const filterDatabaseNames = (
+  sheetNames: string[],
+  autoFilters: Array<AutoFilter | undefined>
+): DefinedName[] =>
+  autoFilters.flatMap((autoFilter, index) =>
+    autoFilter
+      ? [
+          {
+            name: '_xlnm._FilterDatabase',
+            localSheetId: index,
+            hidden: true,
+            value: `${quoteSheetName(sheetNames[index])}!${formatRange(parseRange(autoFilter.range), true)}`,
+          },
+        ]
+      : []
+  );
+
+const generateDefinedNamesXml = (definedNames: DefinedName[]): string => {
+  if (definedNames.length === 0) return '';
+
+  const items = definedNames
+    .map(definedName => {
+      const localSheetId =
+        definedName.localSheetId !== undefined ? ` localSheetId="${definedName.localSheetId}"` : '';
+      const hidden = definedName.hidden ? ' hidden="1"' : '';
+      return `\n    <definedName name="${escapeXmlAttr(definedName.name)}"${localSheetId}${hidden}>${escapeXml(definedName.value)}</definedName>`;
+    })
+    .join('');
+
+  return `\n  <definedNames>${items}\n  </definedNames>`;
+};
+
+export const generateWorkbookXml = (
+  sheetNames: string[] = ['Sheet1'],
+  definedNames: DefinedName[] = []
+) => {
   const sheetsXml = sheetNames
     .map((name, index) => {
       const sheetId = index + 1;
@@ -375,7 +496,7 @@ export const generateWorkbookXml = (sheetNames: string[] = ['Sheet1']) => {
   </bookViews>
   <sheets>
 ${sheetsXml}
-  </sheets>
+  </sheets>${generateDefinedNamesXml(definedNames)}
   <calcPr calcId="162913" fullCalcOnLoad="1"/>
 </workbook>`;
 };
@@ -440,3 +561,5 @@ const escapeXml = (text: string): string => {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
 };
+
+const escapeXmlAttr = (text: string): string => escapeXml(text).replace(/"/g, '&quot;');

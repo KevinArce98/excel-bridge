@@ -1,6 +1,6 @@
 import { createExcelBlob, createExcelBuffer, ExcelFiles } from '../core/zip-manager';
 import {
-  generateSheetXml,
+  generatePreparedSheetXml,
   generateStylesXml,
   generateSharedStringsXml,
   generateContentTypesXml,
@@ -9,27 +9,43 @@ import {
   generateRootRelsXml,
   generateCorePropsXml,
   generateAppPropsXml,
+  generateHyperlinkRelsXml,
+  sheetRelsPath,
+  filterDatabaseNames,
   SheetGenerationOptions,
 } from '../core/xml-templates';
 import { StyleManager } from '../core/style-manager';
 import { isDate } from '../core/date-utils';
-import { CellValue, CellValidation, CellStyle, ConditionalFormat } from '../core/types';
+import { prepareHyperlinks, withHyperlinkStyles } from '../core/hyperlinks';
+import {
+  AutoFilter,
+  CellValue,
+  CellValidation,
+  CellStyle,
+  ConditionalFormat,
+  Hyperlink,
+} from '../core/types';
 
 export type {
+  AutoFilter,
   CellValue,
   CellValidation,
   CellStyle,
   ConditionalFormat,
   DataValidationType,
   DataValidationOperator,
+  Hyperlink,
 } from '../core/types';
 export { dataValidation } from './validation';
+export { hyperlink } from './hyperlink';
+export type { HyperlinkOptions } from './hyperlink';
 
 export interface SheetOptions {
   name?: string;
   freezePane?: { row?: number; col?: number };
   autoWidth?: boolean;
   columnWidths?: number[];
+  autoFilter?: AutoFilter;
 }
 
 export interface ExcelWriterOptions {
@@ -45,6 +61,7 @@ export interface ExcelData {
   styles?: Record<string, CellStyle>;
   mergeCells?: string[];
   conditionalFormats?: ConditionalFormat[];
+  hyperlinks?: Hyperlink[];
   options?: SheetOptions;
 }
 
@@ -75,10 +92,12 @@ export class ExcelWriter {
     const hasSharedStrings = !!shared && shared.list.length > 0;
 
     const styleManager = new StyleManager();
+    const sheetLinks = data.map(sheetData => prepareHyperlinks(sheetData.hyperlinks));
 
-    data.forEach(sheetData => {
-      if (sheetData.styles) {
-        Object.values(sheetData.styles).forEach(style => {
+    data.forEach((sheetData, index) => {
+      const styles = withHyperlinkStyles(sheetData.styles, sheetLinks[index]);
+      if (styles) {
+        Object.values(styles).forEach(style => {
           styleManager.getStyleId(style);
         });
       }
@@ -94,7 +113,8 @@ export class ExcelWriter {
 
     const sheetNames = data.map((sheet, index) => sheet.options?.name || `Sheet${index + 1}`);
 
-    const worksheetEntries: Array<{ path: string; xml: string }> = [];
+    const worksheetEntries: Array<{ path: string; xml: string; relsPath: string; rels: string }> =
+      [];
 
     data.forEach((sheetData, index) => {
       const sheetIndex = index + 1;
@@ -105,17 +125,24 @@ export class ExcelWriter {
         mergeCells: sheetData.mergeCells,
         conditionalFormats: sheetData.conditionalFormats,
         sharedStrings: hasSharedStrings ? shared!.map : undefined,
+        autoFilter: sheetData.options?.autoFilter,
       };
 
-      const sheetXml = generateSheetXml(
+      const sheetXml = generatePreparedSheetXml(
         sheetData.data,
         sheetData.validations || [],
         sheetData.styles || {},
         styleManager,
-        sheetOptions
+        sheetOptions,
+        sheetLinks[index]
       );
 
-      worksheetEntries.push({ path: `xl/worksheets/sheet${sheetIndex}.xml`, xml: sheetXml });
+      worksheetEntries.push({
+        path: `xl/worksheets/sheet${sheetIndex}.xml`,
+        xml: sheetXml,
+        relsPath: sheetRelsPath(sheetIndex),
+        rels: generateHyperlinkRelsXml(sheetLinks[index]),
+      });
     });
 
     const files: ExcelFiles = {};
@@ -126,12 +153,21 @@ export class ExcelWriter {
 
     files['xl/_rels/workbook.xml.rels'] = generateWorkbookRelsXml(sheetCount, hasSharedStrings);
 
-    files['xl/workbook.xml'] = generateWorkbookXml(sheetNames);
+    files['xl/workbook.xml'] = generateWorkbookXml(
+      sheetNames,
+      filterDatabaseNames(
+        sheetNames,
+        data.map(sheetData => sheetData.options?.autoFilter)
+      )
+    );
 
     files['xl/styles.xml'] = generateStylesXml(styleManager);
 
     worksheetEntries.forEach(entry => {
       files[entry.path] = entry.xml;
+      if (entry.rels) {
+        files[entry.relsPath] = entry.rels;
+      }
     });
 
     if (hasSharedStrings) {
