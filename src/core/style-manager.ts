@@ -263,8 +263,8 @@ export class StyleManager {
         if (font.italic) xml += '\n      <i/>';
         if (font.underline) xml += '\n      <u/>';
         if (font.size) xml += `\n      <sz val="${font.size}"/>`;
-        if (font.color) xml += `\n      <color rgb="${this.normalizeColor(font.color)}"/>`;
-        if (font.name) xml += `\n      <name val="${font.name}"/>`;
+        if (font.color) xml += `\n      <color rgb="${this.colorAttr(font.color)}"/>`;
+        if (font.name) xml += `\n      <name val="${this.escapeAttr(font.name)}"/>`;
         xml += '\n    </font>';
         return xml;
       })
@@ -280,7 +280,7 @@ export class StyleManager {
 
         let xml = '    <fill>\n      <patternFill patternType="solid">';
         if (fill.fgColor) {
-          xml += `\n        <fgColor rgb="${this.normalizeColor(fill.fgColor)}"/>`;
+          xml += `\n        <fgColor rgb="${this.colorAttr(fill.fgColor)}"/>`;
         }
         xml += '\n      </patternFill>\n    </fill>';
         return xml;
@@ -324,8 +324,8 @@ export class StyleManager {
           const { horizontal, vertical, wrapText } = xf.alignment;
           const verticalValue = vertical === 'middle' ? 'center' : vertical;
           let alignXml = '      <alignment';
-          if (horizontal) alignXml += ` horizontal="${horizontal}"`;
-          if (verticalValue) alignXml += ` vertical="${verticalValue}"`;
+          if (horizontal) alignXml += ` horizontal="${this.escapeAttr(horizontal)}"`;
+          if (verticalValue) alignXml += ` vertical="${this.escapeAttr(verticalValue)}"`;
           if (wrapText) alignXml += ' wrapText="1"';
           alignXml += '/>';
           xml += `>\n${alignXml}\n    </xf>`;
@@ -366,13 +366,13 @@ export class StyleManager {
           fontXml = '<font>';
           if (style.bold) fontXml += '<b/>';
           if (style.italic) fontXml += '<i/>';
-          if (style.color) fontXml += `<color rgb="${normalizeColor(style.color)}"/>`;
+          if (style.color) fontXml += `<color rgb="${this.colorAttr(style.color)}"/>`;
           fontXml += '</font>';
         }
 
         let fillXml = '';
         if (style.background) {
-          fillXml = `<fill><patternFill><bgColor rgb="${normalizeColor(style.background)}"/></patternFill></fill>`;
+          fillXml = `<fill><patternFill><bgColor rgb="${this.colorAttr(style.background)}"/></patternFill></fill>`;
         }
 
         return `    <dxf>${fontXml}${fillXml}</dxf>`;
@@ -392,8 +392,8 @@ export class StyleManager {
       .replace(/"/g, '&quot;');
   }
 
-  private normalizeColor(color: string): string {
-    return normalizeColor(color);
+  private colorAttr(color: string): string {
+    return this.escapeAttr(normalizeColor(color));
   }
 
   getFontsCount(): number {

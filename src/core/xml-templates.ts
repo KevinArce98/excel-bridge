@@ -51,28 +51,31 @@ const generateConditionalFormattingXml = (
   return formats
     .map((cf, index) => {
       const priority = index + 1;
+      const sqref = escapeXmlAttr(cf.range);
 
       if (cf.type === 'colorScale') {
         const cfvos =
           cf.colors.length === 3
             ? '<cfvo type="min"/><cfvo type="percentile" val="50"/><cfvo type="max"/>'
             : '<cfvo type="min"/><cfvo type="max"/>';
-        const colorsXml = cf.colors.map(c => `<color rgb="${normalizeColor(c)}"/>`).join('');
-        return `\n  <conditionalFormatting sqref="${cf.range}">\n    <cfRule type="colorScale" priority="${priority}">\n      <colorScale>${cfvos}${colorsXml}</colorScale>\n    </cfRule>\n  </conditionalFormatting>`;
+        const colorsXml = cf.colors
+          .map(c => `<color rgb="${escapeXmlAttr(normalizeColor(c))}"/>`)
+          .join('');
+        return `\n  <conditionalFormatting sqref="${sqref}">\n    <cfRule type="colorScale" priority="${priority}">\n      <colorScale>${cfvos}${colorsXml}</colorScale>\n    </cfRule>\n  </conditionalFormatting>`;
       }
 
       const dxfId = styleManager ? styleManager.getDxfId(cf.style) : 0;
 
       if (cf.type === 'expression') {
-        return `\n  <conditionalFormatting sqref="${cf.range}">\n    <cfRule type="expression" dxfId="${dxfId}" priority="${priority}">\n      <formula>${escapeXml(cf.formula)}</formula>\n    </cfRule>\n  </conditionalFormatting>`;
+        return `\n  <conditionalFormatting sqref="${sqref}">\n    <cfRule type="expression" dxfId="${dxfId}" priority="${priority}">\n      <formula>${escapeXml(cf.formula)}</formula>\n    </cfRule>\n  </conditionalFormatting>`;
       }
 
-      const operator = cf.operator;
+      const operator = escapeXmlAttr(cf.operator);
       const formulasXml =
         cf.operator === 'between' || cf.operator === 'notBetween'
           ? `<formula>${cfFormulaValue(cf.value)}</formula><formula>${cfFormulaValue(cf.value2!)}</formula>`
           : `<formula>${cfFormulaValue(cf.value)}</formula>`;
-      return `\n  <conditionalFormatting sqref="${cf.range}">\n    <cfRule type="cellIs" dxfId="${dxfId}" priority="${priority}" operator="${operator}">${formulasXml}</cfRule>\n  </conditionalFormatting>`;
+      return `\n  <conditionalFormatting sqref="${sqref}">\n    <cfRule type="cellIs" dxfId="${dxfId}" priority="${priority}" operator="${operator}">${formulasXml}</cfRule>\n  </conditionalFormatting>`;
     })
     .join('');
 };
@@ -187,7 +190,7 @@ export const generateMergeCellsXml = (ranges: string[] = []): string => {
 
   let mergeCellsXml = `\n  <mergeCells count="${ranges.length}">`;
   ranges.forEach(range => {
-    mergeCellsXml += `\n    <mergeCell ref="${range}"/>`;
+    mergeCellsXml += `\n    <mergeCell ref="${escapeXmlAttr(range)}"/>`;
   });
   return mergeCellsXml + `\n  </mergeCells>`;
 };
@@ -316,22 +319,24 @@ export const generateDataValidationsXml = (validations: CellValidation[] = []): 
     validations.forEach(v => {
       const type = v.type ?? 'list';
       const allowBlank = v.allowBlank === false ? '0' : '1';
+      const sqref = escapeXmlAttr(v.range);
 
       if (type === 'list') {
-        const formula1 = v.formula1 ?? `"${escapeXml(v.options)}"`;
+        const formula1 =
+          v.formula1 !== undefined ? escapeXml(v.formula1) : `"${escapeXml(v.options)}"`;
         validationsXml += `
-    <dataValidation type="list" allowBlank="${allowBlank}" showInputMessage="1" showErrorMessage="1" sqref="${v.range}">
+    <dataValidation type="list" allowBlank="${allowBlank}" showInputMessage="1" showErrorMessage="1" sqref="${sqref}">
       <formula1>${formula1}</formula1>
     </dataValidation>`;
         return;
       }
 
-      const operator = v.operator ?? 'between';
+      const operator = escapeXmlAttr(v.operator ?? 'between');
       let formulas = '';
       if (v.formula1 !== undefined) formulas += `<formula1>${escapeXml(v.formula1)}</formula1>`;
       if (v.formula2 !== undefined) formulas += `<formula2>${escapeXml(v.formula2)}</formula2>`;
       validationsXml += `
-    <dataValidation type="${type}" operator="${operator}" allowBlank="${allowBlank}" showInputMessage="1" showErrorMessage="1" sqref="${v.range}">${formulas}</dataValidation>`;
+    <dataValidation type="${escapeXmlAttr(type)}" operator="${operator}" allowBlank="${allowBlank}" showInputMessage="1" showErrorMessage="1" sqref="${sqref}">${formulas}</dataValidation>`;
     });
     validationsXml += `
   </dataValidations>`;
@@ -483,7 +488,7 @@ export const generateWorkbookXml = (
     .map((name, index) => {
       const sheetId = index + 1;
       const rId = `rId${sheetId}`;
-      return `    <sheet name="${escapeXml(name)}" sheetId="${sheetId}" r:id="${rId}"/>`;
+      return `    <sheet name="${escapeXmlAttr(name)}" sheetId="${sheetId}" r:id="${rId}"/>`;
     })
     .join('\n');
 
