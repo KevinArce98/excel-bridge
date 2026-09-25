@@ -1184,7 +1184,7 @@
 
       let tabs = "";
       if (wb.sheets.length > 1) {
-        tabs = `<div class='sheet-tabs' role='tablist'>` + wb.sheets.map((s, i) => `<button type='button' class='sheet-tab${i === active ? " active" : ""}' data-i='${i}' role='tab' aria-selected='${i === active}'>${escapeHtml(s.name || "Sheet" + (i + 1))}</button>`).join("") + `</div>`;
+        tabs = `<div class='sheet-tabs' role='tablist' aria-label='Sheets'>` + wb.sheets.map((s, i) => `<button type='button' class='sheet-tab${i === active ? " active" : ""}' data-i='${i}' role='tab' aria-selected='${i === active}' tabindex='${i === active ? 0 : -1}'>${escapeHtml(s.name || "Sheet" + (i + 1))}</button>`).join("") + `</div>`;
       }
 
       let t = `<div class='sheet-shell'><div class='grid-scroll'><table class='xl readonly' aria-label='Parsed spreadsheet ${escapeAttr(sheet.name || "")}'>`;
@@ -1216,7 +1216,14 @@
       t += `</div>`;
 
       out.innerHTML = meta + tabs + t;
-      $$(".sheet-tab", out).forEach((b) => b.addEventListener("click", () => { active = +b.dataset.i; draw(); }));
+      const selectSheet = (i) => { active = i; draw(); $(`.sheet-tab[data-i='${active}']`, out).focus(); };
+      $$(".sheet-tab", out).forEach((b) => b.addEventListener("click", () => selectSheet(+b.dataset.i)));
+      $(".sheet-tabs", out)?.addEventListener("keydown", (e) => {
+        const next = nextTabIndex(e.key, active, wb.sheets.length);
+        if (next < 0) return;
+        e.preventDefault();
+        selectSheet(next);
+      });
     };
     draw();
 
@@ -1372,11 +1379,29 @@ out.end();` },
     });
   }
   let codeActive = 0;
+  function nextTabIndex(key, current, count) {
+    if (key === "ArrowRight") return (current + 1) % count;
+    if (key === "ArrowLeft") return (current - 1 + count) % count;
+    if (key === "Home") return 0;
+    if (key === "End") return count - 1;
+    return -1;
+  }
+  function selectCode(i) {
+    codeActive = i;
+    renderCode();
+    $(`#codeTabs .code-tab[data-i='${codeActive}']`).focus();
+  }
+  $("#codeTabs").addEventListener("keydown", (e) => {
+    const next = nextTabIndex(e.key, codeActive, SAMPLES.length);
+    if (next < 0) return;
+    e.preventDefault();
+    selectCode(next);
+  });
   function renderCode() {
-    $("#codeTabs").innerHTML = SAMPLES.map((s, i) => `<button type='button' class='code-tab${i === codeActive ? " active" : ""}' role='tab' aria-selected='${i === codeActive}' data-i='${i}'>${s.file}</button>`).join("");
+    $("#codeTabs").innerHTML = SAMPLES.map((s, i) => `<button type='button' class='code-tab${i === codeActive ? " active" : ""}' role='tab' aria-selected='${i === codeActive}' tabindex='${i === codeActive ? 0 : -1}' data-i='${i}'>${s.file}</button>`).join("");
     $("#codeBlock").innerHTML = highlight(SAMPLES[codeActive].code);
     $("#codeBlock").setAttribute("aria-label", SAMPLES[codeActive].file);
-    $$("#codeTabs .code-tab").forEach((b) => b.addEventListener("click", () => { codeActive = +b.dataset.i; renderCode(); $(`#codeTabs .code-tab[data-i='${codeActive}']`).focus(); }));
+    $$("#codeTabs .code-tab").forEach((b) => b.addEventListener("click", () => selectCode(+b.dataset.i)));
   }
 
   let toastTimer;
