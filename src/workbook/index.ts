@@ -1,6 +1,16 @@
 import { ExcelReader, ParsedCell, ParsedWorkbook } from '../reader';
 import { ExcelWriter } from '../writer';
-import { CellValue, CellValidation, CellStyle, ConditionalFormat } from '../core/types';
+import { parseRange, formatRange } from '../core/cell-ref';
+import { EXCEL_LIMITS } from '../core/date-utils';
+import { HYPERLINK_STYLE, prepareHyperlink } from '../core/hyperlinks';
+import {
+  AutoFilter,
+  CellValue,
+  CellValidation,
+  CellStyle,
+  ConditionalFormat,
+  Hyperlink,
+} from '../core/types';
 import type { ExcelWriterOptions } from '../writer';
 
 interface WorkbookSheet {
@@ -10,10 +20,40 @@ interface WorkbookSheet {
   validations: CellValidation[];
   mergeCells: string[];
   conditionalFormats: ConditionalFormat[];
+  hyperlinks: Hyperlink[];
+  autoFilter?: AutoFilter;
   freezePane?: { row?: number; col?: number };
   columnWidths?: number[];
   autoWidth?: boolean;
 }
+
+const canonicalHyperlink = (link: Hyperlink): Hyperlink => ({
+  ...link,
+  range: prepareHyperlink(link).ref,
+});
+
+const canonicalAutoFilter = (autoFilter: AutoFilter): AutoFilter => ({
+  range: formatRange(parseRange(autoFilter.range)),
+});
+
+const acceptOrDrop = <T>(value: T, canonicalize: (value: T) => T): T[] => {
+  try {
+    return [canonicalize(value)];
+  } catch {
+    return [];
+  }
+};
+
+const loadHyperlinks = (links: Hyperlink[] = []): Hyperlink[] => {
+  const byRange = new Map<string, Hyperlink>();
+
+  for (const link of links.flatMap(link => acceptOrDrop(link, canonicalHyperlink))) {
+    if (byRange.size === EXCEL_LIMITS.MAX_HYPERLINKS) break;
+    if (!byRange.has(link.range)) byRange.set(link.range, link);
+  }
+
+  return [...byRange.values()];
+};
 
 export interface WorkbookMetadata {
   creator?: string;
@@ -55,6 +95,10 @@ export class Workbook {
       validations: sheet.validations.map(v => ({ range: v.range, options: v.options })),
       mergeCells: sheet.mergeCells ?? [],
       conditionalFormats: sheet.conditionalFormats ?? [],
+      hyperlinks: loadHyperlinks(sheet.hyperlinks),
+      autoFilter: sheet.autoFilter
+        ? acceptOrDrop(sheet.autoFilter, canonicalAutoFilter)[0]
+        : undefined,
       freezePane: sheet.freezePane,
       columnWidths: sheet.columnWidths,
     }));
@@ -98,6 +142,7 @@ export class Workbook {
       validations: [],
       mergeCells: [],
       conditionalFormats: [],
+      hyperlinks: [],
     });
   }
 
@@ -155,6 +200,59 @@ export class Workbook {
     this.findSheet(sheetName).conditionalFormats.push(format);
   }
 
+  setAutoFilter(sheetName: string, autoFilter: AutoFilter): void {
+    this.findSheet(sheetName).autoFilter = canonicalAutoFilter(autoFilter);
+  }
+
+  getAutoFilter(sheetName: string): AutoFilter | undefined {
+    const autoFilter = this.findSheet(sheetName).autoFilter;
+    return autoFilter ? { ...autoFilter } : undefined;
+  }
+
+  removeAutoFilter(sheetName: string): void {
+    delete this.findSheet(sheetName).autoFilter;
+  }
+
+  setHyperlink(sheetName: string, hyperlink: Hyperlink): void {
+    const sheet = this.findSheet(sheetName);
+    const stored = canonicalHyperlink(hyperlink);
+    const index = sheet.hyperlinks.findIndex(link => link.range === stored.range);
+
+    if (index === -1) {
+      sheet.hyperlinks.push(stored);
+    } else {
+      sheet.hyperlinks[index] = stored;
+    }
+  }
+
+  getHyperlinks(sheetName: string): Hyperlink[] {
+    return this.findSheet(sheetName).hyperlinks.map(link => ({ ...link }));
+  }
+
+  removeHyperlink(sheetName: string, range: string): void {
+    const sheet = this.findSheet(sheetName);
+    const parsed = parseRange(range);
+    const ref = formatRange(parsed);
+    const index = sheet.hyperlinks.findIndex(link => link.range === ref);
+    if (index === -1) return;
+
+    sheet.hyperlinks.splice(index, 1);
+
+    const anchor = `${parsed.start.row}-${parsed.start.col}`;
+    const style = sheet.styles[anchor];
+    if (!style) return;
+
+    const remaining: CellStyle = { ...style };
+    if (remaining.underline === true) delete remaining.underline;
+    if (remaining.color?.toUpperCase() === HYPERLINK_STYLE.color) delete remaining.color;
+
+    if (Object.keys(remaining).length > 0) {
+      sheet.styles[anchor] = remaining;
+    } else {
+      delete sheet.styles[anchor];
+    }
+  }
+
   private toExcelData() {
     return this.sheets.map(sheet => ({
       data: sheet.data,
@@ -162,11 +260,13 @@ export class Workbook {
       styles: sheet.styles,
       mergeCells: sheet.mergeCells,
       conditionalFormats: sheet.conditionalFormats,
+      hyperlinks: sheet.hyperlinks,
       options: {
         name: sheet.name,
         freezePane: sheet.freezePane,
         columnWidths: sheet.columnWidths,
         autoWidth: sheet.autoWidth,
+        autoFilter: sheet.autoFilter,
       },
     }));
   }

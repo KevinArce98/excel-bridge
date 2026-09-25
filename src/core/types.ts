@@ -65,6 +65,28 @@ export interface ColorScaleConditionalFormat {
 export type ConditionalFormat =
   CellValueConditionalFormat | ExpressionConditionalFormat | ColorScaleConditionalFormat;
 
+export interface AutoFilter {
+  range: string;
+}
+
+export interface ExternalHyperlink {
+  range: string;
+  url: string;
+  location?: never;
+  tooltip?: string;
+  display?: string;
+}
+
+export interface InternalHyperlink {
+  range: string;
+  location: string;
+  url?: never;
+  tooltip?: string;
+  display?: string;
+}
+
+export type Hyperlink = ExternalHyperlink | InternalHyperlink;
+
 export interface CellStyle {
   background?: string;
   border?: boolean;

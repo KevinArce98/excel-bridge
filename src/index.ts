@@ -3,7 +3,13 @@ export type { ParsedCell, ParsedSheet, ParsedWorkbook } from './reader';
 export { Workbook } from './workbook';
 export type { WorkbookMetadata } from './workbook';
 
-export { ExcelWriter, createExcelFile, createExcelFileBuffer, dataValidation } from './writer';
+export {
+  ExcelWriter,
+  createExcelFile,
+  createExcelFileBuffer,
+  dataValidation,
+  hyperlink,
+} from './writer';
 export type {
   ExcelWriterOptions,
   ExcelData,
@@ -14,6 +20,9 @@ export type {
   ConditionalFormat,
   DataValidationType,
   DataValidationOperator,
+  AutoFilter,
+  Hyperlink,
+  HyperlinkOptions,
 } from './writer';
 export type {
   ConditionalFormatStyle,
@@ -21,6 +30,8 @@ export type {
   CellValueConditionalFormat,
   ExpressionConditionalFormat,
   ColorScaleConditionalFormat,
+  ExternalHyperlink,
+  InternalHyperlink,
 } from './core/types';
 
 export { createExcelWorkbookStream, streamToBuffer } from './writer/stream';
@@ -45,8 +56,9 @@ export {
   generateRootRelsXml,
   generateCorePropsXml,
   generateAppPropsXml,
+  generateSheetRelsXml,
 } from './core/xml-templates';
-export type { SheetGenerationOptions } from './core/xml-templates';
+export type { SheetGenerationOptions, DefinedName } from './core/xml-templates';
 
 export { StyleManager } from './core/style-manager';
 export type { ExcelStyle, Font, Fill, Border, CellAlignment } from './core/style-manager';
@@ -65,37 +77,8 @@ export {
 
 export { calculateColumnWidths, generateColsXml } from './core/column-width';
 
-export const coordinateToIndex = (coordinate: string): { row: number; col: number } => {
-  const match = coordinate.match(/^([A-Z]+)(\d+)$/);
-  if (!match) {
-    throw new Error(`Invalid coordinate format: ${coordinate}`);
-  }
-
-  const colLetters = match[1];
-  const rowNumber = parseInt(match[2]) - 1;
-
-  let colIndex = 0;
-  for (let i = 0; i < colLetters.length; i++) {
-    colIndex = colIndex * 26 + (colLetters.charCodeAt(i) - 64);
-  }
-  colIndex -= 1;
-
-  return { row: rowNumber, col: colIndex };
-};
-
-export const indexToCoordinate = (row: number, col: number): string => {
-  const rowNumber = row + 1;
-  let colLetters = '';
-
-  let colIndex = col + 1;
-  while (colIndex > 0) {
-    const remainder = (colIndex - 1) % 26;
-    colLetters = String.fromCharCode(65 + remainder) + colLetters;
-    colIndex = Math.floor((colIndex - 1) / 26);
-  }
-
-  return `${colLetters}${rowNumber}`;
-};
+import { coordinateToIndex, indexToCoordinate } from './core/cell-ref';
+export { coordinateToIndex, indexToCoordinate };
 
 import { ExcelReader as ReaderClass, parseExcel as parseFunction } from './reader';
 import {

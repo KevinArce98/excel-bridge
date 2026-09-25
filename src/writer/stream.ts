@@ -1,5 +1,4 @@
 import { Zip, ZipDeflate, ZipPassThrough, strToU8 } from 'fflate';
-import { XML_NS } from '../core/constants';
 import { StyleManager } from '../core/style-manager';
 import {
   generateRowXml,
@@ -10,11 +9,20 @@ import {
   generateCorePropsXml,
   generateAppPropsXml,
   generateStylesXml,
-  indexToColumnLetter,
+  generateSheetViewsXml,
+  generateMergeCellsXml,
+  generateAutoFilterXml,
+  generateHyperlinksXml,
+  generateHyperlinkRelsXml,
+  generateWorksheetStart,
+  generateWorksheetEnd,
+  sheetRelsPath,
+  filterDatabaseNames,
 } from '../core/xml-templates';
 import { generateColsXml } from '../core/column-width';
-import { CellValue, CellStyle } from '../core/types';
-import { ExcelWriterOptions } from './index';
+import { prepareHyperlinks, withHyperlinkStyles } from '../core/hyperlinks';
+import { AutoFilter, CellValue, CellStyle, Hyperlink } from '../core/types';
+import type { ExcelWriterOptions } from './index';
 
 export interface StreamingSheetInput {
   name?: string;
@@ -23,54 +31,23 @@ export interface StreamingSheetInput {
   freezePane?: { row?: number; col?: number };
   columnWidths?: number[];
   mergeCells?: string[];
+  autoFilter?: AutoFilter;
+  hyperlinks?: Hyperlink[];
 }
 
-const buildSheetHeader = (sheet: StreamingSheetInput): string => {
-  let header = `<?xml version="1.0"?>\n<worksheet xmlns="${XML_NS.spreadsheetml}">`;
-
-  if (sheet.freezePane) {
-    const { row = 0, col = 0 } = sheet.freezePane;
-    if (row > 0 || col > 0) {
-      const topLeftCell = `${indexToColumnLetter(col)}${row + 1}`;
-      let activePane = 'bottomRight';
-      if (row > 0 && col === 0) activePane = 'bottomLeft';
-      else if (col > 0 && row === 0) activePane = 'topRight';
-
-      header += `  <sheetViews>\n    <sheetView workbookViewId="0">\n      <pane`;
-      if (col > 0) header += ` xSplit="${col}"`;
-      if (row > 0) header += ` ySplit="${row}"`;
-      header += ` topLeftCell="${topLeftCell}" activePane="${activePane}" state="frozen"/>\n    </sheetView>\n  </sheetViews>`;
-    }
-  }
-
-  if (sheet.columnWidths) {
-    header += generateColsXml(sheet.columnWidths);
-  }
-
-  header += `\n  <sheetData>`;
-  return header;
-};
-
-const buildSheetFooter = (sheet: StreamingSheetInput): string => {
-  let footer = `\n  </sheetData>`;
-
-  if (sheet.mergeCells && sheet.mergeCells.length > 0) {
-    footer += `\n  <mergeCells count="${sheet.mergeCells.length}">`;
-    for (const range of sheet.mergeCells) {
-      footer += `\n    <mergeCell ref="${range}"/>`;
-    }
-    footer += `\n  </mergeCells>`;
-  }
-
-  footer += `\n</worksheet>`;
-  return footer;
-};
+const hasFrozenSplit = (freezePane?: { row?: number; col?: number }): boolean =>
+  !!freezePane && ((freezePane.row ?? 0) > 0 || (freezePane.col ?? 0) > 0);
 
 export async function* createExcelWorkbookStream(
   sheets: StreamingSheetInput[],
   options: ExcelWriterOptions = {}
 ): AsyncGenerator<Uint8Array, void, unknown> {
   const sheetNames = sheets.map((sheet, index) => sheet.name || `Sheet${index + 1}`);
+  const sheetLinks = sheets.map(sheet => prepareHyperlinks(sheet.hyperlinks));
+  const definedNames = filterDatabaseNames(
+    sheetNames,
+    sheets.map(sheet => sheet.autoFilter)
+  );
   const styleManager = new StyleManager();
   const pending: Uint8Array[] = [];
 
@@ -94,26 +71,45 @@ export async function* createExcelWorkbookStream(
   addStaticEntry('[Content_Types].xml', generateContentTypesXml(sheets.length, false));
   addStaticEntry('_rels/.rels', generateRootRelsXml());
   addStaticEntry('xl/_rels/workbook.xml.rels', generateWorkbookRelsXml(sheets.length, false));
-  addStaticEntry('xl/workbook.xml', generateWorkbookXml(sheetNames));
+  addStaticEntry('xl/workbook.xml', generateWorkbookXml(sheetNames, definedNames));
   yield* drain();
 
   for (let sheetIndex = 0; sheetIndex < sheets.length; sheetIndex++) {
     const sheet = sheets[sheetIndex];
+    const links = sheetLinks[sheetIndex];
+    const styles = withHyperlinkStyles(sheet.styles, links);
     const entry = new ZipDeflate(`xl/worksheets/sheet${sheetIndex + 1}.xml`, { level: 6 });
     zip.add(entry);
 
-    entry.push(strToU8(buildSheetHeader(sheet)), false);
+    const worksheetStart = generateWorksheetStart(
+      hasFrozenSplit(sheet.freezePane) ? generateSheetViewsXml(sheet.freezePane) : '',
+      sheet.columnWidths ? generateColsXml(sheet.columnWidths) : '',
+      links
+    );
+    entry.push(strToU8(worksheetStart), false);
     yield* drain();
 
     let rowIndex = 0;
     for await (const row of sheet.rows) {
-      const rowXml = generateRowXml(row, rowIndex, sheet.styles, styleManager);
+      const rowXml = generateRowXml(row, rowIndex, styles, styleManager);
       entry.push(strToU8(rowXml), false);
       yield* drain();
       rowIndex++;
     }
 
-    entry.push(strToU8(buildSheetFooter(sheet)), true);
+    const worksheetEnd = generateWorksheetEnd(
+      generateAutoFilterXml(sheet.autoFilter),
+      generateMergeCellsXml(sheet.mergeCells),
+      '',
+      '',
+      generateHyperlinksXml(links)
+    );
+    entry.push(strToU8(worksheetEnd), true);
+
+    const rels = generateHyperlinkRelsXml(links);
+    if (rels) {
+      addStaticEntry(sheetRelsPath(sheetIndex + 1), rels);
+    }
     yield* drain();
   }
 

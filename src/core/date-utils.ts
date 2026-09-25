@@ -58,6 +58,8 @@ export const EXCEL_LIMITS = {
   MAX_ROWS: 1048576,
   MAX_COLS: 16384,
   MAX_CELL_LENGTH: 32767,
+  MAX_HYPERLINKS: 65530,
+  MAX_HYPERLINK_LENGTH: 2079,
 } as const;
 
 export function validateRowIndex(row: number): void {

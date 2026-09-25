@@ -1,11 +1,13 @@
 import { XMLParser } from 'fast-xml-parser';
 import { extractExcelFiles, validateExcelStructure } from '../core/zip-manager';
 import { excelSerialToDate, isDateNumFmtId } from '../core/date-utils';
-import {
+import type {
+  AutoFilter,
   CellStyle,
   ConditionalFormat,
   ConditionalFormatStyle,
   ConditionalFormatOperator,
+  Hyperlink,
 } from '../core/types';
 
 export interface ParsedCell {
@@ -29,6 +31,8 @@ export interface ParsedSheet {
   freezePane?: { row?: number; col?: number };
   columnWidths?: number[];
   conditionalFormats?: ConditionalFormat[];
+  autoFilter?: AutoFilter;
+  hyperlinks?: Hyperlink[];
 }
 
 export interface ParsedWorkbook {
@@ -90,6 +94,15 @@ const toArray = <T>(value: T | T[] | undefined): T[] => {
   return Array.isArray(value) ? value : [value];
 };
 
+const RAW_ATTRIBUTE_PATHS = [
+  'workbook.sheets.sheet',
+  'worksheet.hyperlinks.hyperlink',
+  'Relationships.Relationship',
+];
+
+const relsPathFor = (partPath: string): string =>
+  partPath.replace(/[^/]+$/, name => `_rels/${name}.rels`);
+
 export class ExcelReader {
   private parser: XMLParser;
 
@@ -101,6 +114,8 @@ export class ExcelReader {
       parseAttributeValue: true,
       parseTagValue: true,
       trimValues: false,
+      attributeValueProcessor: (_name, value, jPath) =>
+        RAW_ATTRIBUTE_PATHS.includes(String(jPath)) ? null : value,
     });
   }
 
@@ -130,7 +145,12 @@ export class ExcelReader {
         const sheetPath = this.resolveSheetPath(sheetElement, relMap, index);
 
         if (sheetPath && files[sheetPath]) {
-          const sheetData = this.parseSheet(files[sheetPath], sharedStrings, styleSheet);
+          const sheetData = this.parseSheet(
+            files[sheetPath],
+            sharedStrings,
+            styleSheet,
+            files[relsPathFor(sheetPath)]
+          );
           sheets.push({ name: String(sheetName), ...sheetData });
         }
       });
@@ -146,8 +166,7 @@ export class ExcelReader {
     }
   }
 
-  private parseWorkbookRels(files: Record<string, string>): Record<string, string> {
-    const relsXml = files['xl/_rels/workbook.xml.rels'];
+  private parseRelationships(relsXml?: string): Record<string, string> {
     const map: Record<string, string> = {};
     if (!relsXml) return map;
 
@@ -156,15 +175,19 @@ export class ExcelReader {
       const rels = toArray(parsed.Relationships?.Relationship);
       for (const rel of rels) {
         if (!rel.Id || !rel.Target) continue;
-        let target: string = String(rel.Target);
-        if (target.startsWith('/')) {
-          target = target.slice(1);
-        } else {
-          target = `xl/${target}`;
-        }
-        map[String(rel.Id)] = target;
+        map[String(rel.Id)] = String(rel.Target);
       }
     } catch {}
+
+    return map;
+  }
+
+  private parseWorkbookRels(files: Record<string, string>): Record<string, string> {
+    const map = this.parseRelationships(files['xl/_rels/workbook.xml.rels']);
+
+    for (const [id, target] of Object.entries(map)) {
+      map[id] = target.startsWith('/') ? target.slice(1) : `xl/${target}`;
+    }
 
     return map;
   }
@@ -366,7 +389,8 @@ export class ExcelReader {
   private parseSheet(
     sheetXml: string,
     sharedStrings: string[],
-    styleSheet: StyleSheetData
+    styleSheet: StyleSheetData,
+    relsXml?: string
   ): Omit<ParsedSheet, 'name'> {
     const parsed = this.parser.parse(sheetXml);
     const worksheet = parsed.worksheet;
@@ -423,6 +447,8 @@ export class ExcelReader {
     const freezePane = this.parseFreezePane(worksheet);
     const columnWidths = this.parseColumnWidths(worksheet);
     const conditionalFormats = this.parseConditionalFormats(worksheet, styleSheet);
+    const autoFilterRef = worksheet?.autoFilter?.ref;
+    const hyperlinks = this.parseHyperlinks(worksheet, relsXml);
 
     return {
       data,
@@ -432,7 +458,42 @@ export class ExcelReader {
       ...(freezePane ? { freezePane } : {}),
       ...(columnWidths ? { columnWidths } : {}),
       ...(conditionalFormats.length > 0 ? { conditionalFormats } : {}),
+      ...(autoFilterRef !== undefined ? { autoFilter: { range: String(autoFilterRef) } } : {}),
+      ...(hyperlinks.length > 0 ? { hyperlinks } : {}),
     };
+  }
+
+  private parseHyperlinks(worksheet: any, relsXml?: string): Hyperlink[] {
+    const entries = toArray(worksheet?.hyperlinks?.hyperlink);
+    if (entries.length === 0) return [];
+
+    const relationshipId = (entry: any) => entry?.['r:id'] ?? entry?.id;
+    const targets = entries.some(entry => relationshipId(entry) !== undefined)
+      ? this.parseRelationships(relsXml)
+      : {};
+
+    const links: Hyperlink[] = [];
+    for (const entry of entries) {
+      if (entry?.ref === undefined) continue;
+
+      const range = String(entry.ref);
+      const location = entry.location !== undefined ? String(entry.location) : undefined;
+      const extras = {
+        ...(entry.tooltip !== undefined ? { tooltip: String(entry.tooltip) } : {}),
+        ...(entry.display !== undefined ? { display: String(entry.display) } : {}),
+      };
+      const rId = relationshipId(entry);
+
+      if (rId !== undefined) {
+        const target = targets[String(rId)];
+        if (target === undefined) continue;
+        links.push({ range, url: location ? `${target}#${location}` : target, ...extras });
+      } else if (location) {
+        links.push({ range, location, ...extras });
+      }
+    }
+
+    return links;
   }
 
   private parseConditionalFormats(worksheet: any, styleSheet: StyleSheetData): ConditionalFormat[] {
