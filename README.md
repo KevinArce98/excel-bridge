@@ -26,10 +26,10 @@
 ## Highlights
 
 - **Zero heavy dependencies** — no ExcelJS or SheetJS under the hood, just `fflate` + `fast-xml-parser`.
-- **Tiny & tree-shakeable** — a micro-package architecture ships only what you import: `ExcelWriter` alone is 10.6 KB min+gzip ([sizes](#bundle-size)). ESM **and** CJS.
+- **Tiny & tree-shakeable** — a micro-package architecture ships only what you import: `ExcelWriter` alone is 12.0 KB min+gzip ([sizes](#bundle-size)). ESM **and** CJS.
 - **TypeScript-first** — complete types and IntelliSense for every public API.
 - **Cross-platform** — one API for the browser (`File`/`Blob`) and Node.js (`Buffer`).
-- **Full read & write** — styling, fonts, borders, formulas, dates, merged cells, freeze panes, **conditional formatting**, data validation and multi-sheet workbooks.
+- **Full read & write** — styling, fonts, borders, formulas, dates, merged cells, freeze panes, **conditional formatting**, data validation, **autofilters**, **hyperlinks** and multi-sheet workbooks.
 - **Scales up** — a **streaming writer** for million-row exports and a **high-level `Workbook` API** to load, edit and save existing files.
 - **Signed releases** — every version is published to npm with [provenance](https://docs.npmjs.com/generating-provenance-statements).
 
@@ -127,7 +127,7 @@ It also offers `ExcelBridge.readFromFile(file)` for browser `File`s and `ExcelBr
 for Node.js ([all entry points](#entry-points)).
 
 > Bundlers keep an object whole, so even a lone `ExcelBridge.write` call ships the reader too:
-> 37.1 KB min+gzip, against 10.6 KB for `ExcelWriter`. In browser code, prefer the named imports.
+> 39.0 KB min+gzip, against 12.0 KB for `ExcelWriter`. In browser code, prefer the named imports.
 
 ## Why excel-bridge?
 
@@ -147,7 +147,7 @@ enough to drop into a front-end bundle.
 | First-class TypeScript types | ✅ | ✅ | ✅ |
 | ESM **and** CJS, tree-shakeable | ✅ | ⚠️ CJS-first | ✅ |
 | Heavy runtime dependencies | **None** | Several | None |
-| Bundle size to write a file ¹ | **10.6 KB** | 272.1 KB | 95.8 KB |
+| Bundle size to write a file ¹ | **12.0 KB** | 272.1 KB | 95.8 KB |
 
 <sub>¹ Minified + gzipped code that a browser bundle needs to write an `.xlsx`: `ExcelWriter`, ExcelJS's
 default browser build (not tree-shakeable) and SheetJS `utils` + `write` from npm `xlsx@0.18.5`,
@@ -163,12 +163,12 @@ bundle:
 
 | Import from `excel-bridge` | min+gzip |
 | --- | ---: |
-| `createExcelWorkbookStream` | 9.9 KB |
-| `ExcelWriter` | 10.6 KB |
-| `ExcelReader` | 27.3 KB |
-| `Workbook` (reader + writer) | 36.8 KB |
-| `ExcelBridge` (convenience object) | 37.1 KB |
-| Everything | 39.4 KB |
+| `createExcelWorkbookStream` | 11.4 KB |
+| `ExcelWriter` | 12.0 KB |
+| `ExcelReader` | 27.6 KB |
+| `Workbook` (reader + writer) | 38.9 KB |
+| `ExcelBridge` (convenience object) | 39.0 KB |
+| Everything | 41.5 KB |
 
 The same measurement for other libraries:
 
@@ -181,7 +181,7 @@ The same measurement for other libraries:
 Tree-shaking relies on the ESM build, which bundlers pick for `import`; `require('excel-bridge')`
 loads the whole CommonJS build.
 
-<sub>Measured 2026-09-24 on excel-bridge 1.3.0. Each row bundles a one-line
+<sub>Measured 2026-09-24 on excel-bridge 1.4.0. Each row bundles a one-line
 `export { … } from '<package>'` entry with esbuild 0.27.3
 (`--bundle --minify --platform=browser --format=esm`), then gzips it with Node's zlib at the default
 level; 1 KB = 1,000 bytes. The hucre figures are rounded from a separate run with the `gzip` CLI;
@@ -213,6 +213,8 @@ default output is ~7.5× larger. Numbers vary by machine — reproduce them with
 - [Merged cells & layout](#merged-cells--layout)
 - [Conditional formatting](#conditional-formatting)
 - [Data validation](#data-validation)
+- [AutoFilter](#autofilter)
+- [Hyperlinks](#hyperlinks)
 - [Streaming large workbooks](#streaming-large-workbooks)
 - [Shared strings (opt-in)](#shared-strings-opt-in)
 - [Reading in depth](#reading-in-depth)
@@ -247,13 +249,16 @@ const blob = existing.toBlob(); // in the browser
 
 Available on an instance: `getSheetNames`, `getSheetData`, `getCellValue`/`setCellValue`,
 `getCellStyle`/`setCellStyle`, `setMergeCells`, `setFreezePane`, `setColumnWidths`,
-`setAutoWidth`, `addValidation`, `addConditionalFormat`, `addSheet`/`removeSheet`,
-`getMetadata`/`setMetadata`, `toBuffer`/`toBlob`. In the browser, load with
-`await Workbook.fromFile(file)`.
+`setAutoWidth`, `addValidation`, `addConditionalFormat`,
+`setAutoFilter`/`getAutoFilter`/`removeAutoFilter`, `setHyperlink`/`getHyperlinks`/`removeHyperlink`,
+`addSheet`/`removeSheet`, `getMetadata`/`setMetadata`, `toBuffer`/`toBlob`. In the browser, load
+with `await Workbook.fromFile(file)`.
 
 > **Round-trip note:** `Workbook.fromBuffer`/`fromFile` restore data, styles, merges, freeze panes,
-> column widths **and conditional formatting rules** — so load / edit / save is lossless for the
-> features this library writes.
+> column widths, **conditional formatting rules, autofilter ranges and hyperlinks** — so load /
+> edit / save is lossless for the features this library writes. Filter criteria and sort state set
+> in Excel aren't kept, and links the writer doesn't accept (anything but `http:`, `https:`,
+> `mailto:` or a location in the workbook) are dropped on load; `ExcelReader` still returns them.
 
 ### Multi-sheet workbooks
 
@@ -478,6 +483,72 @@ Builders: `list(range, values)`, `wholeNumber`, `decimal`, `textLength` (each
 `between`, `notBetween`, `equal`, `notEqual`, `greaterThan`, `lessThan`, `greaterThanOrEqual`,
 `lessThanOrEqual`.
 
+### AutoFilter
+
+Add filter dropdowns to a header row with `options.autoFilter`. Cover the data rows too, the way
+Excel saves a filter:
+
+```typescript
+import { ExcelWriter } from 'excel-bridge';
+
+const rows = [
+  ['Region', 'Rep', 'Revenue'],
+  ['North', 'Ann', 1200],
+  ['South', 'Bob', 480],
+];
+
+const buffer = new ExcelWriter().createWorkbookBuffer([
+  {
+    data: rows,
+    options: { freezePane: { row: 1 }, autoFilter: { range: `A1:C${rows.length}` } },
+  },
+]);
+```
+
+A sheet holds one filter. The writer also adds the hidden `_xlnm._FilterDatabase` name that Excel
+writes and LibreOffice reads the range from. Filter criteria and sort state aren't written or
+read, so the file opens with every row visible. On a `Workbook`, use `setAutoFilter`,
+`getAutoFilter` and `removeAutoFilter`.
+
+### Hyperlinks
+
+Attach links through a sheet's `hyperlinks` array. The cell keeps the text from `data`; the link
+sets where a click goes. The `hyperlink` builders cover the three kinds:
+
+```typescript
+import { ExcelWriter, hyperlink } from 'excel-bridge';
+
+const buffer = new ExcelWriter().createWorkbookBuffer([
+  {
+    data: [
+      ['Resource', 'Contact', 'Details'],
+      ['Docs', 'Email the team', 'See Q1'],
+    ],
+    hyperlinks: [
+      hyperlink.url('A2', 'https://example.com/docs', { tooltip: 'Open the docs' }),
+      hyperlink.email('B2', 'team@example.com', { subject: 'Report question' }),
+      hyperlink.internal('C2', 'Q1 Sales', 'A1'),
+    ],
+    options: { name: 'Links' },
+  },
+  { data: [['Q1']], options: { name: 'Q1 Sales' } },
+]);
+```
+
+A link is also a plain object: `{ range: 'A2', url: 'https://…' }` or
+`{ range: 'C2', location: "'Q1 Sales'!A1" }`, with optional `tooltip` and `display`. A leading `#`
+in `location` is dropped.
+
+- **Look:** the first cell of each link gets Excel's hyperlink color (`#0563C1`) and an underline.
+  A `color` or `underline` set in that cell's own style wins, each on its own.
+- **Allowed URLs:** `http:`, `https:` and `mailto:`, with spaces and quotes percent-encoded.
+  Anything else throws: exports often carry user data, and `file:` links or custom protocol
+  handlers aren't safe to click.
+- **Limits:** one link per range, 65,530 links per sheet and 2,079 characters per address. Excel
+  shows the first 255 characters of a tooltip.
+- **Workbook:** `setHyperlink` replaces any link on the same range, `getHyperlinks` returns copies
+  and `removeHyperlink` also removes the link look.
+
 ### Streaming large workbooks
 
 For exports too large to hold in memory, `createExcelWorkbookStream` yields the `.xlsx` as
@@ -510,8 +581,10 @@ const buffer = await streamToBuffer(
 ```
 
 A streaming sheet (`StreamingSheetInput`) supports `name`, `rows`, `styles`, `freezePane`,
-`columnWidths` and `mergeCells`. It does **not** support `autoWidth`, `validations` or
-`conditionalFormats` — use `ExcelWriter`/`Workbook` when you need those.
+`columnWidths`, `mergeCells`, `autoFilter` and `hyperlinks`. Pass the final filter range and links
+up front: they're validated, and the range is written to the workbook part, before the first row.
+It does **not** support `autoWidth`, `validations` or `conditionalFormats` — use
+`ExcelWriter`/`Workbook` when you need those.
 
 ### Shared strings (opt-in)
 
@@ -546,6 +619,10 @@ sheet.conditionalFormats; // ConditionalFormat[] — read back for lossless roun
 
 workbook.metadata; // { created?, modified?, creator?, title?, subject? }
 ```
+
+Sheets with a filter or links also carry `sheet.autoFilter` (`{ range }`) and `sheet.hyperlinks`
+(`Hyperlink[]`). The reader returns every link as stored, whatever its scheme, so check `url`
+before rendering it as an `<a href>`.
 
 ### Coordinate helpers
 
@@ -589,6 +666,7 @@ bundles as a unit; for the smallest browser bundles, import the [classes](#class
 | `createExcelWorkbookStream(sheets, options?)` | Async generator yielding `.xlsx` chunks for large exports. |
 | `streamToBuffer(stream)` | Collect a workbook stream into a single `Uint8Array`. |
 | `dataValidation.*` | Typed builders (`list`, `wholeNumber`, `decimal`, `textLength`, `dateBetween`) returning `CellValidation`. |
+| `hyperlink.*` | Builders (`url`, `email`, `internal`) returning a `Hyperlink`. |
 | `coordinateToIndex(coord)` | `"A1"` → `{ row, col }`. |
 | `indexToCoordinate(row, col)` | `{ row, col }` → `"A1"`. |
 | `dateToExcelSerial(date)` | `Date` → Excel serial number. |
@@ -608,6 +686,7 @@ interface ExcelData {
   validations?: CellValidation[];
   mergeCells?: string[];
   conditionalFormats?: ConditionalFormat[];
+  hyperlinks?: Hyperlink[];
   options?: SheetOptions;
 }
 
@@ -616,6 +695,27 @@ interface SheetOptions {
   freezePane?: { row?: number; col?: number };
   autoWidth?: boolean;
   columnWidths?: number[];
+  autoFilter?: AutoFilter;
+}
+
+interface AutoFilter {
+  range: string;
+}
+
+type Hyperlink = ExternalHyperlink | InternalHyperlink;
+
+interface ExternalHyperlink {
+  range: string;
+  url: string;
+  tooltip?: string;
+  display?: string;
+}
+
+interface InternalHyperlink {
+  range: string;
+  location: string;
+  tooltip?: string;
+  display?: string;
 }
 
 interface CellStyle {
@@ -705,7 +805,7 @@ interface ExcelWriterOptions {
 For custom pipelines, `excel-bridge` also exports its building blocks: the functional
 `parseExcel`, `createExcelFile`/`createExcelFileBuffer`; the ZIP layer
 (`createExcelBlob`, `createExcelBuffer`, `extractExcelFiles`, `validateExcelStructure`); the XML
-template generators (`generateSheetXml`, `generateStylesXml`, …); and date/validation utilities
+template generators (`generateSheetXml`, `generateStylesXml`, `generateSheetRelsXml`, …); and date/validation utilities
 (`dateToExcelSerial`, `excelSerialToDate`, `EXCEL_LIMITS`, `validateCellValue`, …). These are
 stable but lower-level — most apps only need the entry points above.
 
@@ -722,6 +822,8 @@ stable but lower-level — most apps only need the entry points above.
 
 - **Inline strings by default** — enable a shared-strings table with `new ExcelWriter({ sharedStrings: true })` for smaller files with lots of repeated text.
 - **Formulas recalculate on open** — formula cells are written without a cached value; Excel computes them on load (`fullCalcOnLoad`).
+- **AutoFilter ranges only** — filter criteria and sort state aren't written or read.
+- **Hyperlink schemes** — the writer accepts `http:`, `https:`, `mailto:` and locations inside the workbook.
 
 ## Contributing
 

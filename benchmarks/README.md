@@ -83,12 +83,12 @@ Measured 2026-09-24 with esbuild 0.27.3 and Node 22; 1 KB = 1,000 bytes.
 
 | Package | Import | Min | Min+gzip |
 | --- | --- | ---: | ---: |
-| excel-bridge@1.3.0 (dist) | `{ createExcelWorkbookStream }` | 26.2 KB | 9.9 KB |
-| excel-bridge@1.3.0 (dist) | `{ ExcelWriter }` | 28.0 KB | 10.6 KB |
-| excel-bridge@1.3.0 (dist) | `{ ExcelReader }` | 78.0 KB | 27.3 KB |
-| excel-bridge@1.3.0 (dist) | `{ Workbook }` | 106.5 KB | 36.8 KB |
-| excel-bridge@1.3.0 (dist) | `{ ExcelBridge }` | 107.1 KB | 37.1 KB |
-| excel-bridge@1.3.0 (dist) | `* (everything)` | 114.3 KB | 39.4 KB |
+| excel-bridge@1.4.0 (dist) | `{ createExcelWorkbookStream }` | 30.1 KB | 11.4 KB |
+| excel-bridge@1.4.0 (dist) | `{ ExcelWriter }` | 31.8 KB | 12.0 KB |
+| excel-bridge@1.4.0 (dist) | `{ ExcelReader }` | 79.1 KB | 27.6 KB |
+| excel-bridge@1.4.0 (dist) | `{ Workbook }` | 112.6 KB | 38.9 KB |
+| excel-bridge@1.4.0 (dist) | `{ ExcelBridge }` | 113.0 KB | 39.0 KB |
+| excel-bridge@1.4.0 (dist) | `* (everything)` | 120.2 KB | 41.5 KB |
 | hucre@1.1.0 | `{ writeXlsx }` | | ~40 KB |
 | hucre@1.1.0 | `{ readXlsx }` | | ~40 KB |
 | xlsx@0.18.5 | `{ utils, write }` | 287.4 KB | 95.8 KB |
