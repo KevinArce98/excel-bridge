@@ -364,6 +364,9 @@
   table.xl tr.headrow td .cval { line-height: 30px; }
   table.xl tr.totalrow td { background: #ecfdf5; font-weight: 700; color: #0f172a; }
   table.xl td.formula { color: #0f766e; }
+  table.xl td.has-filter .cval { padding-right: 24px; }
+  table.xl td.has-filter .filter-caret { position: absolute; right: 7px; top: 50%; transform: translateY(-50%); font-size: 10px; line-height: 1; opacity: 0.6; pointer-events: none; }
+  table.xl td.link .cval { color: #0563c1; text-decoration: underline; }
   table.xl td.fx-tag::after {
     content: "fx";
     position: absolute;
@@ -632,7 +635,7 @@
         <span class="word">excel<span class="dash">-</span><span class="b">bridge</span></span>
       </a>
       <div class="nav-links">
-        <span class="verpill">v1.3.0</span>
+        <span class="verpill">v1.4.0</span>
         <a class="nlink hide-sm" href="#read">Live demo</a>
         <a class="nlink hide-sm" href="#code">Code</a>
         <a class="nlink" href="https://github.com/KevinArce98/excel-bridge#readme" target="_blank" rel="noopener">Docs</a>
@@ -715,7 +718,7 @@
               </span>
             </div>
           </div>
-          <p class="aside-note" style="text-align:center;margin-top:12px;">Edit any cell, then download. Open it in Excel, Numbers or Google Sheets: the styling, formulas and conditional formatting travel with the file.</p>
+          <p class="aside-note" style="text-align:center;margin-top:12px;">Edit any cell, then download. Open it in Excel, Numbers or Google Sheets: the styling, formulas, conditional formatting, filter dropdowns and link travel with the file.</p>
         </div>
       </div>
     </div>
@@ -767,7 +770,7 @@
           <span class="addr">A1</span>
           <span class="ficon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v2"/><path d="M9 20h6"/><path d="M12 4v16"/></svg></span>
           <h3>Full read &amp; write</h3>
-          <p>Styling, fonts, borders, formulas, dates, merged cells, freeze panes, conditional formatting and data validation — parsed back losslessly for the features it writes.</p>
+          <p>Styling, fonts, borders, formulas, dates, merged cells, freeze panes, conditional formatting, data validation, autofilters and hyperlinks — parsed back losslessly for the features it writes.</p>
         </div>
         <div class="feat span-3">
           <span class="addr">D1</span>
@@ -803,7 +806,7 @@
           <span class="addr">D3</span>
           <span class="ficon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 18 22 12 16 6"/><path d="M8 6 2 12 8 18"/></svg></span>
           <h3>TypeScript-first, tree-shakeable</h3>
-          <p>Complete types and IntelliSense for every export, in both ESM and CJS. Import only what you use: <code>ExcelWriter</code> alone is 10.6 KB min+gzip.</p>
+          <p>Complete types and IntelliSense for every export, in both ESM and CJS. Import only what you use: <code>ExcelWriter</code> alone is 12.0 KB min+gzip.</p>
         </div>
       </div>
     </div>
@@ -830,7 +833,7 @@
           <tbody id="cmpBody"></tbody>
         </table>
       </div>
-      <p class="cmp-note">¹ Min+gzip of what a browser bundle needs to write an .xlsx: <code>ExcelWriter</code>, ExcelJS's default browser build (not tree-shakeable), and SheetJS <code>utils</code> + <code>write</code> from npm <code>xlsx@0.18.5</code>. Bundled with esbuild 0.27.3 and gzipped on 2026-09-24; reproduce with <code>pnpm run size</code>. Reading adds the XML parser: <code>ExcelReader</code> is 27.3 KB and the whole library 39.4 KB. Bundlephobia measures whole packages with its own toolchain: <a href="https://bundlephobia.com/package/excel-bridge" target="_blank" rel="noopener">excel-bridge</a> · <a href="https://bundlephobia.com/package/exceljs" target="_blank" rel="noopener">exceljs</a> · <a href="https://bundlephobia.com/package/xlsx" target="_blank" rel="noopener">xlsx</a>.</p>
+      <p class="cmp-note">¹ Min+gzip of what a browser bundle needs to write an .xlsx: <code>ExcelWriter</code>, ExcelJS's default browser build (not tree-shakeable), and SheetJS <code>utils</code> + <code>write</code> from npm <code>xlsx@0.18.5</code>. Bundled with esbuild 0.27.3 and gzipped on 2026-09-24; reproduce with <code>pnpm run size</code>. Reading adds the XML parser: <code>ExcelReader</code> is 27.6 KB and the whole library 41.5 KB. Bundlephobia measures whole packages with its own toolchain: <a href="https://bundlephobia.com/package/excel-bridge" target="_blank" rel="noopener">excel-bridge</a> · <a href="https://bundlephobia.com/package/exceljs" target="_blank" rel="noopener">exceljs</a> · <a href="https://bundlephobia.com/package/xlsx" target="_blank" rel="noopener">xlsx</a>.</p>
 
       <div class="perf" aria-label="Write benchmark, 50,000 rows by 10 columns">
         <div class="pcard us">
@@ -911,7 +914,7 @@
     </div>
     <div class="foot-bottom">
       <span>MIT © Kevin Arias</span>
-      <span class="mono">runs excel-bridge@1.3.0 live from jsDelivr</span>
+      <span class="mono">runs excel-bridge@1.4.0 live from jsDelivr</span>
     </div>
   </div>
 </footer>
@@ -926,13 +929,15 @@
   let EB = null;
   let libError = null;
   try {
-    const mod = await import("https://cdn.jsdelivr.net/npm/excel-bridge@1.3.0/+esm");
+    const mod = await import("https://cdn.jsdelivr.net/npm/excel-bridge@1.4.0/+esm");
     EB = mod.ExcelBridge || mod.default?.ExcelBridge || mod;
   } catch (e) {
     libError = e;
   }
 
   const COLS = ["Product", "Q1", "Q2", "Q3", "Total"];
+  const CREDIT = ["Made with", "excel-bridge"];
+  const CREDIT_URL = "https://github.com/KevinArce98/excel-bridge";
   const seed = [
     ["Laptops", 45000, 52000, 48000],
     ["Monitors", 18000, 21000, 19500],
@@ -975,7 +980,7 @@
     html += "</tr></thead><tbody>";
 
     html += "<tr class='headrow'><td class='rowh'>1</td>";
-    COLS.forEach((c, i) => (html += `<td class='cell${i === 0 ? "" : " num"}'><span class='cval'>${c}</span></td>`));
+    COLS.forEach((c, i) => (html += `<td class='cell has-filter${i === 0 ? "" : " num"}'><span class='cval'>${c}</span><span class='filter-caret' aria-hidden='true'>▾</span></td>`));
     html += "</tr>";
 
     rows.forEach((r, ri) => {
@@ -994,7 +999,9 @@
     for (let c = 1; c <= 3; c++) html += `<td class='cell num fx-tag' title='=SUM(${colLetter(c)}2:${colLetter(c)}5)'><span class='cval'>${fmt(colTotal(c))}</span></td>`;
     const grand = rows.reduce((s, r) => s + rowTotal(r), 0);
     html += `<td class='cell num fx-tag' title='=SUM(E2:E5)'><span class='cval'>${fmt(grand)}</span></td>`;
-    html += "</tr></tbody>";
+    html += "</tr>";
+    html += `<tr><td class='rowh'>7</td><td class='cell'><span class='cval'>${CREDIT[0]}</span></td><td class='cell link' title='${CREDIT_URL}'><span class='cval'>${CREDIT[1]}</span></td><td class='cell'></td><td class='cell'></td><td class='cell'></td></tr>`;
+    html += "</tbody>";
 
     grid.innerHTML = html;
     $$("#writeGrid input").forEach((inp) => {
@@ -1033,6 +1040,7 @@
       data.push([r[0], r[1], r[2], r[3], `=SUM(B${sr}:D${sr})`]);
     });
     data.push(["Total", "=SUM(B2:B5)", "=SUM(C2:C5)", "=SUM(D2:D5)", "=SUM(E2:E5)"]);
+    data.push(CREDIT.slice());
 
     const styles = {};
     for (let c = 0; c < 5; c++) styles[`0-${c}`] = { background: "#22C55E", color: "#08260F", bold: true, align: c === 0 ? "left" : "right" };
@@ -1045,7 +1053,8 @@
       data,
       styles,
       conditionalFormats,
-      options: { name: "Sales", freezePane: { row: 1 }, autoWidth: true },
+      hyperlinks: [{ range: "B7", url: CREDIT_URL, tooltip: "excel-bridge on GitHub" }],
+      options: { name: "Sales", freezePane: { row: 1 }, autoFilter: { range: "A1:E5" }, autoWidth: true },
     };
   }
 
@@ -1068,7 +1077,7 @@
 
     const kb = (blob.size / 1024).toFixed(1);
     const chip = $("#genChip");
-    $("#genSize").textContent = `· ${kb} KB · 6×5`;
+    $("#genSize").textContent = `· ${kb} KB · ${sheet.data.length}×${COLS.length}`;
     chip.hidden = false;
     if (!reduceMotion) {
       const grid = $("#writeGrid");
@@ -1089,6 +1098,21 @@
   }
 
   // ---------- Read demo ----------
+  const escapeAttr = (s) => escapeHtml(s).replace(/'/g, "&#39;").replace(/"/g, "&quot;");
+  const safeColor = (c) => (typeof c === "string" && /^#[0-9a-f]{3,8}$/i.test(c) ? c : "");
+  const colIndex = (letters) => letters.toUpperCase().split("").reduce((n, ch) => n * 26 + ch.charCodeAt(0) - 64, 0) - 1;
+  const firstCellKey = (range) => {
+    const m = /^\$?([A-Z]+)\$?(\d+)/i.exec(String(range || ""));
+    return m ? `${+m[2] - 1}-${colIndex(m[1])}` : null;
+  };
+  const filterHeaderKeys = (autoFilter) => {
+    const m = autoFilter && /^\$?([A-Z]+)\$?(\d+)(?::\$?([A-Z]+)\$?\d+)?$/i.exec(String(autoFilter.range || ""));
+    if (!m) return {};
+    const keys = {};
+    for (let c = colIndex(m[1]); c <= colIndex(m[3] || m[1]); c++) keys[`${+m[2] - 1}-${c}`] = true;
+    return keys;
+  };
+
   const cellDisplay = (cell) => {
     if (!cell) return { text: "", cls: "empty" };
     if (cell.formula && (cell.value === null || cell.value === undefined || cell.value === "")) return { text: "=" + cell.formula, cls: "formula fx-tag" };
@@ -1126,14 +1150,21 @@
       if (counts.number) meta += `<span class='meta-item tag-num'>number <b class='tnum'>${counts.number}</b></span>`;
       if (counts.date) meta += `<span class='meta-item tag-date'>date <b class='tnum'>${counts.date}</b></span>`;
       if (counts.formula) meta += `<span class='meta-item tag-fx'>formula <b class='tnum'>${counts.formula}</b></span>`;
+      const links = sheet.hyperlinks || [];
+      if (sheet.autoFilter) meta += `<span class='meta-item'>filter <b>${escapeHtml(sheet.autoFilter.range)}</b></span>`;
+      if (links.length) meta += `<span class='meta-item'>links <b class='tnum'>${links.length}</b></span>`;
       meta += `</div>`;
+
+      const linkAt = {};
+      links.forEach((l) => { const key = firstCellKey(l.range); if (key) linkAt[key] = l.url || `#${l.location}`; });
+      const filterHead = filterHeaderKeys(sheet.autoFilter);
 
       let tabs = "";
       if (wb.sheets.length > 1) {
         tabs = `<div class='sheet-tabs' role='tablist'>` + wb.sheets.map((s, i) => `<button class='sheet-tab${i === active ? " active" : ""}' data-i='${i}' role='tab' aria-selected='${i === active}'>${escapeHtml(s.name || "Sheet" + (i + 1))}</button>`).join("") + `</div>`;
       }
 
-      let t = `<div class='sheet-shell'><div class='sheet-titlebar'><span class='sheet-dots' aria-hidden='true'><i></i><i></i><i></i></span><span class='sheet-filename'><b>${escapeHtml(name)}</b></span></div><div class='grid-scroll'><table class='xl readonly' aria-label='Parsed spreadsheet ${escapeHtml(sheet.name || "")}'>`;
+      let t = `<div class='sheet-shell'><div class='sheet-titlebar'><span class='sheet-dots' aria-hidden='true'><i></i><i></i><i></i></span><span class='sheet-filename'><b>${escapeHtml(name)}</b></span></div><div class='grid-scroll'><table class='xl readonly' aria-label='Parsed spreadsheet ${escapeAttr(sheet.name || "")}'>`;
       t += `<thead><tr><th class='corner rowh'></th>`;
       for (let c = 0; c < maxCols; c++) t += `<th class='colh'>${colLetter(c)}</th>`;
       t += `</tr></thead><tbody>`;
@@ -1143,13 +1174,17 @@
         for (let c = 0; c < maxCols; c++) {
           const cell = row[c];
           const d = cellDisplay(cell);
-          const st = (sheet.styles && sheet.styles[`${r}-${c}`]) || {};
+          const key = `${r}-${c}`;
+          const st = (sheet.styles && sheet.styles[key]) || {};
           let style = "";
-          if (st.background) style += `background:${st.background};`;
-          if (st.color) style += `color:${st.color};`;
+          if (safeColor(st.background)) style += `background:${safeColor(st.background)};`;
+          if (safeColor(st.color)) style += `color:${safeColor(st.color)};`;
           if (st.bold) style += "font-weight:700;";
-          const title = cell && cell.formula ? ` title='=${escapeHtml(cell.formula)}'` : "";
-          t += `<td class='cell ${d.cls}'${style ? ` style='${style}'` : ""}${title}><span class='cval'>${escapeHtml(d.text)}</span></td>`;
+          if (st.underline) style += "text-decoration:underline;";
+          const tip = linkAt[key] || (cell && cell.formula ? `=${cell.formula}` : "");
+          const title = tip ? ` title='${escapeAttr(tip)}'` : "";
+          const caret = filterHead[key] ? "<span class='filter-caret' aria-hidden='true'>▾</span>" : "";
+          t += `<td class='cell ${d.cls}${caret ? " has-filter" : ""}'${style ? ` style='${style}'` : ""}${title}><span class='cval'>${escapeHtml(d.text)}</span>${caret}</td>`;
         }
         t += `</tr>`;
       }
@@ -1200,7 +1235,7 @@
     ["First-class TypeScript types", "yes", "yes", "yes"],
     ["ESM & CJS, tree-shakeable", "yes", "warn-cjs", "yes"],
     ["Heavy runtime dependencies", "none", "several", "none"],
-    ["Bundle size to write a file ¹", "10.6 KB", "272.1 KB", "95.8 KB"],
+    ["Bundle size to write a file ¹", "12.0 KB", "272.1 KB", "95.8 KB"],
   ];
   const ICONS = {
     yes: `<span class='mk yes' title='Yes'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><path d='M20 6 9 17l-5-5'/></svg></span>`,
@@ -1227,7 +1262,7 @@
   // ---------- Code examples ----------
   const SAMPLES = [
     { id: "write", file: "write.ts", code:
-`import { ExcelWriter } from 'excel-bridge';
+`import { ExcelWriter, hyperlink } from 'excel-bridge';
 
 const writer = new ExcelWriter({ creator: 'My App' });
 
@@ -1236,6 +1271,7 @@ const blob = writer.createWorkbook([{
     ['Product', 'Q1', 'Q2', 'Q3', 'Total'],
     ['Laptops', 45000, 52000, 48000, '=SUM(B2:D2)'],
     ['Monitors', 18000, 21000, 19500, '=SUM(B3:D3)'],
+    ['Made with', 'excel-bridge'],
   ],
   styles: {
     '0-0': { background: '#22C55E', color: '#08260F', bold: true },
@@ -1244,7 +1280,15 @@ const blob = writer.createWorkbook([{
     { type: 'colorScale', range: 'B2:D3',
       colors: ['#F8696B', '#FFEB84', '#63BE7B'] },
   ],
-  options: { name: 'Sales', freezePane: { row: 1 }, autoWidth: true },
+  hyperlinks: [
+    hyperlink.url('B4', 'https://github.com/KevinArce98/excel-bridge'),
+  ],
+  options: {
+    name: 'Sales',
+    freezePane: { row: 1 },
+    autoFilter: { range: 'A1:E3' },
+    autoWidth: true,
+  },
 }]);
 
 // browser: a Blob you can download. Node: writer.createWorkbookBuffer(...)` },
@@ -1275,6 +1319,7 @@ const wb = Workbook.fromBuffer(fs.readFileSync('sales.xlsx'));
 wb.setCellValue('Sales', 1, 1, 899.99);
 wb.setCellStyle('Sales', 0, 0, { bold: true, background: '#4472C4', color: '#FFFFFF' });
 wb.setFreezePane('Sales', { row: 1 });
+wb.setAutoFilter('Sales', { range: 'A1:E5' });
 
 fs.writeFileSync('sales.xlsx', wb.toBuffer()); // or wb.toBlob() in the browser` },
     { id: "stream", file: "stream.ts", code:
