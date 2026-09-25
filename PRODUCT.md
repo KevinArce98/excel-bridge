@@ -28,7 +28,7 @@ Evaluation happens at a desk, in a browser, alongside npm, GitHub, and Bundlepho
 
 ## Capabilities and Constraints
 
-Confirmed capabilities (v1.3.0):
+Confirmed capabilities (v1.4.0):
 
 - `ExcelBridge.read` / `readFromFile` / `write` / `writeBuffer` entry points.
 - Classes: `Workbook` (load/edit/save), `ExcelReader`, `ExcelWriter`, `StyleManager`.
@@ -36,6 +36,7 @@ Confirmed capabilities (v1.3.0):
 - Formulas (strings starting with `=`), `Date` → Excel serial conversion, merged cells, freeze panes, column widths / autoWidth.
 - Conditional formatting: `cellValue`, `expression`, `colorScale` — written and read back losslessly.
 - Data validation builders: `list`, `wholeNumber`, `decimal`, `textLength`, `dateBetween`.
+- AutoFilter (`options.autoFilter`) and hyperlinks (`hyperlinks` array, `hyperlink.url` / `email` / `internal` builders; `http`, `https`, `mailto` and in-workbook locations) — written by both writers and read back losslessly.
 - Streaming writer: `createExcelWorkbookStream` / `streamToBuffer` for million-row exports from sync/async iterables.
 - Shared strings opt-in; coordinate + date helper utilities.
 
@@ -58,7 +59,7 @@ Constraints:
 
 - Real, published npm package `excel-bridge@1.3.0` (provenance-signed) — the demo loads it live from jsDelivr.
 - Real benchmark (README, `benchmarks/`): writing 50,000 rows × 10 columns, median of 3 runs, Node 22, Apple Silicon — excel-bridge **662 ms / 2.41 MB**, exceljs 1667 ms / 2.82 MB, xlsx (SheetJS) 578 ms / 18.23 MB. Reproducible via `pnpm run bench`.
-- Real bundle-size measurements (README "Bundle size", `benchmarks/size.mjs`): esbuild 0.27.3 browser ESM bundles, min+gzip, measured 2026-09-24 — `ExcelWriter` **10.6 KB**, `ExcelReader` 27.3 KB, full import 39.4 KB; SheetJS `utils` + `write` (npm `xlsx@0.18.5`) 95.8 KB; ExcelJS 272.1 KB. Reproducible via `pnpm run size`; show them with their method footnote.
+- Real bundle-size measurements (README "Bundle size", `benchmarks/size.mjs`): esbuild 0.27.3 browser ESM bundles, min+gzip, measured 2026-09-24 on v1.4.0 — `ExcelWriter` **12.0 KB**, `ExcelReader` 27.6 KB, full import 41.5 KB; SheetJS `utils` + `write` (npm `xlsx@0.18.5`) 95.8 KB; ExcelJS 272.1 KB. Reproducible via `pnpm run size`; show them with their method footnote.
 - Real capability comparison table (README) vs ExcelJS and SheetJS community edition.
 - Real API surface (`src/index.ts`) and banner asset.
 - **No** testimonials, named customers, download counts, or endorsements exist — these must not be fabricated. Dynamic badges (npm version/downloads, bundlephobia size) are the only live third-party numbers and should be linked, not hardcoded.
