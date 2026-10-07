@@ -16,6 +16,7 @@ import {
 } from '../core/xml-templates';
 import { StyleManager } from '../core/style-manager';
 import { isDate } from '../core/date-utils';
+import { validateSheetNames } from '../core/sheet-name';
 import { prepareHyperlinks, withHyperlinkStyles } from '../core/hyperlinks';
 import {
   AutoFilter,
@@ -115,6 +116,7 @@ export class ExcelWriter {
     }
 
     const sheetNames = data.map((sheet, index) => sheet.options?.name || `Sheet${index + 1}`);
+    validateSheetNames(sheetNames);
     const sheetStates = data.map(sheet => sheet.options?.state ?? 'visible');
 
     if (data.length > 0 && !sheetStates.includes('visible')) {

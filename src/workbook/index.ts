@@ -2,6 +2,7 @@ import { ExcelReader, ParsedCell, ParsedWorkbook } from '../reader';
 import { ExcelWriter } from '../writer';
 import { parseRange, formatRange } from '../core/cell-ref';
 import { EXCEL_LIMITS } from '../core/date-utils';
+import { validateSheetName } from '../core/sheet-name';
 import { HYPERLINK_STYLE, prepareHyperlink } from '../core/hyperlinks';
 import {
   AutoFilter,
@@ -150,7 +151,8 @@ export class Workbook {
   }
 
   addSheet(name: string, data: CellValue[][] = []): void {
-    if (this.sheets.some(s => s.name === name)) {
+    validateSheetName(name);
+    if (this.sheets.some(s => s.name.toLowerCase() === name.toLowerCase())) {
       throw new Error(`Sheet "${name}" already exists`);
     }
     this.sheets.push({

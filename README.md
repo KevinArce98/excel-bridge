@@ -11,7 +11,7 @@
 [![Live demo](https://img.shields.io/badge/demo-live-22c55e?labelColor=1e293b)](https://kevinarce98.github.io/excel-bridge/)
 [![npm version](https://img.shields.io/npm/v/excel-bridge?logo=npm&label=npm&color=22c55e)](https://www.npmjs.com/package/excel-bridge)
 [![downloads](https://img.shields.io/npm/dm/excel-bridge?label=downloads&color=22c55e)](https://www.npmjs.com/package/excel-bridge)
-[![ExcelWriter size](https://img.shields.io/badge/ExcelWriter-12.2%20KB%20min%2Bgzip-22c55e?labelColor=1e293b)](#bundle-size)
+[![ExcelWriter size](https://img.shields.io/badge/ExcelWriter-12.5%20KB%20min%2Bgzip-22c55e?labelColor=1e293b)](#bundle-size)
 [![provenance](https://img.shields.io/badge/provenance-signed-22c55e?logo=npm)](https://www.npmjs.com/package/excel-bridge)
 [![CI](https://img.shields.io/github/actions/workflow/status/KevinArce98/excel-bridge/ci.yml?branch=main&label=CI&logo=github)](https://github.com/KevinArce98/excel-bridge/actions)
 [![types](https://img.shields.io/npm/types/excel-bridge?color=22c55e)](https://www.npmjs.com/package/excel-bridge)
@@ -26,7 +26,7 @@
 ## Highlights
 
 - **Zero heavy dependencies** — no ExcelJS or SheetJS under the hood, just `fflate` + `fast-xml-parser`.
-- **Tiny & tree-shakeable** — a micro-package architecture ships only what you import: `ExcelWriter` alone is 12.2 KB min+gzip ([sizes](#bundle-size)). ESM **and** CJS.
+- **Tiny & tree-shakeable** — a micro-package architecture ships only what you import: `ExcelWriter` alone is 12.5 KB min+gzip ([sizes](#bundle-size)). ESM **and** CJS.
 - **TypeScript-first** — complete types and IntelliSense for every public API.
 - **Cross-platform** — one API for the browser (`File`/`Blob`) and Node.js (`Buffer`).
 - **Full read & write** — styling, fonts, borders, formulas, dates, merged cells, freeze panes, **conditional formatting**, data validation, **autofilters**, **hyperlinks** and multi-sheet workbooks.
@@ -127,7 +127,7 @@ It also offers `ExcelBridge.readFromFile(file)` for browser `File`s and `ExcelBr
 for Node.js ([all entry points](#entry-points)).
 
 > Bundlers keep an object whole, so even a lone `ExcelBridge.write` call ships the reader too:
-> 39.7 KB min+gzip, against 12.2 KB for `ExcelWriter`. In browser code, prefer the named imports.
+> 40.0 KB min+gzip, against 12.5 KB for `ExcelWriter`. In browser code, prefer the named imports.
 
 ## Why excel-bridge?
 
@@ -147,7 +147,7 @@ enough to drop into a front-end bundle.
 | First-class TypeScript types | ✅ | ✅ | ✅ |
 | ESM **and** CJS, tree-shakeable | ✅ | ⚠️ CJS-first | ✅ |
 | Heavy runtime dependencies | **None** | Several | None |
-| Bundle size to write a file ¹ | **12.2 KB** | 272.1 KB | 95.8 KB |
+| Bundle size to write a file ¹ | **12.5 KB** | 272.1 KB | 95.8 KB |
 
 <sub>¹ Minified + gzipped code that a browser bundle needs to write an `.xlsx`: `ExcelWriter`, ExcelJS's
 default browser build (not tree-shakeable) and SheetJS `utils` + `write` from npm `xlsx@0.18.5`,
@@ -163,12 +163,12 @@ bundle:
 
 | Import from `excel-bridge` | min+gzip |
 | --- | ---: |
-| `createExcelWorkbookStream` | 11.5 KB |
-| `ExcelWriter` | 12.2 KB |
+| `createExcelWorkbookStream` | 11.8 KB |
+| `ExcelWriter` | 12.5 KB |
 | `ExcelReader` | 28.2 KB |
-| `Workbook` (reader + writer) | 39.5 KB |
-| `ExcelBridge` (convenience object) | 39.7 KB |
-| Everything | 42.1 KB |
+| `Workbook` (reader + writer) | 39.8 KB |
+| `ExcelBridge` (convenience object) | 40.0 KB |
+| Everything | 42.5 KB |
 
 The same measurement for other libraries:
 
@@ -302,6 +302,10 @@ import fs from 'node:fs';
 fs.writeFileSync('report.xlsx', buffer);
 ```
 
+Sheet names follow Excel's rules: 1 to 31 characters, none of `\ / ? * [ ] :`, no apostrophe at
+either end, and unique when case is ignored. The writers and `Workbook.addSheet` throw otherwise,
+and so does writing a workbook without sheets.
+
 ### Styling cells
 
 Style keys use `"<row>-<col>"` (zero-based) coordinates, so you can drive them from data.
@@ -334,6 +338,9 @@ const sheet = {
 
 const buffer = writer.createWorkbookBuffer([sheet]);
 ```
+
+Colours are hex: `#RGB`, `#RRGGBB` or `#AARRGGBB`, with or without the `#`. Anything else, such as
+`red`, throws instead of producing a file Excel repairs.
 
 ### Extended cell styles
 
@@ -385,6 +392,9 @@ const projectSheet = {
 
 const buffer = writer.createWorkbookBuffer([projectSheet]);
 ```
+
+Numbers must be finite. `NaN`, `Infinity` and invalid `Date` values throw an error that names the
+cell, such as `Cell B2 holds NaN, which a worksheet cannot store`.
 
 ### Merged cells & layout
 

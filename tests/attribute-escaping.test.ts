@@ -35,9 +35,9 @@ describe('Attribute escaping', () => {
         range: hostile,
         operator: hostile,
         value: 1,
-        style: { color: hostile, background: hostile },
+        style: { color: '#9C0006', background: '#FFC7CE' },
       },
-      { type: 'colorScale', range: hostile, colors: [hostile, '#FFFFFF'] },
+      { type: 'colorScale', range: hostile, colors: ['#FF0000', '#FFFFFF'] },
     ] as unknown as ConditionalFormat[];
     const validations = [
       { range: hostile, type: 'list', options: '', formula1: '"a&b<c"' },
@@ -52,13 +52,10 @@ describe('Attribute escaping', () => {
         validations,
         styles: {
           '0-0': {
-            color: hostile,
-            background: hostile,
             align: hostile,
             verticalAlign: hostile,
           } as never,
         },
-        options: { name: hostile },
       },
     ]);
     const files = unzipSync(buffer);
@@ -66,5 +63,20 @@ describe('Attribute escaping', () => {
     for (const path of ['xl/workbook.xml', 'xl/worksheets/sheet1.xml', 'xl/styles.xml']) {
       expect(XMLValidator.validate(strFromU8(files[path])), path).toBe(true);
     }
+  });
+
+  it('rejects markup in a colour or a sheet name instead of escaping it', () => {
+    const write = (sheet: Parameters<ExcelWriter['createWorkbookBuffer']>[0][number]) =>
+      new ExcelWriter().createWorkbookBuffer([sheet]);
+
+    expect(() => write({ data: [['x']], styles: { '0-0': { color: hostile } } })).toThrow(
+      /Invalid colour/
+    );
+    expect(() => write({ data: [['x']], styles: { '0-0': { background: hostile } } })).toThrow(
+      /Invalid colour/
+    );
+    expect(() => write({ data: [['x']], options: { name: hostile } })).toThrow(
+      /Invalid sheet name/
+    );
   });
 });

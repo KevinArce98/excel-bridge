@@ -1,18 +1,18 @@
 export function calculateColumnWidths(data: any[][]): number[] {
-  if (data.length === 0) return [];
-
-  const maxCols = Math.max(...data.map(row => row.length));
-  const widths: number[] = new Array(maxCols).fill(0);
+  const widths: number[] = [];
+  let maxCols = 0;
 
   data.forEach(row => {
+    maxCols = Math.max(maxCols, row.length);
     row.forEach((cell, colIndex) => {
       const cellText = cell?.toString() || '';
-      const cellWidth = estimateTextWidth(cellText);
-      widths[colIndex] = Math.max(widths[colIndex], cellWidth);
+      widths[colIndex] = Math.max(widths[colIndex] ?? 0, estimateTextWidth(cellText));
     });
   });
 
-  return widths.map(w => Math.min(Math.max(w, 8), 50));
+  return Array.from({ length: maxCols }, (_, colIndex) =>
+    Math.min(Math.max(widths[colIndex] ?? 0, 8), 50)
+  );
 }
 
 function estimateTextWidth(text: string): number {

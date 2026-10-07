@@ -3,6 +3,10 @@ import { CellStyle, ConditionalFormatStyle } from './types';
 export function normalizeColor(color: string): string {
   let normalized = color.replace('#', '');
 
+  if (!/^([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(normalized)) {
+    throw new Error(`Invalid colour "${color}": use #RGB, #RRGGBB or #AARRGGBB`);
+  }
+
   if (normalized.length === 3) {
     normalized = normalized
       .split('')

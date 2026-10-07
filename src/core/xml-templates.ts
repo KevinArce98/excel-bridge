@@ -116,6 +116,10 @@ export const generateRowXml = (
       return;
     }
 
+    if (cellValue instanceof Date && !isDate(cellValue)) {
+      throw new Error(`Cell ${ref} holds an invalid Date`);
+    }
+
     if (isDate(cellValue)) {
       const serial = dateToExcelSerial(cellValue);
       const dateStyleId = styleManager ? styleManager.getDateStyleId() : 0;
@@ -125,6 +129,9 @@ export const generateRowXml = (
     }
 
     if (typeof cellValue === 'number') {
+      if (!Number.isFinite(cellValue)) {
+        throw new Error(`Cell ${ref} holds ${cellValue}, which a worksheet cannot store`);
+      }
       cellXml += `><v>${cellValue}</v></c>`;
       rowXml += cellXml;
       return;
