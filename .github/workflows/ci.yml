@@ -52,6 +52,11 @@ jobs:
       - name: Test
         run: pnpm run test:run
 
+      - name: Test in a negative UTC offset
+        run: pnpm run test:run
+        env:
+          TZ: America/Los_Angeles
+
   package:
     name: package (metadata and bundle size)
     runs-on: ubuntu-latest

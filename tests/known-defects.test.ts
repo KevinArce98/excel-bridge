@@ -1,27 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { strFromU8, strToU8, unzipSync, zipSync } from 'fflate';
+import { strToU8, unzipSync, zipSync } from 'fflate';
 import {
   ExcelBridge,
   ExcelWriter,
   Workbook,
+  calculateColumnWidths,
   createExcelWorkbookStream,
   dataValidation,
   streamToBuffer,
 } from '../src';
-import type { ParsedSheet } from '../src/reader';
 import { knownDefect } from './helpers/known-defect';
+import { calendarDay, cellAt, part, readFirstSheet } from './helpers/read';
 import { DATE_STYLES, REL_NS, SPREADSHEET_NS, buildXlsx } from './helpers/xlsx';
 
 const writer = new ExcelWriter();
-
-const cellAt = (sheet: ParsedSheet, coordinate: string) =>
-  sheet.data.flat().find(cell => cell?.coordinate === coordinate);
-
-const calendarDay = (date: Date) => [date.getFullYear(), date.getMonth() + 1, date.getDate()];
-
-const part = (bytes: Uint8Array, path: string): string => strFromU8(unzipSync(bytes)[path]);
-
-const readFirstSheet = (bytes: Uint8Array): ParsedSheet => ExcelBridge.read(bytes).sheets[0];
 
 const sheetBody = (cells: string) => `<sheetData><row r="1">${cells}</row></sheetData>`;
 
@@ -34,10 +26,14 @@ describe('Workbook round trip of the library own output', () => {
     expect(part(validated, 'xl/worksheets/sheet1.xml')).toMatch(/<dataValidation[^>]*type="whole"/);
   });
 
-  knownDefect('I2: a whole-number validation keeps its type', () => {
-    const saved = Workbook.fromBuffer(validated).toBuffer();
-    expect(part(saved, 'xl/worksheets/sheet1.xml')).toMatch(/<dataValidation[^>]*type="whole"/);
-  });
+  knownDefect(
+    'a whole-number validation becomes a list of the single value "1" when saved (expected: type="whole") (I2)',
+    () => {
+      const saved = Workbook.fromBuffer(validated).toBuffer();
+      expect(part(saved, 'xl/worksheets/sheet1.xml')).toMatch(/<dataValidation[^>]*type="whole"/);
+    },
+    { message: /to match/ }
+  );
 
   const gapped = (() => {
     const workbook = Workbook.create();
@@ -50,10 +46,14 @@ describe('Workbook round trip of the library own output', () => {
     expect(cellAt(readFirstSheet(gapped), 'A5')?.value).toBe('e');
   });
 
-  knownDefect('I1: a row gap created by setCellValue survives a second round trip', () => {
-    const saved = Workbook.fromBuffer(gapped).toBuffer();
-    expect(cellAt(readFirstSheet(saved), 'A5')?.value).toBe('e');
-  });
+  knownDefect(
+    'a row gap made by setCellValue closes up on the second save (expected: A5 stays "e") (I1)',
+    () => {
+      const saved = Workbook.fromBuffer(gapped).toBuffer();
+      expect(cellAt(readFirstSheet(saved), 'A5')?.value).toBe('e');
+    },
+    { message: /expected undefined to be 'e'/ }
+  );
 });
 
 describe('number formats', () => {
@@ -66,13 +66,12 @@ describe('number formats', () => {
     expect(formatted(code)).toBe(code);
   });
 
-  knownDefect('I3: the format 0.00 is read back unchanged', () => {
-    expect(formatted('0.00')).toBe('0.00');
-  });
-
-  knownDefect('I3: the format 00000 is read back unchanged', () => {
-    expect(formatted('00000')).toBe('00000');
-  });
+  it.each(['0.00', '00000', '0.0', '0.000', '0.00E+00'])(
+    'known defect: reads the numeric-looking format %s as "0" (expected: unchanged) (I3)',
+    code => {
+      expect(formatted(code)).toBe('0');
+    }
+  );
 });
 
 describe('styled cells', () => {
@@ -87,9 +86,13 @@ describe('styled cells', () => {
     expect(styleOf(1)?.bold).toBe(true);
   });
 
-  knownDefect('I4: a Date cell keeps its bold style', () => {
-    expect(styleOf(new Date(2024, 0, 15))?.bold).toBe(true);
-  });
+  knownDefect(
+    'a Date cell loses its bold style (expected: bold stays) (I4)',
+    () => {
+      expect(styleOf(new Date(2024, 0, 15))?.bold).toBe(true);
+    },
+    { message: /expected undefined to be true/ }
+  );
 });
 
 describe('date systems', () => {
@@ -100,14 +103,18 @@ describe('date systems', () => {
     expect(calendarDay(date?.value)).toEqual([2009, 7, 6]);
   });
 
-  knownDefect('R4: the 1904 system is honoured', () => {
-    const bytes = buildXlsx(
-      serial,
-      {},
-      { styles: DATE_STYLES, workbookProperties: '<workbookPr date1904="1"/>' }
-    );
-    expect(calendarDay(cellAt(readFirstSheet(bytes), 'A1')?.value)).toEqual([2013, 7, 7]);
-  });
+  knownDefect(
+    'a date1904 workbook is read with the 1900 epoch (expected 2013-07-07) (R4)',
+    () => {
+      const bytes = buildXlsx(
+        serial,
+        {},
+        { styles: DATE_STYLES, workbookProperties: '<workbookPr date1904="1"/>' }
+      );
+      expect(calendarDay(cellAt(readFirstSheet(bytes), 'A1')?.value)).toEqual([2013, 7, 7]);
+    },
+    { message: /expected \[ 2009, 7, 6 \] to deeply equal \[ 2013, 7, 7 \]/ }
+  );
 });
 
 describe('cell values from other tools', () => {
@@ -121,31 +128,39 @@ describe('cell values from other tools', () => {
     expect(cellAt(sheet, 'D1')?.value).toBe('ok');
   });
 
-  knownDefect('R5: an error cell is not read as NaN', () => {
-    expect(Number.isNaN(cellAt(sheet, 'A1')?.value)).toBe(false);
-  });
+  knownDefect(
+    'an error cell is read as NaN (expected: a value that is not NaN) (R5)',
+    () => {
+      expect(Number.isNaN(cellAt(sheet, 'A1')?.value)).toBe(false);
+    },
+    { message: /expected true to be false/ }
+  );
 
-  knownDefect('R6: _x000D_ is decoded to a carriage return', () => {
-    expect(cellAt(sheet, 'C1')?.value).toBe('a\rb');
-  });
+  knownDefect(
+    'the escape _x000D_ stays in the text (expected: a carriage return) (R6)',
+    () => {
+      expect(cellAt(sheet, 'C1')?.value).toBe('a\rb');
+    },
+    { message: /expected 'a_x000D_b' to be/ }
+  );
 });
 
 describe('formulas from other tools', () => {
-  const body = sheetBody(
-    '<c r="A1"><v>1</v></c><c r="B1"><f t="shared" ref="B1:B2" si="0">A1*2</f><v>2</v></c>'
-  ).replace(
-    '</row>',
-    '</row><row r="2"><c r="A2"><v>2</v></c><c r="B2"><f t="shared" si="0"/><v>4</v></c></row>'
-  );
+  const body =
+    '<sheetData><row r="1"><c r="A1"><v>1</v></c><c r="B1"><f t="shared" ref="B1:B2" si="0">A1*2</f><v>2</v></c></row><row r="2"><c r="A2"><v>2</v></c><c r="B2"><f t="shared" si="0"/><v>4</v></c></row></sheetData>';
   const sheet = readFirstSheet(buildXlsx(body));
 
   it('reads the master of a shared formula', () => {
     expect(cellAt(sheet, 'B1')?.formula).toBe('A1*2');
   });
 
-  knownDefect('R9: a shared formula follower keeps a formula', () => {
-    expect(cellAt(sheet, 'B2')?.formula).not.toBe('');
-  });
+  knownDefect(
+    'a shared formula follower reads an empty formula (expected: A2*2) (R9)',
+    () => {
+      expect(cellAt(sheet, 'B2')?.formula).toBe('A2*2');
+    },
+    { message: /expected '' to be 'A2\*2'/ }
+  );
 });
 
 describe('sheet views', () => {
@@ -163,11 +178,15 @@ describe('sheet views', () => {
     });
   });
 
-  knownDefect('R13: a split pane is not a freeze pane', () => {
-    expect(
-      paneSheet('<pane xSplit="2400" ySplit="1800" state="split"/>').freezePane
-    ).toBeUndefined();
-  });
+  knownDefect(
+    'a split pane is read as a freeze pane of 1800 rows (expected: no freeze pane) (R13)',
+    () => {
+      expect(
+        paneSheet('<pane xSplit="2400" ySplit="1800" state="split"/>').freezePane
+      ).toBeUndefined();
+    },
+    { message: /expected \{ row: 1800, col: 2400 \} to be undefined/ }
+  );
 });
 
 describe('prefixed SpreadsheetML', () => {
@@ -196,13 +215,11 @@ describe('prefixed SpreadsheetML', () => {
   });
 
   knownDefect(
-    'R8: a prefixed workbook yields its sheet',
+    'a workbook with prefixed elements is rejected as invalid (expected: its sheet is read) (R8)',
     () => {
-      const { sheets } = ExcelBridge.read(prefixed('x'));
-      expect(sheets).toHaveLength(1);
-      expect(cellAt(sheets[0], 'A1')?.value).toBe(5);
+      expect(() => ExcelBridge.read(prefixed('x'))).not.toThrow();
     },
-    'Error'
+    { message: /not throw an error but .*Failed to parse Excel file/ }
   );
 });
 
@@ -218,54 +235,81 @@ describe('writer input validation', () => {
     ).not.toThrow();
   });
 
-  knownDefect('W3: a sheet name longer than 31 characters is rejected', () => {
-    expect(() => write([{ data: [['a']], options: { name: 'x'.repeat(32) } }])).toThrow();
-  });
+  const accepted = { message: /to throw an error/ };
 
-  knownDefect('W3: a sheet name with a forbidden character is rejected', () => {
-    expect(() => write([{ data: [['a']], options: { name: 'bad:name' } }])).toThrow();
-  });
+  knownDefect(
+    'a sheet name longer than 31 characters is written (expected: an error) (W3)',
+    () => {
+      expect(() => write([{ data: [['a']], options: { name: 'x'.repeat(32) } }])).toThrow();
+    },
+    accepted
+  );
 
-  knownDefect('W3: two sheets with the same name are rejected', () => {
-    expect(() =>
-      write([
-        { data: [['a']], options: { name: 'Same' } },
-        { data: [['b']], options: { name: 'Same' } },
-      ])
-    ).toThrow();
-  });
+  knownDefect(
+    'a sheet name with a forbidden character is written (expected: an error) (W3)',
+    () => {
+      expect(() => write([{ data: [['a']], options: { name: 'bad:name' } }])).toThrow();
+    },
+    accepted
+  );
 
-  knownDefect('W3: a workbook without sheets is rejected', () => {
-    expect(() => write([])).toThrow();
-  });
+  knownDefect(
+    'two sheets with the same name are written (expected: an error) (W3)',
+    () => {
+      expect(() =>
+        write([
+          { data: [['a']], options: { name: 'Same' } },
+          { data: [['b']], options: { name: 'Same' } },
+        ])
+      ).toThrow();
+    },
+    accepted
+  );
 
-  knownDefect('W4: a colour that is not hex is rejected', () => {
-    expect(() => write([{ data: [['a']], styles: { '0-0': { color: 'red' } } }])).toThrow();
-  });
+  knownDefect(
+    'a workbook without sheets is written (expected: an error) (W3)',
+    () => {
+      expect(() => write([])).toThrow();
+    },
+    accepted
+  );
 
-  knownDefect('R5: NaN is rejected instead of written as a number', () => {
-    expect(() => write([{ data: [[NaN]] }])).toThrow();
-  });
+  knownDefect(
+    'a colour that is not hex is written as an invalid ARGB value (expected: an error) (W4)',
+    () => {
+      expect(() => write([{ data: [['a']], styles: { '0-0': { color: 'red' } } }])).toThrow();
+    },
+    accepted
+  );
 
-  knownDefect('R5: Infinity is rejected instead of written as a number', () => {
-    expect(() => write([{ data: [[Infinity]] }])).toThrow();
-  });
+  knownDefect(
+    'NaN is written as a number cell (expected: an error or an error cell, decided with the writer validation) (R5)',
+    () => {
+      expect(() => write([{ data: [[NaN]] }])).toThrow();
+    },
+    accepted
+  );
+
+  knownDefect(
+    'Infinity is written as a number cell (expected: an error or an error cell, decided with the writer validation) (R5)',
+    () => {
+      expect(() => write([{ data: [[Infinity]] }])).toThrow();
+    },
+    accepted
+  );
 });
 
-describe('autoWidth on large sheets', () => {
-  const tall = (rows: number) => ({
-    data: Array.from({ length: rows }, () => ['x']),
-    options: { autoWidth: true },
-  });
+describe('column width measurement on large sheets', () => {
+  const tall = (rows: number) => Array.from({ length: rows }, () => ['x']);
 
   it('measures a thousand rows', () => {
-    expect(() => writer.createWorkbookBuffer([tall(1000)])).not.toThrow();
+    expect(calculateColumnWidths(tall(1000))).toHaveLength(1);
   });
 
   knownDefect(
-    'W2: autoWidth handles 150,000 rows',
-    () => writer.createWorkbookBuffer([tall(150_000)]),
-    'RangeError'
+    'measuring one million rows overflows the call stack (expected: a width) (W2)',
+    () => calculateColumnWidths(tall(1_000_000)),
+    { error: 'RangeError', message: /Maximum call stack size exceeded/ }
   );
 });
 
@@ -291,7 +335,12 @@ describe('streaming writer zip entries', () => {
     expect((await compressionMethods()).length).toBeGreaterThan(0);
   });
 
-  knownDefect('W1: every entry is deflated', async () => {
-    expect((await compressionMethods()).every(method => method === 8)).toBe(true);
-  });
+  knownDefect(
+    'most streamed entries are stored without compression, which SheetJS 0.18.5 cannot read (expected: all deflated) (W1)',
+    async () => {
+      const methods = await compressionMethods();
+      expect(methods).toEqual(methods.map(() => 8));
+    },
+    { message: /to deeply equal/ }
+  );
 });

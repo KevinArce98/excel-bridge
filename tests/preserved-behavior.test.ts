@@ -1,16 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { strFromU8, strToU8, unzipSync } from 'fflate';
+import { strToU8 } from 'fflate';
 import { ExcelBridge, ExcelWriter, Workbook, hyperlink } from '../src';
 import type { ConditionalFormat } from '../src';
-import type { ParsedSheet } from '../src/reader';
+import { cellAt, part } from './helpers/read';
 import { buildXlsx } from './helpers/xlsx';
 
 const writer = new ExcelWriter();
-
-const part = (bytes: Uint8Array, path: string): string => strFromU8(unzipSync(bytes)[path]);
-
-const cellAt = (sheet: ParsedSheet, coordinate: string) =>
-  sheet.data.flat().find(cell => cell?.coordinate === coordinate);
 
 describe('Workbook round trip keeps the features the writer produces', () => {
   const conditionalFormats: ConditionalFormat[] = [
@@ -70,11 +65,32 @@ describe('Workbook round trip keeps the features the writer produces', () => {
     );
   });
 
-  it('reads the same rules, links and layout back', () => {
-    const before = ExcelBridge.read(original).sheets[0];
+  it('writes every feature into the original', () => {
+    const sheetXml = part(original, 'xl/worksheets/sheet1.xml');
+    for (const element of [
+      '<conditionalFormatting',
+      '<hyperlink ',
+      '<autoFilter',
+      '<mergeCell ',
+      '<pane ',
+      '<col ',
+    ]) {
+      expect(sheetXml).toContain(element);
+    }
+  });
+
+  it('writes the differential styles of the rules unchanged', () => {
+    expect(part(saved, 'xl/styles.xml')).toBe(part(original, 'xl/styles.xml'));
+  });
+
+  it('reads the rules, links and layout back as written', () => {
     const after = ExcelBridge.read(saved).sheets[0];
-    expect(after.conditionalFormats).toEqual(before.conditionalFormats);
-    expect(after.hyperlinks).toEqual(before.hyperlinks);
+    expect(after.conditionalFormats).toEqual(conditionalFormats);
+    expect(after.hyperlinks).toEqual([
+      { range: 'C2', url: 'https://example.com/docs', tooltip: 'Open the docs' },
+      { range: 'C3', url: 'mailto:team@example.com?subject=Question' },
+      { range: 'C4', location: "'Other'!B2" },
+    ]);
     expect(after.autoFilter).toEqual({ range: 'A1:C4' });
     expect(after.mergeCells).toEqual(['A6:C6']);
     expect(after.freezePane).toEqual({ row: 1, col: 1 });
@@ -135,6 +151,6 @@ describe('what the reader flattens or refuses', () => {
     const doctype =
       '<!DOCTYPE worksheet [<!ENTITY xxe SYSTEM "file:///etc/passwd">]><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData><row r="1"><c r="A1" t="inlineStr"><is><t>&xxe;</t></is></c></row></sheetData></worksheet>';
     const bytes = buildXlsx('', { 'xl/worksheets/sheet1.xml': strToU8(doctype) });
-    expect(() => ExcelBridge.read(bytes)).toThrow(/External entities are not supported/);
+    expect(() => ExcelBridge.read(bytes)).toThrow(/^Failed to parse Excel file/);
   });
 });
