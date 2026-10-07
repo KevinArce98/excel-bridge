@@ -9,7 +9,7 @@ import {
   streamToBuffer,
 } from '../src';
 import type { ConditionalFormat, StreamingSheetInput } from '../src';
-import { cellAt, readFirstSheet } from './helpers/read';
+import { cellAt, part, readFirstSheet } from './helpers/read';
 
 type Sheet = Parameters<ExcelWriter['createWorkbookBuffer']>[0][number];
 
@@ -193,7 +193,7 @@ describe('column widths', () => {
 
   it('measures a sheet written with autoWidth past the old call stack limit', () => {
     const bytes = write({ data: tall(150_000), options: { autoWidth: true } });
-    expect(readFirstSheet(bytes).columnWidths).toEqual([8]);
+    expect(part(bytes, 'xl/worksheets/sheet1.xml')).toContain('<col min="1" max="1" width="8"');
   });
 
   it('caps a width at 50', () => {
