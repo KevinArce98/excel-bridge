@@ -5,7 +5,7 @@
   "engines": {
     "node": "^20.19.0 || ^22.13.0 || >=24"
   },
-  "description": "A lightweight, modular Excel manipulation library based on micro-packages",
+  "description": "Small, tree-shakeable .xlsx reader and writer for TypeScript: styled exports, conditional formatting, data validation and streaming, in the browser and Node.js",
   "keywords": [
     "excel",
     "xlsx",

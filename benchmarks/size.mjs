@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { gzipSync } from 'node:zlib';
 import { build, version as esbuildVersion } from 'esbuild';
 
@@ -24,9 +24,22 @@ const CASES = [
   [SELF, '*'],
   ['hucre', 'writeXlsx'],
   ['hucre', 'readXlsx'],
+  ['hucre/xlsx', 'XlsxStreamWriter'],
+  ['hucre/xlsx', 'streamXlsxRows'],
+  ['@mitresthen/excelents', '*'],
+  ['read-excel-file/browser', 'default'],
+  ['write-excel-file/universal', 'default'],
   ['xlsx', 'utils, write'],
   ['exceljs', 'default'],
 ];
+
+const competitorModules = process.env.COMPETITORS_DIR
+  ? join(resolve(process.env.COMPETITORS_DIR), 'node_modules')
+  : undefined;
+const moduleRoots = [join(root, 'node_modules'), ...(competitorModules ? [competitorModules] : [])];
+
+const packageOf = specifier =>
+  specifier.split('/').slice(0, specifier.startsWith('@') ? 2 : 1).join('/');
 
 const readVersion = packageJson =>
   existsSync(packageJson) ? JSON.parse(readFileSync(packageJson, 'utf8')).version : null;
@@ -34,7 +47,9 @@ const readVersion = packageJson =>
 const versionOf = name =>
   name === SELF
     ? readVersion(join(root, 'package.json'))
-    : readVersion(join(root, 'node_modules', name, 'package.json'));
+    : moduleRoots
+        .map(modules => readVersion(join(modules, packageOf(name), 'package.json')))
+        .find(Boolean) ?? null;
 
 const entryFor = (name, names) => {
   const specifier = JSON.stringify(name === SELF ? distEntry : name);
@@ -44,6 +59,7 @@ const entryFor = (name, names) => {
 const measure = async contents => {
   const result = await build({
     stdin: { contents, resolveDir: root },
+    nodePaths: moduleRoots,
     bundle: true,
     minify: true,
     platform: 'browser',
@@ -180,7 +196,7 @@ const main = async () => {
   if (skipped.size) {
     const names = [...skipped];
     console.log(
-      `\n  (not installed: ${names.join(', ')} — add with "pnpm add -D ${names.join(' ')}")`
+      `\n  (not installed: ${names.join(', ')} — install them in a scratch directory and run with COMPETITORS_DIR=<that directory>)`
     );
   }
   console.log('');

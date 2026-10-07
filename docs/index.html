@@ -698,7 +698,7 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 9-9 9 9 0 0 1 6.7 3L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9 9 0 0 1-6.7-3L3 16"/><path d="M3 21v-5h5"/></svg>
             Receive the file you just packed
           </button>
-        <p class="aside-note">Print a label above first, then read the same file straight back: a lossless round-trip, all client-side.</p>
+        <p class="aside-note">Print a label above first, then read the same file straight back, all client-side.</p>
       </div>
       <div class="read-out" id="readOut" aria-live="polite">
         <div class="empty-state">Unpacked cells will appear here.</div>
@@ -713,7 +713,7 @@
       <div class="doc">
         <div class="doc-title">
           <h2 id="manifestTitle">Pay only for what you import</h2>
-          <p>A micro-package architecture: bundlers keep the exports you import and drop the rest. Each entry point is weighed on its own.</p>
+          <p>Bundlers keep the exports you import and drop the rest. Each entry point is weighed on its own.</p>
         </div>
         <div class="doc-head"><span class="t">Itemized manifest</span><span class="r">min+gzip · esbuild 0.27.3</span></div>
         <div class="doc-scroll" tabindex="0" role="region" aria-label="Bundle weight per import">
@@ -747,9 +747,9 @@
               <tr><th scope="col" class="no">No.</th><th scope="col">Description of contents</th><th scope="col" class="qty">Qty</th><th scope="col" class="kb">Net weight</th></tr>
             </thead>
             <tbody>
-                <tr><td class="no">1</td><th scope="row"><b>Full read &amp; write</b><span>Styling, fonts, borders, formulas, dates, merged cells, freeze panes, conditional formatting, data validation, autofilters and hyperlinks, parsed back losslessly for the features it writes.</span></th><td class="qty" data-label="Qty">11</td><td class="kb" data-label="Net weight">12.0&nbsp;KB&nbsp;write<br />27.6&nbsp;KB&nbsp;read</td></tr>
+                <tr><td class="no">1</td><th scope="row"><b>Read &amp; write</b><span>Styling, fonts, borders, formulas, dates, merged cells, freeze panes, conditional formatting, data validation, autofilters and hyperlinks, parsed back by the reader.</span></th><td class="qty" data-label="Qty">11</td><td class="kb" data-label="Net weight">12.0&nbsp;KB&nbsp;write<br />27.6&nbsp;KB&nbsp;read</td></tr>
                 <tr><td class="no">2</td><th scope="row"><b>Runtime dependencies</b><span><code>fflate</code> and <code>fast-xml-parser</code>. No ExcelJS or SheetJS inside.</span></th><td class="qty" data-label="Qty">2</td><td class="kb" data-label="Net weight">—</td></tr>
-                <tr><td class="no">3</td><th scope="row"><b>Runtimes</b><span><code>File</code>/<code>Blob</code> in the browser, <code>Buffer</code> in Node.js, one API.</span></th><td class="qty" data-label="Qty">2</td><td class="kb" data-label="Net weight">—</td></tr>
+                <tr><td class="no">3</td><th scope="row"><b>Runtimes</b><span><code>File</code>/<code>Blob</code> in the browser, <code>Uint8Array</code> in Node.js, one API.</span></th><td class="qty" data-label="Qty">2</td><td class="kb" data-label="Net weight">—</td></tr>
                 <tr><td class="no">4</td><th scope="row"><b>Streaming writer</b><span>Million-row exports from a sync or async iterable, never held whole in memory.</span></th><td class="qty" data-label="Qty">1M rows</td><td class="kb" data-label="Net weight">11.4&nbsp;KB</td></tr>
                 <tr><td class="no">5</td><th scope="row"><b><code>Workbook</code> API</b><span>Load an existing file, edit cells, styles, merges, freeze panes, filters and links, then save it back.</span></th><td class="qty" data-label="Qty">1 class</td><td class="kb" data-label="Net weight">38.9&nbsp;KB</td></tr>
                 <tr><td class="no">6</td><th scope="row"><b>TypeScript types</b><span>IntelliSense for every export, in both ESM and CJS builds.</span></th><td class="qty" data-label="Qty">all exports</td><td class="kb" data-label="Net weight">0&nbsp;KB at&nbsp;runtime</td></tr>
@@ -1336,7 +1336,7 @@ for (const row of workbook.sheets[0].data) {
     { id: "workbook", file: "edit.ts", code:
 `import { Workbook } from 'excel-bridge';
 
-// Load, edit and save an existing file — losslessly.
+// Load, edit and save a workbook this library wrote.
 const wb = Workbook.fromBuffer(fs.readFileSync('sales.xlsx'));
 
 wb.setCellValue('Sales', 1, 1, 899.99);
