@@ -10,11 +10,13 @@ import {
   CellStyle,
   ConditionalFormat,
   Hyperlink,
+  SheetState,
 } from '../core/types';
 import type { ExcelWriterOptions } from '../writer';
 
 interface WorkbookSheet {
   name: string;
+  state?: SheetState;
   data: CellValue[][];
   styles: Record<string, CellStyle>;
   validations: CellValidation[];
@@ -26,6 +28,27 @@ interface WorkbookSheet {
   columnWidths?: number[];
   autoWidth?: boolean;
 }
+
+const cellToValue = (cell: ParsedCell): CellValue => {
+  if (cell.formula !== undefined) return `=${cell.formula}`;
+  if (cell.type === 'empty') return null;
+  return cell.value;
+};
+
+const placeRows = (rows: ParsedCell[][]): CellValue[][] => {
+  const data: CellValue[][] = [];
+  let next = 0;
+
+  for (const row of rows) {
+    const declared = row.find(cell => cell !== undefined)?.rowIndex;
+    const index =
+      Number.isInteger(declared) && (declared as number) >= next ? (declared as number) : next;
+    data[index] = row.map(cellToValue);
+    next = index + 1;
+  }
+
+  return data;
+};
 
 const canonicalHyperlink = (link: Hyperlink): Hyperlink => ({
   ...link,
@@ -90,9 +113,10 @@ export class Workbook {
     };
     workbook.sheets = parsed.sheets.map(sheet => ({
       name: sheet.name,
-      data: sheet.data.map(row => row.map(Workbook.cellToValue)),
+      ...(sheet.state ? { state: sheet.state } : {}),
+      data: placeRows(sheet.data),
       styles: sheet.styles ?? {},
-      validations: sheet.validations.map(v => ({ range: v.range, options: v.options })),
+      validations: sheet.validations.map(validation => ({ ...validation })),
       mergeCells: sheet.mergeCells ?? [],
       conditionalFormats: sheet.conditionalFormats ?? [],
       hyperlinks: loadHyperlinks(sheet.hyperlinks),
@@ -103,12 +127,6 @@ export class Workbook {
       columnWidths: sheet.columnWidths,
     }));
     return workbook;
-  }
-
-  private static cellToValue(cell: ParsedCell): CellValue {
-    if (cell.formula !== undefined) return `=${cell.formula}`;
-    if (cell.type === 'empty') return null;
-    return cell.value;
   }
 
   getSheetNames(): string[] {
@@ -174,6 +192,19 @@ export class Workbook {
 
   setCellStyle(sheetName: string, row: number, col: number, style: CellStyle): void {
     this.findSheet(sheetName).styles[`${row}-${col}`] = style;
+  }
+
+  getSheetState(sheetName: string): SheetState {
+    return this.findSheet(sheetName).state ?? 'visible';
+  }
+
+  setSheetState(sheetName: string, state: SheetState): void {
+    const sheet = this.findSheet(sheetName);
+    if (state === 'visible') {
+      delete sheet.state;
+    } else {
+      sheet.state = state;
+    }
   }
 
   setMergeCells(sheetName: string, ranges: string[]): void {
@@ -263,6 +294,7 @@ export class Workbook {
       hyperlinks: sheet.hyperlinks,
       options: {
         name: sheet.name,
+        state: sheet.state,
         freezePane: sheet.freezePane,
         columnWidths: sheet.columnWidths,
         autoWidth: sheet.autoWidth,

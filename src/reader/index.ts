@@ -10,10 +10,14 @@ import {
 import type {
   AutoFilter,
   CellStyle,
+  CellValidation,
   ConditionalFormat,
   ConditionalFormatStyle,
   ConditionalFormatOperator,
+  DataValidationOperator,
+  DataValidationType,
   Hyperlink,
+  SheetState,
 } from '../core/types';
 
 export interface ParsedCell {
@@ -28,10 +32,8 @@ export interface ParsedCell {
 export interface ParsedSheet {
   name: string;
   data: ParsedCell[][];
-  validations: Array<{
-    range: string;
-    options: string;
-  }>;
+  validations: CellValidation[];
+  state?: Exclude<SheetState, 'visible'>;
   styles?: Record<string, CellStyle>;
   mergeCells?: string[];
   freezePane?: { row?: number; col?: number };
@@ -95,25 +97,31 @@ interface StyleSheetData {
   dxfs: ConditionalFormatStyle[];
 }
 
+const VALIDATION_TYPES = new Set([
+  'list',
+  'whole',
+  'decimal',
+  'textLength',
+  'date',
+  'time',
+  'custom',
+]);
+
+const VALIDATION_OPERATORS = new Set([
+  'between',
+  'notBetween',
+  'equal',
+  'notEqual',
+  'greaterThan',
+  'lessThan',
+  'greaterThanOrEqual',
+  'lessThanOrEqual',
+]);
+
 const toArray = <T>(value: T | T[] | undefined): T[] => {
   if (value === undefined || value === null) return [];
   return Array.isArray(value) ? value : [value];
 };
-
-const RAW_ATTRIBUTE_PATHS = [
-  'workbook.sheets.sheet',
-  'worksheet.hyperlinks.hyperlink',
-  'Relationships.Relationship',
-];
-
-const RAW_TEXT_PATHS = [
-  'worksheet.sheetData.row.c.v',
-  'worksheet.sheetData.row.c.f',
-  'worksheet.sheetData.row.c.is.t',
-  'worksheet.sheetData.row.c.is.r.t',
-  'sst.si.t',
-  'sst.si.r.t',
-];
 
 export const MAX_PLACEHOLDER_CELLS = 5_000_000;
 
@@ -157,13 +165,9 @@ export class ExcelReader {
       ignoreAttributes: false,
       attributeNamePrefix: '',
       textNodeName: '#text',
-      parseAttributeValue: true,
-      parseTagValue: true,
+      parseAttributeValue: false,
+      parseTagValue: false,
       trimValues: false,
-      attributeValueProcessor: (_name, value, jPath) =>
-        RAW_ATTRIBUTE_PATHS.includes(String(jPath)) ? null : value,
-      tagValueProcessor: (_name, value, jPath) =>
-        RAW_TEXT_PATHS.includes(String(jPath)) ? null : value,
     });
   }
 
@@ -210,7 +214,12 @@ export class ExcelReader {
             cellBudget,
             files[relsPathFor(sheetPath)]
           );
-          sheets.push({ name: String(sheetName), ...sheetData });
+          const state = sheetElement.state;
+          sheets.push({
+            name: String(sheetName),
+            ...(state === 'hidden' || state === 'veryHidden' ? { state } : {}),
+            ...sheetData,
+          });
         }
       });
 
@@ -458,10 +467,9 @@ export class ExcelReader {
     const rows = toArray(worksheet?.sheetData?.row);
     const validations = toArray(worksheet?.dataValidations?.dataValidation);
 
-    const parsedValidations = validations.map((validation: any) => ({
-      range: validation.sqref,
-      options: this.extractText(validation.formula1).replace(/"/g, '') || '',
-    }));
+    const parsedValidations = validations
+      .map((validation: any) => this.parseValidation(validation))
+      .filter((validation): validation is CellValidation => validation !== undefined);
 
     const data: ParsedCell[][] = [];
     const styles: Record<string, CellStyle> = {};
@@ -530,6 +538,37 @@ export class ExcelReader {
       ...(conditionalFormats.length > 0 ? { conditionalFormats } : {}),
       ...(autoFilterRef !== undefined ? { autoFilter: { range: String(autoFilterRef) } } : {}),
       ...(hyperlinks.length > 0 ? { hyperlinks } : {}),
+    };
+  }
+
+  private parseValidation(validation: any): CellValidation | undefined {
+    const type = validation?.type;
+    if (!VALIDATION_TYPES.has(type) || validation.sqref === undefined) return undefined;
+
+    const formula1 =
+      validation.formula1 !== undefined ? this.extractText(validation.formula1) : undefined;
+    const formula2 =
+      validation.formula2 !== undefined ? this.extractText(validation.formula2) : undefined;
+    const base = {
+      range: String(validation.sqref),
+      type: type as DataValidationType,
+      allowBlank: validation.allowBlank === '1' || validation.allowBlank === 'true',
+    };
+
+    if (type === 'list') {
+      const literal = /^"([\s\S]*)"$/.exec(formula1 ?? '');
+      if (literal) return { ...base, options: literal[1].replace(/""/g, '"') };
+      return { ...base, options: formula1 ?? '', ...(formula1 !== undefined ? { formula1 } : {}) };
+    }
+
+    return {
+      ...base,
+      options: formula1 ?? '',
+      ...(VALIDATION_OPERATORS.has(validation.operator)
+        ? { operator: validation.operator as DataValidationOperator }
+        : {}),
+      ...(formula1 !== undefined ? { formula1 } : {}),
+      ...(formula2 !== undefined ? { formula2 } : {}),
     };
   }
 

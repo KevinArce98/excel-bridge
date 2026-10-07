@@ -17,6 +17,7 @@ import {
   CellStyle,
   ConditionalFormat,
   Hyperlink,
+  SheetState,
 } from './types';
 
 export type { CellValidation, CellStyle } from './types';
@@ -323,7 +324,9 @@ export const generateDataValidationsXml = (validations: CellValidation[] = []): 
 
       if (type === 'list') {
         const formula1 =
-          v.formula1 !== undefined ? escapeXml(v.formula1) : `"${escapeXml(v.options)}"`;
+          v.formula1 !== undefined
+            ? escapeXml(v.formula1)
+            : `"${escapeXml(v.options.replace(/"/g, '""'))}"`;
         validationsXml += `
     <dataValidation type="list" allowBlank="${allowBlank}" showInputMessage="1" showErrorMessage="1" sqref="${sqref}">
       <formula1>${formula1}</formula1>
@@ -331,12 +334,13 @@ export const generateDataValidationsXml = (validations: CellValidation[] = []): 
         return;
       }
 
-      const operator = escapeXmlAttr(v.operator ?? 'between');
+      const operator =
+        type === 'custom' ? '' : ` operator="${escapeXmlAttr(v.operator ?? 'between')}"`;
       let formulas = '';
       if (v.formula1 !== undefined) formulas += `<formula1>${escapeXml(v.formula1)}</formula1>`;
       if (v.formula2 !== undefined) formulas += `<formula2>${escapeXml(v.formula2)}</formula2>`;
       validationsXml += `
-    <dataValidation type="${escapeXmlAttr(type)}" operator="${operator}" allowBlank="${allowBlank}" showInputMessage="1" showErrorMessage="1" sqref="${sqref}">${formulas}</dataValidation>`;
+    <dataValidation type="${escapeXmlAttr(type)}"${operator} allowBlank="${allowBlank}" showInputMessage="1" showErrorMessage="1" sqref="${sqref}">${formulas}</dataValidation>`;
     });
     validationsXml += `
   </dataValidations>`;
@@ -482,22 +486,29 @@ const generateDefinedNamesXml = (definedNames: DefinedName[]): string => {
 
 export const generateWorkbookXml = (
   sheetNames: string[] = ['Sheet1'],
-  definedNames: DefinedName[] = []
+  definedNames: DefinedName[] = [],
+  sheetStates: SheetState[] = []
 ) => {
   const sheetsXml = sheetNames
     .map((name, index) => {
       const sheetId = index + 1;
       const rId = `rId${sheetId}`;
-      return `    <sheet name="${escapeXmlAttr(name)}" sheetId="${sheetId}" r:id="${rId}"/>`;
+      const state = sheetStates[index] ?? 'visible';
+      const stateAttribute = state === 'visible' ? '' : ` state="${state}"`;
+      return `    <sheet name="${escapeXmlAttr(name)}" sheetId="${sheetId}"${stateAttribute} r:id="${rId}"/>`;
     })
     .join('\n');
+  const firstVisible = sheetNames.findIndex(
+    (_, index) => (sheetStates[index] ?? 'visible') === 'visible'
+  );
+  const activeTab = firstVisible > 0 ? ` activeTab="${firstVisible}"` : '';
 
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <workbook xmlns="${XML_NS.spreadsheetml}" xmlns:r="${XML_NS.relationships}">
   <fileVersion appName="xl" lastEdited="7" lowestEdited="7" rupBuild="16925"/>
   <workbookPr defaultThemeVersion="166925"/>
   <bookViews>
-    <workbookView xWindow="0" yWindow="0" windowWidth="22260" windowHeight="12645"/>
+    <workbookView xWindow="0" yWindow="0" windowWidth="22260" windowHeight="12645"${activeTab}/>
   </bookViews>
   <sheets>
 ${sheetsXml}

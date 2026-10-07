@@ -92,12 +92,12 @@ excel-bridge rows measured 2026-10-07 from this repository's build with the depe
 
 | Package | Import | Min | Min+gzip |
 | --- | --- | ---: | ---: |
-| excel-bridge@1.4.0 (dist) | `{ createExcelWorkbookStream }` | 30.1 KB | 11.4 KB |
-| excel-bridge@1.4.0 (dist) | `{ ExcelWriter }` | 31.8 KB | 12.0 KB |
-| excel-bridge@1.4.0 (dist) | `{ ExcelReader }` | 80.2 KB | 28.1 KB |
-| excel-bridge@1.4.0 (dist) | `{ Workbook }` | 113.4 KB | 39.2 KB |
-| excel-bridge@1.4.0 (dist) | `{ ExcelBridge }` | 113.8 KB | 39.3 KB |
-| excel-bridge@1.4.0 (dist) | `* (everything)` | 120.9 KB | 41.8 KB |
+| excel-bridge@1.4.0 (dist) | `{ createExcelWorkbookStream }` | 30.2 KB | 11.5 KB |
+| excel-bridge@1.4.0 (dist) | `{ ExcelWriter }` | 32.0 KB | 12.2 KB |
+| excel-bridge@1.4.0 (dist) | `{ ExcelReader }` | 80.6 KB | 28.2 KB |
+| excel-bridge@1.4.0 (dist) | `{ Workbook }` | 114.3 KB | 39.5 KB |
+| excel-bridge@1.4.0 (dist) | `{ ExcelBridge }` | 114.7 KB | 39.7 KB |
+| excel-bridge@1.4.0 (dist) | `* (everything)` | 121.9 KB | 42.1 KB |
 | hucre@1.1.0 | `{ writeXlsx }` | | ~40 KB |
 | hucre@1.1.0 | `{ readXlsx }` | | ~40 KB |
 | xlsx@0.18.5 | `{ utils, write }` | 287.4 KB | 95.8 KB |

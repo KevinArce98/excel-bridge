@@ -11,7 +11,7 @@
 [![Live demo](https://img.shields.io/badge/demo-live-22c55e?labelColor=1e293b)](https://kevinarce98.github.io/excel-bridge/)
 [![npm version](https://img.shields.io/npm/v/excel-bridge?logo=npm&label=npm&color=22c55e)](https://www.npmjs.com/package/excel-bridge)
 [![downloads](https://img.shields.io/npm/dm/excel-bridge?label=downloads&color=22c55e)](https://www.npmjs.com/package/excel-bridge)
-[![ExcelWriter size](https://img.shields.io/badge/ExcelWriter-12.0%20KB%20min%2Bgzip-22c55e?labelColor=1e293b)](#bundle-size)
+[![ExcelWriter size](https://img.shields.io/badge/ExcelWriter-12.2%20KB%20min%2Bgzip-22c55e?labelColor=1e293b)](#bundle-size)
 [![provenance](https://img.shields.io/badge/provenance-signed-22c55e?logo=npm)](https://www.npmjs.com/package/excel-bridge)
 [![CI](https://img.shields.io/github/actions/workflow/status/KevinArce98/excel-bridge/ci.yml?branch=main&label=CI&logo=github)](https://github.com/KevinArce98/excel-bridge/actions)
 [![types](https://img.shields.io/npm/types/excel-bridge?color=22c55e)](https://www.npmjs.com/package/excel-bridge)
@@ -26,7 +26,7 @@
 ## Highlights
 
 - **Zero heavy dependencies** — no ExcelJS or SheetJS under the hood, just `fflate` + `fast-xml-parser`.
-- **Tiny & tree-shakeable** — a micro-package architecture ships only what you import: `ExcelWriter` alone is 12.0 KB min+gzip ([sizes](#bundle-size)). ESM **and** CJS.
+- **Tiny & tree-shakeable** — a micro-package architecture ships only what you import: `ExcelWriter` alone is 12.2 KB min+gzip ([sizes](#bundle-size)). ESM **and** CJS.
 - **TypeScript-first** — complete types and IntelliSense for every public API.
 - **Cross-platform** — one API for the browser (`File`/`Blob`) and Node.js (`Buffer`).
 - **Full read & write** — styling, fonts, borders, formulas, dates, merged cells, freeze panes, **conditional formatting**, data validation, **autofilters**, **hyperlinks** and multi-sheet workbooks.
@@ -127,7 +127,7 @@ It also offers `ExcelBridge.readFromFile(file)` for browser `File`s and `ExcelBr
 for Node.js ([all entry points](#entry-points)).
 
 > Bundlers keep an object whole, so even a lone `ExcelBridge.write` call ships the reader too:
-> 39.3 KB min+gzip, against 12.0 KB for `ExcelWriter`. In browser code, prefer the named imports.
+> 39.7 KB min+gzip, against 12.2 KB for `ExcelWriter`. In browser code, prefer the named imports.
 
 ## Why excel-bridge?
 
@@ -147,7 +147,7 @@ enough to drop into a front-end bundle.
 | First-class TypeScript types | ✅ | ✅ | ✅ |
 | ESM **and** CJS, tree-shakeable | ✅ | ⚠️ CJS-first | ✅ |
 | Heavy runtime dependencies | **None** | Several | None |
-| Bundle size to write a file ¹ | **12.0 KB** | 272.1 KB | 95.8 KB |
+| Bundle size to write a file ¹ | **12.2 KB** | 272.1 KB | 95.8 KB |
 
 <sub>¹ Minified + gzipped code that a browser bundle needs to write an `.xlsx`: `ExcelWriter`, ExcelJS's
 default browser build (not tree-shakeable) and SheetJS `utils` + `write` from npm `xlsx@0.18.5`,
@@ -163,12 +163,12 @@ bundle:
 
 | Import from `excel-bridge` | min+gzip |
 | --- | ---: |
-| `createExcelWorkbookStream` | 11.4 KB |
-| `ExcelWriter` | 12.0 KB |
-| `ExcelReader` | 28.1 KB |
-| `Workbook` (reader + writer) | 39.2 KB |
-| `ExcelBridge` (convenience object) | 39.3 KB |
-| Everything | 41.8 KB |
+| `createExcelWorkbookStream` | 11.5 KB |
+| `ExcelWriter` | 12.2 KB |
+| `ExcelReader` | 28.2 KB |
+| `Workbook` (reader + writer) | 39.5 KB |
+| `ExcelBridge` (convenience object) | 39.7 KB |
+| Everything | 42.1 KB |
 
 The same measurement for other libraries:
 
@@ -249,16 +249,19 @@ const blob = existing.toBlob(); // in the browser
 
 Available on an instance: `getSheetNames`, `getSheetData`, `getCellValue`/`setCellValue`,
 `getCellStyle`/`setCellStyle`, `setMergeCells`, `setFreezePane`, `setColumnWidths`,
-`setAutoWidth`, `addValidation`, `addConditionalFormat`,
+`setAutoWidth`, `getSheetState`/`setSheetState`, `addValidation`, `addConditionalFormat`,
 `setAutoFilter`/`getAutoFilter`/`removeAutoFilter`, `setHyperlink`/`getHyperlinks`/`removeHyperlink`,
 `addSheet`/`removeSheet`, `getMetadata`/`setMetadata`, `toBuffer`/`toBlob`. In the browser, load
 with `await Workbook.fromFile(file)`.
 
-> **Round-trip note:** `Workbook.fromBuffer`/`fromFile` restore data, styles, merges, freeze panes,
-> column widths, **conditional formatting rules, autofilter ranges and hyperlinks** — so load /
-> edit / save is lossless for the features this library writes. Filter criteria and sort state set
-> in Excel aren't kept, and links the writer doesn't accept (anything but `http:`, `https:`,
-> `mailto:` or a location in the workbook) are dropped on load; `ExcelReader` still returns them.
+> **Round-trip note:** `Workbook.fromBuffer`/`fromFile` restore data at its row and column,
+> styles, merges, freeze panes, column widths, **data validations, conditional formatting rules,
+> autofilter ranges, hyperlinks and sheet visibility**. Filter criteria and sort state set in
+> Excel aren't kept, links the writer doesn't accept (anything but `http:`, `https:`, `mailto:`
+> or a location in the workbook) are dropped on load, and validations of a type the writer
+> doesn't know are dropped; `ExcelReader` still returns the links. Not kept yet: date cells lose
+> their style and number format, and the 1904 date system, error cells and shared formulas are
+> read incorrectly.
 
 ### Multi-sheet workbooks
 
@@ -610,11 +613,13 @@ const workbook = new ExcelReader().parseFromBuffer(buffer);
 
 const sheet = workbook.sheets[0];
 sheet.name; // "Sales Report"
+sheet.state; // "hidden" | "veryHidden" when the sheet is hidden, otherwise undefined
+sheet.data; // the rows present in the file, in order; use cell.rowIndex for the position
 sheet.styles; // Record<"row-col", CellStyle>
 sheet.mergeCells; // ["A1:D1", ...]
 sheet.freezePane; // { row?: number; col?: number }
 sheet.columnWidths; // number[]
-sheet.validations; // Array<{ range: string; options: string }>
+sheet.validations; // CellValidation[] — type, operator, formulas and allowBlank as stored
 sheet.conditionalFormats; // ConditionalFormat[] — read back for lossless round-trips
 
 workbook.metadata; // { created?, modified?, creator?, title?, subject? }
@@ -692,6 +697,7 @@ interface ExcelData {
 
 interface SheetOptions {
   name?: string;
+  state?: 'visible' | 'hidden' | 'veryHidden'; // at least one sheet must stay visible
   freezePane?: { row?: number; col?: number };
   autoWidth?: boolean;
   columnWidths?: number[];

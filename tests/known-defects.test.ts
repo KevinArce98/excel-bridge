@@ -3,58 +3,17 @@ import { strToU8, unzipSync, zipSync } from 'fflate';
 import {
   ExcelBridge,
   ExcelWriter,
-  Workbook,
   calculateColumnWidths,
   createExcelWorkbookStream,
-  dataValidation,
   streamToBuffer,
 } from '../src';
 import { knownDefect } from './helpers/known-defect';
-import { calendarDay, cellAt, part, readFirstSheet } from './helpers/read';
+import { calendarDay, cellAt, readFirstSheet } from './helpers/read';
 import { DATE_STYLES, REL_NS, SPREADSHEET_NS, buildXlsx } from './helpers/xlsx';
 
 const writer = new ExcelWriter();
 
 const sheetBody = (cells: string) => `<sheetData><row r="1">${cells}</row></sheetData>`;
-
-describe('Workbook round trip of the library own output', () => {
-  const validated = writer.createWorkbookBuffer([
-    { data: [['n']], validations: [dataValidation.wholeNumber('A2:A10', 'between', 1, 100)] },
-  ]);
-
-  it('writes a whole-number validation', () => {
-    expect(part(validated, 'xl/worksheets/sheet1.xml')).toMatch(/<dataValidation[^>]*type="whole"/);
-  });
-
-  knownDefect(
-    'a whole-number validation becomes a list of the single value "1" when saved (expected: type="whole") (I2)',
-    () => {
-      const saved = Workbook.fromBuffer(validated).toBuffer();
-      expect(part(saved, 'xl/worksheets/sheet1.xml')).toMatch(/<dataValidation[^>]*type="whole"/);
-    },
-    { message: /to match/ }
-  );
-
-  const gapped = (() => {
-    const workbook = Workbook.create();
-    workbook.addSheet('S', [['a']]);
-    workbook.setCellValue('S', 4, 0, 'e');
-    return workbook.toBuffer();
-  })();
-
-  it('writes a cell past the last row at its own row', () => {
-    expect(cellAt(readFirstSheet(gapped), 'A5')?.value).toBe('e');
-  });
-
-  knownDefect(
-    'a row gap made by setCellValue closes up on the second save (expected: A5 stays "e") (I1)',
-    () => {
-      const saved = Workbook.fromBuffer(gapped).toBuffer();
-      expect(cellAt(readFirstSheet(saved), 'A5')?.value).toBe('e');
-    },
-    { message: /expected undefined to be 'e'/ }
-  );
-});
 
 describe('number formats', () => {
   const formatted = (numberFormat: string) =>
@@ -62,14 +21,10 @@ describe('number formats', () => {
       writer.createWorkbookBuffer([{ data: [[1]], styles: { '0-0': { numberFormat } } }])
     ).styles?.['0-0']?.numberFormat;
 
-  it.each(['#,##0.00', '0.0%', '$#,##0.00'])('reads %s back unchanged', code => {
-    expect(formatted(code)).toBe(code);
-  });
-
-  it.each(['0.00', '00000', '0.0', '0.000', '0.00E+00'])(
-    'known defect: reads the numeric-looking format %s as "0" (expected: unchanged) (I3)',
+  it.each(['#,##0.00', '0.0%', '$#,##0.00', '0.00', '00000', '0.0', '0.000', '0.00E+00'])(
+    'reads %s back unchanged',
     code => {
-      expect(formatted(code)).toBe('0');
+      expect(formatted(code)).toBe(code);
     }
   );
 });

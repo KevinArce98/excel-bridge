@@ -24,6 +24,7 @@ import {
   CellStyle,
   ConditionalFormat,
   Hyperlink,
+  SheetState,
 } from '../core/types';
 
 export type {
@@ -35,6 +36,7 @@ export type {
   DataValidationType,
   DataValidationOperator,
   Hyperlink,
+  SheetState,
 } from '../core/types';
 export { dataValidation } from './validation';
 export { hyperlink } from './hyperlink';
@@ -42,6 +44,7 @@ export type { HyperlinkOptions } from './hyperlink';
 
 export interface SheetOptions {
   name?: string;
+  state?: SheetState;
   freezePane?: { row?: number; col?: number };
   autoWidth?: boolean;
   columnWidths?: number[];
@@ -112,6 +115,11 @@ export class ExcelWriter {
     }
 
     const sheetNames = data.map((sheet, index) => sheet.options?.name || `Sheet${index + 1}`);
+    const sheetStates = data.map(sheet => sheet.options?.state ?? 'visible');
+
+    if (data.length > 0 && !sheetStates.includes('visible')) {
+      throw new Error('At least one sheet must be visible');
+    }
 
     const worksheetEntries: Array<{ path: string; xml: string; relsPath: string; rels: string }> =
       [];
@@ -158,7 +166,8 @@ export class ExcelWriter {
       filterDatabaseNames(
         sheetNames,
         data.map(sheetData => sheetData.options?.autoFilter)
-      )
+      ),
+      sheetStates
     );
 
     files['xl/styles.xml'] = generateStylesXml(styleManager);

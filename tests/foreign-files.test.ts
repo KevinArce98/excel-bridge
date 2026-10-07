@@ -81,31 +81,50 @@ describe.each(REPORTS)('$file', ({ file, freezePane, isoDates, headerFill, creat
     });
   }
 
-  knownDefect(
-    'rows after a blank row move up when the workbook is saved (expected: A5 stays "Total") (I1)',
-    () => {
-      const [sheet] = ExcelBridge.read(Workbook.fromBuffer(bytes).toBuffer()).sheets;
-      expect(cellAt(sheet, 'A5')?.value).toBe('Total');
-    },
-    { message: /expected undefined to be 'Total'/ }
-  );
+  it('keeps every row where it was when the workbook is saved', () => {
+    const [sheet] = ExcelBridge.read(Workbook.fromBuffer(bytes).toBuffer()).sheets;
+    for (const [coordinate, value] of [
+      ['A1', 'Region'],
+      ['A3', 'North'],
+      ['A5', 'Total'],
+      ['A7', 'Footnote'],
+    ]) {
+      expect(cellAt(sheet, coordinate)?.value).toBe(value);
+    }
+    expect(sheet.mergeCells).toEqual(['A7:C7']);
+  });
 
-  knownDefect(
-    'a hidden sheet becomes visible when the workbook is saved (expected: state="hidden") (I6)',
-    () => {
-      expect(part(Workbook.fromBuffer(bytes).toBuffer(), 'xl/workbook.xml')).toMatch(
-        /state="hidden"/
-      );
-    },
-    { message: /to match/ }
-  );
+  it('keeps the hidden sheet hidden when the workbook is saved', () => {
+    const workbook = Workbook.fromBuffer(bytes);
+    expect(workbook.getSheetState('Hidden')).toBe('hidden');
+    expect(workbook.getSheetState('Report')).toBe('visible');
+    expect(part(workbook.toBuffer(), 'xl/workbook.xml')).toMatch(
+      /name="Hidden"[^>]*state="hidden"/
+    );
+  });
 });
 
 describe('exceljs-report.xlsx validation', () => {
-  it('stores a whole-number rule on B3', () => {
-    expect(ExcelBridge.read(fixture('exceljs-report.xlsx')).sheets[0].validations).toEqual([
-      { range: 'B3', options: '1' },
+  const bytes = fixture('exceljs-report.xlsx');
+
+  it('reads the whole-number rule on B3 in full', () => {
+    expect(ExcelBridge.read(bytes).sheets[0].validations).toEqual([
+      {
+        range: 'B3',
+        type: 'whole',
+        formula1: '1',
+        formula2: '10000',
+        allowBlank: true,
+        options: '1',
+      },
     ]);
+  });
+
+  it('keeps the rule as a whole-number rule when the workbook is saved', () => {
+    const saved = Workbook.fromBuffer(bytes).toBuffer();
+    expect(part(saved, 'xl/worksheets/sheet1.xml')).toMatch(
+      /<dataValidation type="whole" operator="between" allowBlank="1"[^>]*sqref="B3">\s*<formula1>1<\/formula1><formula2>10000<\/formula2>/
+    );
   });
 });
 
