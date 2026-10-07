@@ -2,27 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { strToU8, unzipSync, zipSync } from 'fflate';
 import { ExcelBridge, ExcelReader } from '../src';
 import { MAX_PLACEHOLDER_CELLS } from '../src/reader';
-
-const SPREADSHEET_NS = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
-const REL_NS = 'http://schemas.openxmlformats.org/package/2006/relationships';
-
-const buildXlsx = (sheetBody: string, extraEntries: Record<string, Uint8Array> = {}) =>
-  zipSync({
-    '[Content_Types].xml': strToU8(
-      '<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"/>'
-    ),
-    '_rels/.rels': strToU8(`<?xml version="1.0"?><Relationships xmlns="${REL_NS}"/>`),
-    'xl/workbook.xml': strToU8(
-      `<?xml version="1.0"?><workbook xmlns="${SPREADSHEET_NS}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="S" sheetId="1" r:id="rId1"/></sheets></workbook>`
-    ),
-    'xl/_rels/workbook.xml.rels': strToU8(
-      `<?xml version="1.0"?><Relationships xmlns="${REL_NS}"><Relationship Id="rId1" Type="worksheet" Target="worksheets/sheet1.xml"/></Relationships>`
-    ),
-    'xl/worksheets/sheet1.xml': strToU8(
-      `<?xml version="1.0"?><worksheet xmlns="${SPREADSHEET_NS}">${sheetBody}</worksheet>`
-    ),
-    ...extraEntries,
-  });
+import { REL_NS, SPREADSHEET_NS, buildXlsx } from './helpers/xlsx';
 
 const corruptEntry = (zip: Uint8Array, entryName: string): Uint8Array => {
   const copy = new Uint8Array(zip);
