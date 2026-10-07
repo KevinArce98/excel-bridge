@@ -21,5 +21,11 @@ Include the version, a minimal file or input that reproduces the problem, and wh
   very large legitimate or crafted sheet can exhaust memory.
 
 Cap the size of uploads before parsing them, and parse untrusted files in a worker or a separate
-process. The writers do not escape text that starts with `=`: such a string becomes a live formula
-in the file, so do not pass user-controlled text that starts with `=` to them.
+process. The reader returns hyperlink targets as stored (a `javascript:` target comes back
+unchanged; `Workbook` drops targets the writer does not accept) and returns text unsanitized, so
+escape it before putting it in HTML.
+
+The writers do not escape text that starts with `=`: such a string becomes a live formula in the
+file, so do not pass user-controlled text that starts with `=` to them. The same happens on a
+`Workbook` load and save, because a text cell that starts with `=` in a loaded file is saved as a
+formula.

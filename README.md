@@ -28,7 +28,7 @@
 - **Two direct dependencies** — no ExcelJS or SheetJS under the hood: `fflate` for zip and `fast-xml-parser` for reading. The writer bundles no parser code.
 - **Tiny & tree-shakeable** — import a class and your bundler ships only that part: `ExcelWriter` alone is 12.5 KB min+gzip ([sizes](#bundle-size)). ESM **and** CJS.
 - **TypeScript-first** — complete types and IntelliSense for every public API.
-- **Cross-platform** — one synchronous API for the browser (`File`/`Blob`) and Node.js (`Uint8Array`, which `Buffer` extends). Smoke-tested on Node 20, 22 and 24, Bun and Deno.
+- **Cross-platform** — one API for the browser (`File`/`Blob`) and Node.js (`Uint8Array`, which `Buffer` extends). Reading and writing buffers is synchronous; reading a `File` and streaming are async. The test suite runs on Node 20, 22 and 24, and the packed package is smoke-tested on Node 22, Bun and Deno.
 - **Read & write** — cell styles (fill, font, one box border, alignment, number formats), formulas, dates, merged cells, freeze panes, column widths, **conditional formatting**, data validation, **autofilters**, **hyperlinks**, hidden sheets and multi-sheet workbooks.
 - **Scales up** — a **streaming writer** for million-row exports and a **`Workbook` API** to load, edit and save files the library can model ([what it keeps](#high-level-workbook-api)).
 - **Signed releases** — every version is published to npm with [provenance](https://docs.npmjs.com/generating-provenance-statements).
@@ -74,7 +74,7 @@ const workbook = reader.parseFromBuffer(buffer);
 for (const row of workbook.sheets[0].data) {
   for (const cell of row) {
     console.log(cell.coordinate, cell.type, cell.value, cell.formula ?? '');
-    // "B2" "date"   2024-01-15T00:00:00.000Z ""
+    // "B2" "date"   2024-01-15T00:00:00.000Z ""   (printed in UTC; a Date holds local wall-clock time)
     // "D2" "empty"  null                     "B2*C2"   (a formula without a cached value)
   }
 }
@@ -84,8 +84,9 @@ for (const row of workbook.sheets[0].data) {
 > resolve wherever the file keeps them. Date-formatted cells come back as `Date` objects, and
 > `sheet.data` lists the rows present in the file in order (use `cell.rowIndex` for the position).
 > Error cells come back as `type: 'error'` with their text, for example `#DIV/0!`. Known gaps: the
-> 1904 date system, shared-formula followers, ISO-8601 date cells and XML written with namespace
-> prefixes are not read correctly yet; see [Known limitations](#known-limitations).
+> 1904 date system, shared-formula followers, ISO-8601 date cells, XML written with namespace
+> prefixes, and rows or cells without an `r` attribute are not read correctly yet; see
+> [Known limitations](#known-limitations).
 
 ### Write a workbook
 
@@ -133,7 +134,7 @@ It also offers `ExcelBridge.readFromFile(file)` for browser `File`s and `ExcelBr
 for Node.js ([all entry points](#entry-points)).
 
 > Bundlers keep an object whole, so even a lone `ExcelBridge.write` call ships the reader too:
-> 40.0 KB min+gzip, against 12.5 KB for `ExcelWriter`. In browser code, prefer the named imports.
+> 40.1 KB min+gzip, against 12.5 KB for `ExcelWriter`. In browser code, prefer the named imports.
 
 ## Why excel-bridge?
 
@@ -148,11 +149,12 @@ enough to drop into a front-end bundle.
 | Cell styling (color, font, one box border) | ✅ | ✅ | ⚠️ Pro edition |
 | Conditional formatting | ✅ | ✅ | ⚠️ Pro edition |
 | Formulas | ✅ | ✅ | ✅ |
-| Merged cells & freeze panes | ✅ | ✅ | ✅ |
+| Merged cells | ✅ | ✅ | ✅ |
+| Freeze panes | ✅ | ✅ | ❌ not in `xlsx` 0.18.5 |
 | Streaming writer | ✅ | ✅ | ⚠️ Pro edition |
 | First-class TypeScript types | ✅ | ✅ | ✅ |
 | ESM **and** CJS, tree-shakeable | ✅ | ⚠️ CJS-first | ✅ |
-| Direct runtime dependencies | 2 | 9 | 0 |
+| Direct runtime dependencies ² | 2 | 9 | 7 |
 | Bundle size to write a file ¹ | **12.5 KB** | 272.1 KB | 95.8 KB |
 
 <sub>¹ Minified + gzipped code that a browser bundle needs to write an `.xlsx`: `ExcelWriter`, ExcelJS's
@@ -160,7 +162,9 @@ default browser build (not tree-shakeable) and SheetJS `utils` + `write` from np
 bundled with esbuild. See [Bundle size](#bundle-size) for the method, reader sizes and more
 libraries. Bundlephobia measures each whole package with its own toolchain, so its numbers differ:
 [excel-bridge](https://bundlephobia.com/package/excel-bridge) ·
-[exceljs](https://bundlephobia.com/package/exceljs) · [xlsx](https://bundlephobia.com/package/xlsx).</sub>
+[exceljs](https://bundlephobia.com/package/exceljs) · [xlsx](https://bundlephobia.com/package/xlsx).
+² Declared in each `package.json` (`exceljs@4.4.0`, `xlsx@0.18.5` on npm), checked 2026-10-07. `xlsx@0.18.5` also has
+known security advisories and is the last version published to npm.</sub>
 
 ### Bundle size
 
@@ -173,8 +177,8 @@ bundle:
 | `ExcelWriter` | 12.5 KB |
 | `ExcelReader` | 28.2 KB |
 | `Workbook` (reader + writer) | 39.9 KB |
-| `ExcelBridge` (convenience object) | 40.0 KB |
-| Everything | 42.5 KB |
+| `ExcelBridge` (convenience object) | 40.1 KB |
+| Everything | 42.6 KB |
 
 The same measurement for other libraries (2026-10-07):
 
@@ -222,11 +226,13 @@ Writing **50,000 rows × 10 columns** (median of 5 runs, Node 24.19, Apple M4):
 | xlsx / SheetJS (`compression: true`) | 570 ms | 6.26 MiB |
 | exceljs | 1490 ms | 2.82 MiB |
 
-~2.7× faster than ExcelJS. hucre and SheetJS write this workload faster. SheetJS's default output
-is ~7.5× larger because it does not compress; with `compression: true` it is ~2.6× larger. Times
-vary by about 10% between runs and by machine; reproduce them with
+~2.7× faster than ExcelJS. hucre writes this workload faster (about 390 ms). SheetJS is on par:
+510 ms with its default uncompressed output and 570 ms with `compression: true`, which makes its
+file ~2.6× larger than excel-bridge's (~7.5× larger without compression). Measured 2026-10-07; times
+vary by about 10% between runs and by machine. Reproduce them with
 [`pnpm run bench`](./benchmarks/README.md#write-speed). Reading is slower: `ExcelReader` takes
-1.4 to 1.9 s for 50,000 × 10 cells and holds the whole file in memory (about 2 GB for 200,000 × 10).
+1.4 to 1.9 s for 50,000 × 10 cells and holds the whole file in memory (about 2 GB peak for
+200,000 × 10; Node 24.19, Apple M4, files written by ExcelJS).
 
 ### When to choose something else
 
@@ -304,8 +310,12 @@ with `await Workbook.fromFile(file)`.
 > doesn't know are dropped; `ExcelReader` still returns the links. Validation input and error
 > messages, the error style (stop, warning, information) and the "show message" switches are not
 > kept: every saved rule shows both messages and blocks bad entries. Error cells are saved as
-> text. Not kept yet: date cells lose their style and number format, and the 1904 date system and
-> shared formulas are read incorrectly.
+> text. Not kept yet: date cells lose their style and number format; only RGB colours and custom
+> number formats are read (theme and indexed colours and built-in formats such as `0%` are
+> dropped); every border becomes a thin black box on all four sides; shared-formula followers and
+> text cells that start with `=` are saved as formulas; rich text is flattened; split panes become
+> freeze panes; and conditional formatting rules other than `cellIs`, `expression` and
+> `colorScale` are dropped. The 1904 date system is read incorrectly.
 >
 > After loading a file with blank rows, `getSheetData(name)` has holes at those rows: `length` is
 > the last row plus one, `for...of` yields `undefined` for a hole and `JSON.stringify` writes
@@ -663,7 +673,7 @@ const buffer = writer.createWorkbookBuffer([{ data }]);
 
 ### Reading in depth
 
-`ExcelReader` returns the full workbook — not just cell values. Each `ParsedSheet` also
+`ExcelReader` returns the workbook, not just cell values. Each `ParsedSheet` also
 exposes its layout, and the workbook carries document metadata.
 
 ```typescript
@@ -720,7 +730,7 @@ bundles as a unit; for the smallest browser bundles, import the [classes](#class
 | Class | Description |
 | --- | --- |
 | `Workbook` | High-level load / edit / save API over the reader and writer. |
-| `ExcelReader` | Full-featured `.xlsx` parser. |
+| `ExcelReader` | `.xlsx` parser for the features the writer produces and the common ones from other tools. |
 | `ExcelWriter` | Multi-sheet `.xlsx` writer with styling, formulas and layout. |
 | `StyleManager` | Deduplicated style registry used internally by the writer. |
 
@@ -882,7 +892,7 @@ For custom pipelines, `excel-bridge` also exports its building blocks: the funct
 (`createExcelBlob`, `createExcelBuffer`, `extractExcelFiles`, `validateExcelStructure`); the XML
 template generators (`generateSheetXml`, `generateStylesXml`, `generateSheetRelsXml`, …); and date/validation utilities
 (`dateToExcelSerial`, `excelSerialToDate`, `EXCEL_LIMITS`, `validateCellValue`, …). These are
-lower-level and their shape may change in a major release — most apps only need the entry points above.
+lower-level and their shape may change in a minor release — most apps only need the entry points above.
 
 ## Compatibility
 
@@ -892,20 +902,22 @@ lower-level and their shape may change in a major release — most apps only nee
 | Browsers | Modern browsers with ES2022, `File` and `Blob` APIs |
 | Module formats | ESM (`import`) and CommonJS (`require`) |
 | Bun, Deno | The packed package is smoke-tested on Bun 1.x and Deno 2.x in CI |
-| Excel | Targets Excel 2016+. Output is cross-checked with ExcelJS and SheetJS, but CI does not open it in Excel, LibreOffice or Google Sheets |
+| Excel | Targets Excel 2016+. CI does not open the output in Excel, LibreOffice or Google Sheets. The reader is tested on files written by ExcelJS, SheetJS and hucre |
 
 ### Known limitations
 
 - **Inline strings by default** — enable a shared-strings table with `new ExcelWriter({ sharedStrings: true })` for smaller files with lots of repeated text. The streaming writer ignores that option and always writes inline strings.
-- **Formulas recalculate on open** — formula cells are written without a cached value; Excel computes them on load (`fullCalcOnLoad`). Readers that do not calculate, such as previewers, show them empty.
+- **Formulas recalculate on open** — formula cells are written without a cached value; Excel computes them on load (`fullCalcOnLoad`). A reader that does not calculate shows them empty: SheetJS with default options skips the cell and openpyxl with `data_only` returns `None`.
 - **Strings starting with `=` are formulas** — there is no way to write such text literally yet. Do not pass user-controlled text that starts with `=` to the writers.
 - **Date cells cannot be styled** — a `Date` is always written with the built-in date format, and the reader returns no style for date-formatted cells.
-- **Dates are local wall-clock values** — `new Date(2024, 0, 15)` is written as 15 January whatever the time zone.
+- **Dates are local wall-clock values** — `new Date(2024, 0, 15)` is written as 15 January whatever the time zone, with the built-in short date format (no time of day, locale dependent). A UTC-midnight `Date` such as `new Date('2024-01-15')` falls on the previous day in negative offsets.
 - **One box border** — `border: true` draws the same border on all four sides; there are no per-side borders, row heights or hidden rows and columns.
-- **Not read correctly yet** — the 1904 date system, shared-formula followers, ISO-8601 date cells, character escapes such as `_x000D_`, split panes (read as freeze panes) and XML written with namespace prefixes.
+- **Not read correctly yet** — the 1904 date system; shared-formula followers (formula `""`); an ISO-8601 `t="d"` date cell (read as the number 2024); character escapes such as `_x000D_`; split panes (their twips are read as a freeze pane of that many rows and columns); XML written with namespace prefixes (an empty sheet, or an `Invalid Excel file structure` error); and rows or cells without an `r` attribute (`rowIndex` is `NaN`, a cell without `r` is lost).
 - **AutoFilter ranges only** — filter criteria and sort state aren't written or read.
 - **Hyperlink schemes** — the writer accepts `http:`, `https:`, `mailto:` and locations inside the workbook.
 - **Reader limits** — the reader rejects cell and row references outside Excel's grid (`XFD1048576`), clamps `<col>` ranges to 16,384 columns and throws when a workbook needs more than 5,000,000 empty cells of padding to keep rows rectangular. It still holds the whole file in memory, so cap the upload size before parsing untrusted files.
+
+Upgrading from an earlier version? See [UPGRADING.md](./UPGRADING.md).
 
 ## Security
 
@@ -935,3 +947,5 @@ published automatically by semantic-release. See the [CHANGELOG](./CHANGELOG.md)
 ## License
 
 [MIT](./LICENSE) © [Kevin Arias](https://github.com/KevinArce98)
+
+Microsoft Excel is a trademark of Microsoft. This project is not affiliated with Microsoft.

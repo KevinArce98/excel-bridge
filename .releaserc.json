@@ -21,7 +21,8 @@
       "@semantic-release/github",
       {
         "failComment": false,
-        "labels": false
+        "labels": false,
+        "releaseBodyTemplate": "<%= nextRelease.notes %>\n\n---\n\nBehavior changes and how to adapt: [UPGRADING.md](https://github.com/KevinArce98/excel-bridge/blob/<%= nextRelease.gitTag %>/UPGRADING.md)"
       }
     ]
   ]

@@ -26,7 +26,7 @@ pnpm add -D exceljs xlsx hucre
 pnpm run bench
 ```
 
-Each library is timed `RUNS` times (default `5`) and the median is reported. hucre needs Node 24.
+Each library is timed `RUNS` times (default `5`) and the median is reported. hucre declares Node >=24 in its `engines`.
 
 Tune the dataset size with the `ROWS` env var (default `50000`):
 
@@ -52,10 +52,11 @@ between runs — run it yourself for your own hardware.
 Takeaways for this workload:
 
 - **~2.7× faster than ExcelJS** with a smaller file.
-- hucre and SheetJS are faster. SheetJS's default output is ~7.5× larger because it does not
-  compress; with `compression: true` it is ~2.6× larger.
-- The streaming writer is not faster than the in-memory writer; it keeps memory lower (about 215 MB
-  against 360 MB peak resident memory in a separate run), and the gap grows with row count.
+- hucre is faster (about 390 ms). SheetJS is on par: 510 ms with its default output, which is
+  ~7.5× larger because it does not compress, and 570 ms with `compression: true`, ~2.6× larger.
+- The streaming writer is not faster than the in-memory writer; it keeps memory lower (roughly
+  250 MB against 375 MB peak resident memory for 50,000 rows, collecting the stream with
+  `streamToBuffer`), and the gap grows with row count.
 
 > Every library was driven with its documented defaults; no per-library tuning was
 > applied. Treat these as directional, not absolute.
@@ -101,11 +102,11 @@ Measured 2026-10-07 with esbuild 0.28.2 and Node 22; 1 KB = 1,000 bytes. The exc
 | Package | Import | Min | Min+gzip |
 | --- | --- | ---: | ---: |
 | excel-bridge@1.4.0 (dist) | `{ createExcelWorkbookStream }` | 31.2 KB | 11.9 KB |
-| excel-bridge@1.4.0 (dist) | `{ ExcelWriter }` | 32.8 KB | 12.5 KB |
+| excel-bridge@1.4.0 (dist) | `{ ExcelWriter }` | 32.9 KB | 12.5 KB |
 | excel-bridge@1.4.0 (dist) | `{ ExcelReader }` | 80.7 KB | 28.2 KB |
-| excel-bridge@1.4.0 (dist) | `{ Workbook }` | 115.3 KB | 39.9 KB |
-| excel-bridge@1.4.0 (dist) | `{ ExcelBridge }` | 115.7 KB | 40.0 KB |
-| excel-bridge@1.4.0 (dist) | `* (everything)` | 123.0 KB | 42.5 KB |
+| excel-bridge@1.4.0 (dist) | `{ Workbook }` | 115.4 KB | 39.9 KB |
+| excel-bridge@1.4.0 (dist) | `{ ExcelBridge }` | 115.8 KB | 40.1 KB |
+| excel-bridge@1.4.0 (dist) | `* (everything)` | 123.1 KB | 42.6 KB |
 | hucre@1.2.0 | `{ writeXlsx }` | 136.2 KB | 41.6 KB |
 | hucre@1.2.0 | `{ readXlsx }` | 136.6 KB | 41.1 KB |
 | hucre/xlsx@1.2.0 | `{ XlsxStreamWriter }` | 36.8 KB | 12.1 KB |
@@ -120,8 +121,8 @@ Notes:
 
 - `ExcelBridge` is a single object, and bundlers keep an object whole: any `ExcelBridge.*` call
   ships the reader and the writer, about as much as `Workbook`.
-- hucre's own README quotes 34 KB for `readXlsx` and 68 KB for read plus write; those figures did
-  not reproduce here with esbuild.
+- hucre's own README quotes 34 KB for `readXlsx` and 68 KB for read plus write, measured with
+  rolldown; those figures did not reproduce here with esbuild.
 - `@mitresthen/excelents` is measured as a whole entry (reader and writer) and has no conditional
   formatting at 1.0.1, so it is not a like-for-like row for `ExcelWriter`.
 - `exceljs` resolves to its prebuilt browser bundle (`dist/exceljs.min.js`), which can't be

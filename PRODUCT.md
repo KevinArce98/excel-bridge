@@ -20,7 +20,7 @@ Developers choosing an `.xlsx` read/write library for TypeScript/JavaScript that
 
 ## Positioning
 
-One tree-shakeable package: import a class and a bundler ships only that part. Two direct runtime dependencies (`fflate` for zip, `fast-xml-parser` for reading; the writer bundles no parser code), ESM **and** CJS, TypeScript-first, synchronous. One API spans browser and Node. Read **and** write — cell styles, formulas, dates, merged cells, freeze panes, conditional formatting, data validation, autofilters, hyperlinks, hidden sheets, multi-sheet — plus a streaming writer for very large exports and a `Workbook` load/edit/save API for files the library can model. The defensible claim is the combination, stated with its limits: SheetJS gates styling/conditional-formatting/streaming behind its Pro edition; ExcelJS carries a large CJS-first runtime; newer libraries such as hucre cover more features at 3x the writer size. It is not the smallest on every row and does not do images, charts, comments, tables, per-side borders or file-preserving edits.
+One tree-shakeable package: import a class and a bundler ships only that part. Two direct runtime dependencies (`fflate` for zip, `fast-xml-parser` for reading; the writer bundles no parser code), ESM **and** CJS, TypeScript-first, synchronous. One API spans browser and Node; reading and writing buffers is synchronous, while reading a `File` and streaming are async. Read **and** write — cell styles, formulas, dates, merged cells, freeze panes, conditional formatting, data validation, autofilters, hyperlinks, hidden sheets, multi-sheet — plus a streaming writer for very large exports and a `Workbook` load/edit/save API for files the library can model. The defensible claim is the combination, stated with its limits: SheetJS gates styling/conditional-formatting/streaming behind its Pro edition; ExcelJS carries a large CJS-first runtime; newer libraries such as hucre cover more features at 3x the writer size. It is not the smallest on every row and does not do images, charts, comments, tables, per-side borders or file-preserving edits.
 
 ## Operating Context
 
@@ -28,7 +28,7 @@ Evaluation happens at a desk, in a browser, alongside npm, GitHub, and Bundlepho
 
 ## Capabilities and Constraints
 
-Confirmed capabilities (v1.4.0):
+Confirmed capabilities (repository main; the published 1.4.0 has fewer):
 
 - `ExcelBridge.read` / `readFromFile` / `write` / `writeBuffer` entry points.
 - Classes: `Workbook` (load/edit/save), `ExcelReader`, `ExcelWriter`, `StyleManager`.

@@ -618,7 +618,7 @@
           <div class="lbl-stub">
             <div class="lbl-field"><span class="cap">Version</span><span class="val">1.4.0</span></div>
             <div class="lbl-field"><span class="cap">License</span><span class="val">MIT</span></div>
-            <div class="lbl-field"><span class="cap">Heavy deps</span><span class="val">0</span></div>
+            <div class="lbl-field"><span class="cap">Deps</span><span class="val">2</span></div>
           </div>
 
         </article>
@@ -632,7 +632,7 @@
     <div class="wrap">
       <header class="strip-head">
         <h2 id="packTitle">Pack a workbook</h2>
-        <p class="sec-sub">Edit any cell, then print the label. The page builds a real <code>.xlsx</code> with the live library and hands you the file: open it in Excel, Numbers or Google Sheets and the styling, formulas, color scale, filter dropdowns and link travel with it.</p>
+        <p class="sec-sub">Edit any cell, then print the label. The page builds a real <code>.xlsx</code> with the live library and hands you the file: open it in your spreadsheet app to check the styling, formulas, color scale, filter dropdowns and link.</p>
         <div class="strip-field"><span class="cap">Outbound</span><span class="strip-val">step 1 of 2</span></div>
       </header>
       <div class="pack-grid">
@@ -751,7 +751,7 @@
                 <tr><td class="no">2</td><th scope="row"><b>Runtime dependencies</b><span><code>fflate</code> and <code>fast-xml-parser</code>. No ExcelJS or SheetJS inside.</span></th><td class="qty" data-label="Qty">2</td><td class="kb" data-label="Net weight">—</td></tr>
                 <tr><td class="no">3</td><th scope="row"><b>Runtimes</b><span><code>File</code>/<code>Blob</code> in the browser, <code>Uint8Array</code> in Node.js, one API.</span></th><td class="qty" data-label="Qty">2</td><td class="kb" data-label="Net weight">—</td></tr>
                 <tr><td class="no">4</td><th scope="row"><b>Streaming writer</b><span>Million-row exports from a sync or async iterable, never held whole in memory.</span></th><td class="qty" data-label="Qty">1M rows</td><td class="kb" data-label="Net weight">11.4&nbsp;KB</td></tr>
-                <tr><td class="no">5</td><th scope="row"><b><code>Workbook</code> API</b><span>Load an existing file, edit cells, styles, merges, freeze panes, filters and links, then save it back.</span></th><td class="qty" data-label="Qty">1 class</td><td class="kb" data-label="Net weight">38.9&nbsp;KB</td></tr>
+                <tr><td class="no">5</td><th scope="row"><b><code>Workbook</code> API</b><span>Load a workbook this library wrote, edit cells, styles, merges, freeze panes, filters and links, then save it back. Content it does not model is dropped.</span></th><td class="qty" data-label="Qty">1 class</td><td class="kb" data-label="Net weight">38.9&nbsp;KB</td></tr>
                 <tr><td class="no">6</td><th scope="row"><b>TypeScript types</b><span>IntelliSense for every export, in both ESM and CJS builds.</span></th><td class="qty" data-label="Qty">all exports</td><td class="kb" data-label="Net weight">0&nbsp;KB at&nbsp;runtime</td></tr>
                 <tr><td class="no">7</td><th scope="row"><b>Signed releases</b><span>Every version is published to npm with build provenance.</span></th><td class="qty" data-label="Qty">every release</td><td class="kb" data-label="Net weight">—</td></tr>
             </tbody>
@@ -1256,14 +1256,15 @@
   const CMP = [
     ["Read .xlsx", "yes", "yes", "yes"],
     ["Write .xlsx", "yes", "yes", "yes"],
-    ["Cell styling (color, font, border)", "yes", "yes", "warn-pro"],
+    ["Cell styling (color, font, one box border)", "yes", "yes", "warn-pro"],
     ["Conditional formatting", "yes", "yes", "warn-pro"],
     ["Formulas", "yes", "yes", "yes"],
-    ["Merged cells & freeze panes", "yes", "yes", "yes"],
+    ["Merged cells", "yes", "yes", "yes"],
+    ["Freeze panes", "yes", "yes", "no"],
     ["Streaming writer", "yes", "yes", "warn-pro"],
     ["First-class TypeScript types", "yes", "yes", "yes"],
     ["ESM & CJS, tree-shakeable", "yes", "warn-cjs", "yes"],
-    ["Heavy runtime dependencies", "none", "several", "none"],
+    ["Direct runtime dependencies", "2", "9", "7"],
     ["Bundle size to write a file ¹", "12.0 KB", "272.1 KB", "95.8 KB"],
   ];
   const ICONS = {
@@ -1274,8 +1275,7 @@
     if (v === "yes") return ICONS.yes;
     if (v === "warn-pro") return ICONS.warn + `<span class='lbl-dim'>Pro</span>`;
     if (v === "warn-cjs") return ICONS.warn + `<span class='lbl-dim'>CJS-first</span>`;
-    if (v === "none") return `<span class='lbl-strong'>None</span>`;
-    if (v === "several") return `<span class='lbl-dim'>Several</span>`;
+    if (v === "no") return `<span class='lbl-dim'>No</span>`;
     if (v.endsWith(" KB")) return `<span class='size tnum'>${v}</span>`;
     return v;
   }
