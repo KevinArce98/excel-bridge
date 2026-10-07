@@ -1,6 +1,12 @@
 import { XMLParser } from 'fast-xml-parser';
-import { extractExcelFiles, validateExcelStructure } from '../core/zip-manager';
-import { excelSerialToDate, isDateNumFmtId } from '../core/date-utils';
+import { extractParts, validateExcelStructure } from '../core/zip-manager';
+import {
+  EXCEL_LIMITS,
+  excelSerialToDate,
+  isDateNumFmtId,
+  validateColIndex,
+  validateRowIndex,
+} from '../core/date-utils';
 import type {
   AutoFilter,
   CellStyle,
@@ -109,8 +115,39 @@ const RAW_TEXT_PATHS = [
   'sst.si.r.t',
 ];
 
+export const MAX_PLACEHOLDER_CELLS = 5_000_000;
+
+const STRUCTURAL_PARTS = new Set([
+  '[Content_Types].xml',
+  '_rels/.rels',
+  'xl/workbook.xml',
+  'xl/_rels/workbook.xml.rels',
+  'xl/sharedStrings.xml',
+  'xl/styles.xml',
+  'docProps/app.xml',
+  'docProps/core.xml',
+]);
+
 const relsPathFor = (partPath: string): string =>
   partPath.replace(/[^/]+$/, name => `_rels/${name}.rels`);
+
+const loadSheetParts = (
+  buffer: Uint8Array,
+  files: Record<string, string>,
+  sheetPaths: Array<string | undefined>
+): void => {
+  const wanted = new Set<string>();
+  for (const path of sheetPaths) {
+    if (path) {
+      wanted.add(path);
+      wanted.add(relsPathFor(path));
+    }
+  }
+  Object.assign(
+    files,
+    extractParts(buffer, path => wanted.has(path))
+  );
+};
 
 export class ExcelReader {
   private parser: XMLParser;
@@ -137,9 +174,9 @@ export class ExcelReader {
 
   parseFromBuffer(buffer: Uint8Array): ParsedWorkbook {
     try {
-      const files = extractExcelFiles(buffer);
+      const files = extractParts(buffer, path => STRUCTURAL_PARTS.has(path));
 
-      if (!validateExcelStructure(files)) {
+      if (!files['xl/workbook.xml']) {
         throw new Error('Invalid Excel file structure');
       }
 
@@ -150,16 +187,27 @@ export class ExcelReader {
 
       const sheets: ParsedSheet[] = [];
       const sheetElements = toArray(workbook.workbook?.sheets?.sheet);
+      const sheetPaths = sheetElements.map((sheetElement, index) =>
+        this.resolveSheetPath(sheetElement, relMap, index)
+      );
+      loadSheetParts(buffer, files, sheetPaths);
+
+      if (!validateExcelStructure(files)) {
+        throw new Error('Invalid Excel file structure');
+      }
+
+      const cellBudget = { placeholders: 0 };
 
       sheetElements.forEach((sheetElement, index) => {
         const sheetName = sheetElement.name ?? `Sheet${index + 1}`;
-        const sheetPath = this.resolveSheetPath(sheetElement, relMap, index);
+        const sheetPath = sheetPaths[index];
 
         if (sheetPath && files[sheetPath]) {
           const sheetData = this.parseSheet(
             files[sheetPath],
             sharedStrings,
             styleSheet,
+            cellBudget,
             files[relsPathFor(sheetPath)]
           );
           sheets.push({ name: String(sheetName), ...sheetData });
@@ -401,6 +449,7 @@ export class ExcelReader {
     sheetXml: string,
     sharedStrings: string[],
     styleSheet: StyleSheetData,
+    cellBudget: { placeholders: number },
     relsXml?: string
   ): Omit<ParsedSheet, 'name'> {
     const parsed = this.parser.parse(sheetXml);
@@ -419,13 +468,16 @@ export class ExcelReader {
 
     for (const rowElement of rows) {
       const rowIndex = parseInt(rowElement.r, 10) - 1;
+      if (rowIndex >= EXCEL_LIMITS.MAX_ROWS) validateRowIndex(rowIndex);
       const cells = toArray(rowElement.c);
 
       const rowData: ParsedCell[] = [];
       let maxCol = -1;
+      let filled = 0;
 
       for (const cell of cells) {
         const parsedCell = this.parseCell(cell, rowIndex, sharedStrings, styleSheet);
+        if (parsedCell.columnIndex >= 0 && !rowData[parsedCell.columnIndex]) filled++;
         rowData[parsedCell.columnIndex] = parsedCell;
         maxCol = Math.max(maxCol, parsedCell.columnIndex);
 
@@ -434,6 +486,13 @@ export class ExcelReader {
         if (decodedStyle) {
           styles[`${rowIndex}-${parsedCell.columnIndex}`] = decodedStyle;
         }
+      }
+
+      cellBudget.placeholders += maxCol + 1 - filled;
+      if (cellBudget.placeholders > MAX_PLACEHOLDER_CELLS) {
+        throw new Error(
+          `Workbook pads more than ${MAX_PLACEHOLDER_CELLS} empty cells to keep rows rectangular`
+        );
       }
 
       for (let c = 0; c <= maxCol; c++) {
@@ -592,8 +651,8 @@ export class ExcelReader {
 
     const widths: number[] = [];
     cols.forEach((col: any) => {
-      const min = Number(col.min) - 1;
-      const max = Number(col.max) - 1;
+      const min = Math.max(Number(col.min) - 1, 0);
+      const max = Math.min(Number(col.max) - 1, EXCEL_LIMITS.MAX_COLS - 1);
       const width = Number(col.width);
       for (let c = min; c <= max; c++) {
         widths[c] = width;
@@ -611,6 +670,7 @@ export class ExcelReader {
   ): ParsedCell {
     const coordinate = String(cell.r ?? '');
     const columnIndex = this.columnLetterToIndex(coordinate.replace(/\d+/g, ''));
+    if (columnIndex >= EXCEL_LIMITS.MAX_COLS) validateColIndex(columnIndex);
     const styleIndex = cell.s !== undefined ? Number(cell.s) : undefined;
 
     let value: any = null;

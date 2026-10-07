@@ -824,6 +824,7 @@ stable but lower-level — most apps only need the entry points above.
 - **Formulas recalculate on open** — formula cells are written without a cached value; Excel computes them on load (`fullCalcOnLoad`).
 - **AutoFilter ranges only** — filter criteria and sort state aren't written or read.
 - **Hyperlink schemes** — the writer accepts `http:`, `https:`, `mailto:` and locations inside the workbook.
+- **Reader limits** — the reader rejects cell and row references outside Excel's grid (`XFD1048576`), clamps `<col>` ranges to 16,384 columns and throws when a workbook needs more than 5,000,000 empty cells of padding to keep rows rectangular. It still holds the whole file in memory, so cap the upload size before parsing untrusted files.
 
 ## Contributing
 

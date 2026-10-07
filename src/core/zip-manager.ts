@@ -39,9 +39,12 @@ export const createExcelBuffer = (files: ExcelFiles): Uint8Array => {
   return new Uint8Array(result);
 };
 
-export const extractExcelFiles = (buffer: Uint8Array): ExcelFiles => {
+export const extractParts = (
+  buffer: Uint8Array,
+  select?: (path: string) => boolean
+): ExcelFiles => {
   try {
-    const unzipped = unzipSync(buffer);
+    const unzipped = unzipSync(buffer, select ? { filter: ({ name }) => select(name) } : undefined);
     const files: ExcelFiles = {};
 
     for (const [path, content] of Object.entries(unzipped)) {
@@ -53,6 +56,8 @@ export const extractExcelFiles = (buffer: Uint8Array): ExcelFiles => {
     throw new Error('Invalid Excel file: Unable to extract ZIP contents');
   }
 };
+
+export const extractExcelFiles = (buffer: Uint8Array): ExcelFiles => extractParts(buffer);
 
 export const validateExcelStructure = (files: ExcelFiles): boolean => {
   const requiredFiles = ['[Content_Types].xml', '_rels/.rels', 'xl/workbook.xml'];
