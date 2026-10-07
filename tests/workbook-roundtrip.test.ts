@@ -34,21 +34,27 @@ describe('rows keep their position through Workbook', () => {
     expect(workbook.getCellValue('S', 2, 0)).toBeNull();
   });
 
-  it('keeps an empty row element from shifting the rows after it', () => {
+  it('keeps a cell after an empty row element and a gap in the numbering', () => {
     const bytes = buildXlsx(
-      '<sheetData><row r="1"><c r="A1"><v>1</v></c></row><row r="2"/><row r="3"><c r="A3"><v>3</v></c></row></sheetData>'
+      '<sheetData><row r="1"><c r="A1"><v>1</v></c></row><row r="2"/><row r="6"><c r="A6"><v>6</v></c></row></sheetData>'
     );
-    expect(cellAt(readFirstSheet(roundTrip(bytes)), 'A3')?.value).toBe(3);
+    expect(cellAt(readFirstSheet(roundTrip(bytes)), 'A6')?.value).toBe(6);
   });
 
-  it('keeps rows that arrive out of order instead of overwriting one', () => {
+  it('keeps both rows that share a row number, the second one after the first', () => {
     const bytes = buildXlsx(
-      '<sheetData><row r="3"><c r="A3"><v>3</v></c></row><row r="2"><c r="A2"><v>2</v></c></row></sheetData>'
+      '<sheetData><row r="3"><c r="A3" t="inlineStr"><is><t>x</t></is></c></row><row r="3"><c r="A3" t="inlineStr"><is><t>y</t></is></c></row></sheetData>'
     );
-    const values = readFirstSheet(roundTrip(bytes))
-      .data.flat()
-      .map(cell => cell.value);
-    expect(values.sort()).toEqual([2, 3]);
+    const sheet = readFirstSheet(roundTrip(bytes));
+    expect(cellAt(sheet, 'A3')?.value).toBe('x');
+    expect(cellAt(sheet, 'A4')?.value).toBe('y');
+  });
+
+  it('keeps a formula through a save', () => {
+    const bytes = buildXlsx(
+      '<sheetData><row r="1"><c r="A1"><f>SUM(B1:B2)</f></c><c r="B1"><v>2</v></c></row></sheetData>'
+    );
+    expect(cellAt(readFirstSheet(roundTrip(bytes)), 'A1')?.formula).toBe('SUM(B1:B2)');
   });
 
   it('numbers rows that lack an r attribute after the previous row', () => {
@@ -128,6 +134,7 @@ describe('data validations keep their rule through Workbook', () => {
       /<dataValidations[\s\S]*<\/dataValidations>/.exec(
         part(bytes, 'xl/worksheets/sheet1.xml')
       )?.[0];
+    expect(block(original)).toBeDefined();
     expect(block(saved)).toBe(block(original));
   });
 
@@ -156,6 +163,45 @@ describe('data validations keep their rule through Workbook', () => {
     const inline = readFirstSheet(original).validations.find(rule => rule.range === 'I2:I10');
     expect(inline).toMatchObject({ type: 'list', options: 'say "hi",bye' });
     expect(inline?.formula1).toBeUndefined();
+  });
+
+  const operators = [
+    'between',
+    'notBetween',
+    'equal',
+    'notEqual',
+    'greaterThan',
+    'lessThan',
+    'greaterThanOrEqual',
+    'lessThanOrEqual',
+  ] as const;
+
+  it.each(operators)('keeps the operator %s', operator => {
+    const bytes = writer.createWorkbookBuffer([
+      { data: [['x']], validations: [dataValidation.wholeNumber('A2', operator, 1, 9)] },
+    ]);
+    expect(readFirstSheet(bytes).validations[0].operator).toBe(operator);
+    expect(part(roundTrip(bytes), 'xl/worksheets/sheet1.xml')).toContain(`operator="${operator}"`);
+  });
+
+  it('keeps a rule that covers several ranges', () => {
+    const bytes = buildXlsx(
+      '<sheetData><row r="1"><c r="A1"><v>1</v></c></row></sheetData><dataValidations count="1"><dataValidation type="whole" operator="between" allowBlank="1" sqref="A1:A5 C1:C5 E7"><formula1>1</formula1><formula2>9</formula2></dataValidation></dataValidations>'
+    );
+    expect(readFirstSheet(bytes).validations[0].range).toBe('A1:A5 C1:C5 E7');
+    expect(part(roundTrip(bytes), 'xl/worksheets/sheet1.xml')).toContain('sqref="A1:A5 C1:C5 E7"');
+  });
+
+  it.each([
+    ['1', true],
+    ['true', true],
+    ['0', false],
+    ['false', false],
+  ])('reads allowBlank="%s"', (value, expected) => {
+    const bytes = buildXlsx(
+      `<sheetData><row r="1"><c r="A1"><v>1</v></c></row></sheetData><dataValidations count="1"><dataValidation type="whole" allowBlank="${value}" sqref="A1"><formula1>1</formula1></dataValidation></dataValidations>`
+    );
+    expect(readFirstSheet(bytes).validations[0].allowBlank).toBe(expected);
   });
 
   it('drops a rule of an unsupported type instead of rewriting it', () => {
@@ -246,6 +292,12 @@ describe('sheet visibility', () => {
     );
   });
 
+  it('opens on the first visible sheet when several leading sheets are hidden', () => {
+    expect(part(build(['hidden', 'hidden', 'visible']), 'xl/workbook.xml')).toMatch(
+      /<workbookView[^>]*activeTab="2"/
+    );
+  });
+
   it('refuses a workbook where every sheet is hidden', () => {
     expect(() => build(['hidden', 'veryHidden'])).toThrow('At least one sheet must be visible');
   });
@@ -262,6 +314,56 @@ describe('sheet visibility', () => {
 
     workbook.setSheetState('B', 'visible');
     expect(part(workbook.toBuffer(), 'xl/workbook.xml')).not.toMatch(/state=/);
+  });
+});
+
+describe('Workbook.renameSheet', () => {
+  const build = () => {
+    const workbook = Workbook.create();
+    workbook.addSheet('Data', [['a']]);
+    workbook.addSheet('Other', [['b']]);
+    workbook.setCellStyle('Data', 0, 0, { bold: true });
+    workbook.setAutoFilter('Data', { range: 'A1:A1' });
+    return workbook;
+  };
+
+  it('renames a sheet and keeps its content, style and filter', () => {
+    const workbook = build();
+    workbook.renameSheet('Data', 'Summary');
+    expect(workbook.getSheetNames()).toEqual(['Summary', 'Other']);
+    expect(workbook.getCellStyle('Summary', 0, 0)?.bold).toBe(true);
+    expect(workbook.getAutoFilter('Summary')).toEqual({ range: 'A1' });
+    const sheet = ExcelBridge.read(workbook.toBuffer());
+    expect(sheet.sheets[0].name).toBe('Summary');
+    expect(sheet.sheets[0].autoFilter).toEqual({ range: 'A1' });
+  });
+
+  it('lets a sheet change the case of its own name', () => {
+    const workbook = build();
+    workbook.renameSheet('Data', 'DATA');
+    expect(workbook.getSheetNames()).toEqual(['DATA', 'Other']);
+  });
+
+  it('refuses an invalid name, a name in use and a missing sheet', () => {
+    const workbook = build();
+    expect(() => workbook.renameSheet('Data', 'bad/name')).toThrow(/Invalid sheet name/);
+    expect(() => workbook.renameSheet('Data', 'other')).toThrow('Sheet "other" already exists');
+    expect(() => workbook.renameSheet('Missing', 'x')).toThrow('Sheet "Missing" not found');
+    expect(workbook.getSheetNames()).toEqual(['Data', 'Other']);
+  });
+
+  it('lets a loaded workbook with a long sheet name be saved after renaming it', () => {
+    const longName = 'x'.repeat(44);
+    const workbook = Workbook.fromBuffer(
+      buildXlsx(
+        '<sheetData><row r="1"><c r="A1"><v>1</v></c></row></sheetData>',
+        {},
+        { sheetName: longName }
+      )
+    );
+    expect(() => workbook.toBuffer()).toThrow(/Invalid sheet name/);
+    workbook.renameSheet(longName, 'Short');
+    expect(ExcelBridge.read(workbook.toBuffer()).sheets[0].name).toBe('Short');
   });
 });
 

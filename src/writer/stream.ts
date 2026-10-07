@@ -1,5 +1,5 @@
 import { Zip, ZipDeflate, strToU8 } from 'fflate';
-import { StyleManager } from '../core/style-manager';
+import { StyleManager, normalizeColor } from '../core/style-manager';
 import {
   generateRowXml,
   generateContentTypesXml,
@@ -45,6 +45,11 @@ export async function* createExcelWorkbookStream(
 ): AsyncGenerator<Uint8Array, void, unknown> {
   const sheetNames = sheets.map((sheet, index) => sheet.name || `Sheet${index + 1}`);
   validateSheetNames(sheetNames);
+  sheets.forEach(sheet =>
+    Object.values(sheet.styles ?? {}).forEach(({ color, background }) =>
+      [color, background].forEach(value => value && normalizeColor(value))
+    )
+  );
   const sheetLinks = sheets.map(sheet => prepareHyperlinks(sheet.hyperlinks));
   const definedNames = filterDatabaseNames(
     sheetNames,

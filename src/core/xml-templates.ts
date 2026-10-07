@@ -501,7 +501,7 @@ export const generateWorkbookXml = (
       const sheetId = index + 1;
       const rId = `rId${sheetId}`;
       const state = sheetStates[index] ?? 'visible';
-      const stateAttribute = state === 'visible' ? '' : ` state="${state}"`;
+      const stateAttribute = state === 'visible' ? '' : ` state="${escapeXmlAttr(state)}"`;
       return `    <sheet name="${escapeXmlAttr(name)}" sheetId="${sheetId}"${stateAttribute} r:id="${rId}"/>`;
     })
     .join('\n');

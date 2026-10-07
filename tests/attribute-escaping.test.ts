@@ -57,12 +57,23 @@ describe('Attribute escaping', () => {
           } as never,
         },
       },
+      { data: [['y']], options: { name: 'Second', state: hostile as never } },
     ]);
     const files = unzipSync(buffer);
 
     for (const path of ['xl/workbook.xml', 'xl/worksheets/sheet1.xml', 'xl/styles.xml']) {
       expect(XMLValidator.validate(strFromU8(files[path])), path).toBe(true);
     }
+  });
+
+  it('escapes markup in the sheet state', () => {
+    const buffer = new ExcelWriter().createWorkbookBuffer([
+      { data: [['x']] },
+      { data: [['y']], options: { name: 'Second', state: hostile as never } },
+    ]);
+    expect(strFromU8(unzipSync(buffer)['xl/workbook.xml'])).toContain(
+      'state="A1&quot;/&gt;&lt;x a=&quot;&amp;"'
+    );
   });
 
   it('rejects markup in a colour or a sheet name instead of escaping it', () => {

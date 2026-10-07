@@ -41,9 +41,8 @@ const placeRows = (rows: ParsedCell[][]): CellValue[][] => {
   let next = 0;
 
   for (const row of rows) {
-    const declared = row.find(cell => cell !== undefined)?.rowIndex;
-    const index =
-      Number.isInteger(declared) && (declared as number) >= next ? (declared as number) : next;
+    const declared = row[0]?.rowIndex ?? -1;
+    const index = declared >= next ? declared : next;
     data[index] = row.map(cellToValue);
     next = index + 1;
   }
@@ -164,6 +163,15 @@ export class Workbook {
       conditionalFormats: [],
       hyperlinks: [],
     });
+  }
+
+  renameSheet(from: string, to: string): void {
+    const sheet = this.findSheet(from);
+    validateSheetName(to);
+    if (this.sheets.some(s => s !== sheet && s.name.toLowerCase() === to.toLowerCase())) {
+      throw new Error(`Sheet "${to}" already exists`);
+    }
+    sheet.name = to;
   }
 
   removeSheet(name: string): void {

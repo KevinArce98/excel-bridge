@@ -83,9 +83,9 @@ for (const row of workbook.sheets[0].data) {
 > Files from Excel and other libraries are read through their relationship ids, so the worksheets
 > resolve wherever the file keeps them. Date-formatted cells come back as `Date` objects, and
 > `sheet.data` lists the rows present in the file in order (use `cell.rowIndex` for the position).
-> Known gaps: the 1904 date system, error cells (`#DIV/0!`), shared-formula followers, ISO-8601 date
-> cells and XML written with namespace prefixes are not read correctly yet; see
-> [Known limitations](#known-limitations).
+> Error cells come back as `type: 'error'` with their text, for example `#DIV/0!`. Known gaps: the
+> 1904 date system, shared-formula followers, ISO-8601 date cells and XML written with namespace
+> prefixes are not read correctly yet; see [Known limitations](#known-limitations).
 
 ### Write a workbook
 
@@ -169,10 +169,10 @@ bundle:
 
 | Import from `excel-bridge` | min+gzip |
 | --- | ---: |
-| `createExcelWorkbookStream` | 11.8 KB |
+| `createExcelWorkbookStream` | 11.9 KB |
 | `ExcelWriter` | 12.5 KB |
 | `ExcelReader` | 28.2 KB |
-| `Workbook` (reader + writer) | 39.8 KB |
+| `Workbook` (reader + writer) | 39.9 KB |
 | `ExcelBridge` (convenience object) | 40.0 KB |
 | Everything | 42.5 KB |
 
@@ -293,7 +293,7 @@ Available on an instance: `getSheetNames`, `getSheetData`, `getCellValue`/`setCe
 `getCellStyle`/`setCellStyle`, `setMergeCells`, `setFreezePane`, `setColumnWidths`,
 `setAutoWidth`, `getSheetState`/`setSheetState`, `addValidation`, `addConditionalFormat`,
 `setAutoFilter`/`getAutoFilter`/`removeAutoFilter`, `setHyperlink`/`getHyperlinks`/`removeHyperlink`,
-`addSheet`/`removeSheet`, `getMetadata`/`setMetadata`, `toBuffer`/`toBlob`. In the browser, load
+`addSheet`/`renameSheet`/`removeSheet`, `getMetadata`/`setMetadata`, `toBuffer`/`toBlob`. In the browser, load
 with `await Workbook.fromFile(file)`.
 
 > **Round-trip note:** `Workbook.fromBuffer`/`fromFile` restore data at its row and column,
@@ -301,9 +301,16 @@ with `await Workbook.fromFile(file)`.
 > autofilter ranges, hyperlinks and sheet visibility**. Filter criteria and sort state set in
 > Excel aren't kept, links the writer doesn't accept (anything but `http:`, `https:`, `mailto:`
 > or a location in the workbook) are dropped on load, and validations of a type the writer
-> doesn't know are dropped; `ExcelReader` still returns the links. Not kept yet: date cells lose
-> their style and number format, and the 1904 date system, error cells and shared formulas are
-> read incorrectly.
+> doesn't know are dropped; `ExcelReader` still returns the links. Validation input and error
+> messages, the error style (stop, warning, information) and the "show message" switches are not
+> kept: every saved rule shows both messages and blocks bad entries. Error cells are saved as
+> text. Not kept yet: date cells lose their style and number format, and the 1904 date system and
+> shared formulas are read incorrectly.
+>
+> After loading a file with blank rows, `getSheetData(name)` has holes at those rows: `length` is
+> the last row plus one, `for...of` yields `undefined` for a hole and `JSON.stringify` writes
+> `null`. A loaded sheet whose name Excel would reject (for example more than 31 characters)
+> loads, but saving throws until you give it a valid name with `renameSheet`.
 
 ### Multi-sheet workbooks
 
@@ -344,9 +351,9 @@ import fs from 'node:fs';
 fs.writeFileSync('report.xlsx', buffer);
 ```
 
-Sheet names follow Excel's rules: 1 to 31 characters, none of `\ / ? * [ ] :`, no apostrophe at
-either end, and unique when case is ignored. The writers and `Workbook.addSheet` throw otherwise,
-and so does writing a workbook without sheets.
+Sheet names must be 1 to 31 characters, with none of `\ / ? * [ ] :` and no control characters, no
+apostrophe at either end, and unique when case is ignored. The writers, `Workbook.addSheet` and
+`Workbook.renameSheet` throw otherwise, and so does writing a workbook without sheets.
 
 ### Styling cells
 
@@ -382,7 +389,7 @@ const buffer = writer.createWorkbookBuffer([sheet]);
 ```
 
 Colours are hex: `#RGB`, `#RRGGBB` or `#AARRGGBB`, with or without the `#`. Anything else, such as
-`red`, throws instead of producing a file Excel repairs.
+`red`, throws instead of being written as an invalid value like `FFRREEDD`.
 
 ### Extended cell styles
 
@@ -436,7 +443,8 @@ const buffer = writer.createWorkbookBuffer([projectSheet]);
 ```
 
 Numbers must be finite. `NaN`, `Infinity` and invalid `Date` values throw an error that names the
-cell, such as `Cell B2 holds NaN, which a worksheet cannot store`.
+cell, such as `Cell B2 holds NaN, which a worksheet cannot store`, so a failed calculation does not
+end up as a bad cell in an export.
 
 ### Merged cells & layout
 
@@ -850,7 +858,7 @@ interface ColorScaleConditionalFormat {
 
 interface ParsedCell {
   value: any;
-  type: 'string' | 'number' | 'boolean' | 'date' | 'empty';
+  type: 'string' | 'number' | 'boolean' | 'date' | 'error' | 'empty';
   coordinate: string;
   rowIndex: number;
   columnIndex: number;
@@ -894,7 +902,7 @@ lower-level and their shape may change in a major release — most apps only nee
 - **Date cells cannot be styled** — a `Date` is always written with the built-in date format, and the reader returns no style for date-formatted cells.
 - **Dates are local wall-clock values** — `new Date(2024, 0, 15)` is written as 15 January whatever the time zone.
 - **One box border** — `border: true` draws the same border on all four sides; there are no per-side borders, row heights or hidden rows and columns.
-- **Not read correctly yet** — the 1904 date system, error cells (`#DIV/0!` is read as `NaN`), shared-formula followers, ISO-8601 date cells, character escapes such as `_x000D_`, split panes (read as freeze panes) and XML written with namespace prefixes.
+- **Not read correctly yet** — the 1904 date system, shared-formula followers, ISO-8601 date cells, character escapes such as `_x000D_`, split panes (read as freeze panes) and XML written with namespace prefixes.
 - **AutoFilter ranges only** — filter criteria and sort state aren't written or read.
 - **Hyperlink schemes** — the writer accepts `http:`, `https:`, `mailto:` and locations inside the workbook.
 - **Reader limits** — the reader rejects cell and row references outside Excel's grid (`XFD1048576`), clamps `<col>` ranges to 16,384 columns and throws when a workbook needs more than 5,000,000 empty cells of padding to keep rows rectangular. It still holds the whole file in memory, so cap the upload size before parsing untrusted files.

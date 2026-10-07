@@ -3,6 +3,7 @@ import { extractParts, validateExcelStructure } from '../core/zip-manager';
 import {
   EXCEL_LIMITS,
   excelSerialToDate,
+  isDate,
   isDateNumFmtId,
   validateColIndex,
   validateRowIndex,
@@ -22,7 +23,7 @@ import type {
 
 export interface ParsedCell {
   value: any;
-  type: 'string' | 'number' | 'boolean' | 'date' | 'empty';
+  type: 'string' | 'number' | 'boolean' | 'date' | 'error' | 'empty';
   coordinate: string;
   rowIndex: number;
   columnIndex: number;
@@ -291,7 +292,7 @@ export class ExcelReader {
 
   private extractStringItem(item: any): string {
     if (item == null) return '';
-    if (typeof item === 'string' || typeof item === 'number') return String(item);
+    if (typeof item === 'string') return item;
 
     if (item.t !== undefined) {
       return this.extractText(item.t);
@@ -374,7 +375,7 @@ export class ExcelReader {
             ? {
                 horizontal: alignment.horizontal,
                 vertical: alignment.vertical === 'center' ? 'middle' : alignment.vertical,
-                wrapText: alignment.wrapText === 1 || alignment.wrapText === '1',
+                wrapText: alignment.wrapText === '1' || alignment.wrapText === 'true',
               }
             : undefined,
         };
@@ -665,7 +666,6 @@ export class ExcelReader {
 
   private parseCfValue(raw: any): number | string {
     const value = raw && typeof raw === 'object' && raw['#text'] !== undefined ? raw['#text'] : raw;
-    if (typeof value === 'number') return value;
     const text = String(value ?? '');
     if (text.startsWith('"') && text.endsWith('"')) return text.slice(1, -1);
     const num = Number(text);
@@ -727,7 +727,7 @@ export class ExcelReader {
       const raw = cell.v;
 
       if (cell.t === 'b') {
-        value = raw === '1' || raw === 1 || raw === true;
+        value = raw === '1';
         type = 'boolean';
       } else if (cell.t === 's') {
         value = sharedStrings[parseInt(raw, 10)] ?? '';
@@ -735,10 +735,20 @@ export class ExcelReader {
       } else if (cell.t === 'str') {
         value = String(raw);
         type = 'string';
+      } else if (cell.t === 'e') {
+        value = String(raw);
+        type = 'error';
       } else {
-        const num = typeof raw === 'number' ? raw : parseFloat(raw);
-        if (styleIndex !== undefined && styleSheet.dateStyles.has(styleIndex) && !isNaN(num)) {
-          value = excelSerialToDate(num);
+        const num = parseFloat(raw);
+        const date =
+          styleIndex !== undefined && styleSheet.dateStyles.has(styleIndex) && Number.isFinite(num)
+            ? excelSerialToDate(num)
+            : undefined;
+        if (!Number.isFinite(num)) {
+          value = '#NUM!';
+          type = 'error';
+        } else if (date && isDate(date)) {
+          value = date;
           type = 'date';
         } else {
           value = num;

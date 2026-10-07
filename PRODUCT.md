@@ -49,7 +49,7 @@ Constraints:
 - The streaming writer does not support `autoWidth`, `validations`, `conditionalFormats`, `sharedStrings` or sheet `state`.
 - Strings starting with `=` are always written as formulas; date cells cannot be styled; there are no per-side borders, row heights or hidden rows/columns.
 - `Workbook` rebuilds the file from its model: images, charts, comments, tables, defined names, print setup, themes and macros of a loaded file are dropped.
-- The reader holds the whole file in memory, rejects out-of-grid references and caps empty padding cells at 5,000,000; it is not hardened for untrusted files beyond that. Known read gaps: 1904 dates, error cells, shared-formula followers, ISO date cells, prefixed namespaces, split panes.
+- The reader holds the whole file in memory, rejects out-of-grid references and caps empty padding cells at 5,000,000; it is not hardened for untrusted files beyond that. Known read gaps: 1904 dates, shared-formula followers, ISO date cells, prefixed namespaces, split panes.
 
 ## Brand Commitments
 

@@ -34,9 +34,20 @@ describe('sheet names', () => {
     expect(() => write(named(`bad${character}name`))).toThrow(/Invalid sheet name/);
   });
 
-  it.each(["'quoted", "quoted'"])('rejects the name %s', name => {
-    expect(() => write(named(name))).toThrow(/no apostrophe at either end/);
+  it.each(['\\', '/', '?', '*', '[', ']', ':'])('rejects %s in any position', character => {
+    for (const name of [character, `${character}x`, `x${character}`, `x${character}x`]) {
+      expect(() => write(named(name))).toThrow(/Invalid sheet name/);
+    }
   });
+
+  it.each(['\n', '\t', '\r', '\x00', '\x01', '\x1f'])(
+    'rejects the control character %j in any position',
+    character => {
+      for (const name of [character, `${character}b`, `a${character}`, `a${character}b`]) {
+        expect(() => write(named(name))).toThrow(/Invalid sheet name/);
+      }
+    }
+  );
 
   it('rejects two sheets with the same name, whatever the case', () => {
     expect(() => write(named('Same'), named('Same'))).toThrow(/used twice/);
@@ -45,6 +56,17 @@ describe('sheet names', () => {
 
   it('rejects a name that collides with the default name of another sheet', () => {
     expect(() => write(named('Sheet2'), { data: [['b']] })).toThrow(/"Sheet2" is used twice/);
+  });
+
+  it('writes no chunk of a streamed workbook with an invalid sheet name', async () => {
+    let chunks = 0;
+    const consume = async () => {
+      for await (const chunk of createExcelWorkbookStream([{ name: 'a:b', rows: [['x']] }])) {
+        chunks += chunk.length > 0 ? 1 : 0;
+      }
+    };
+    await expect(consume()).rejects.toThrow(/Invalid sheet name/);
+    expect(chunks).toBe(0);
   });
 
   it('rejects a workbook without sheets', () => {
@@ -81,13 +103,27 @@ describe('colours', () => {
     expect(() => write(colorOf(color))).not.toThrow();
   });
 
-  it.each(['red', '#GGGGGG', '#12345', '#FF00000000', 'rgb(255,0,0)'])('rejects %j', color => {
+  it.each([
+    'red',
+    '#GGGGGG',
+    '#12345',
+    '#FF00000000',
+    'rgb(255,0,0)',
+    '#ABCD',
+    '#1234567',
+    '#F',
+    '#FF',
+    '#',
+    'F#F0000',
+    '##FF0000',
+  ])('rejects %j', color => {
     expect(() => write(colorOf(color))).toThrow(/Invalid colour/);
   });
 
   it('checks the colours of conditional formats and colour scales', () => {
     const rules: ConditionalFormat[] = [
       { type: 'expression', range: 'A1', formula: 'TRUE', style: { background: 'red' } },
+      { type: 'cellValue', range: 'A1', operator: 'equal', value: 1, style: { color: 'red' } },
       { type: 'colorScale', range: 'A1', colors: ['#FF0000', 'blue'] },
     ];
     for (const rule of rules) {
@@ -95,10 +131,16 @@ describe('colours', () => {
     }
   });
 
-  it('checks the colours of a streamed sheet', async () => {
-    await expect(streamOf({ rows: [['a']], styles: { '0-0': { color: 'red' } } })).rejects.toThrow(
-      /Invalid colour/
-    );
+  it('checks the colours of a streamed sheet before pulling the first row', async () => {
+    let pulled = 0;
+    function* rows() {
+      pulled++;
+      yield ['a'];
+    }
+    await expect(
+      streamOf({ rows: rows(), styles: { '0-0': { color: 'red' }, '0-1': { background: 'blue' } } })
+    ).rejects.toThrow(/Invalid colour/);
+    expect(pulled).toBe(0);
   });
 });
 
@@ -152,6 +194,10 @@ describe('column widths', () => {
   it('measures a sheet written with autoWidth past the old call stack limit', () => {
     const bytes = write({ data: tall(150_000), options: { autoWidth: true } });
     expect(readFirstSheet(bytes).columnWidths).toEqual([8]);
+  });
+
+  it('caps a width at 50', () => {
+    expect(calculateColumnWidths([['x'.repeat(100)]])).toEqual([50]);
   });
 
   it('measures ragged rows, empty data and rows with holes', () => {

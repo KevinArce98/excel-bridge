@@ -78,14 +78,6 @@ describe('cell values from other tools', () => {
   });
 
   knownDefect(
-    'an error cell is read as NaN (expected: a value that is not NaN) (R5)',
-    () => {
-      expect(Number.isNaN(cellAt(sheet, 'A1')?.value)).toBe(false);
-    },
-    { message: /expected true to be false/ }
-  );
-
-  knownDefect(
     'the escape _x000D_ stays in the text (expected: a carriage return) (R6)',
     () => {
       expect(cellAt(sheet, 'C1')?.value).toBe('a\rb');

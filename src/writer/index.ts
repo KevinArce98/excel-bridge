@@ -119,7 +119,7 @@ export class ExcelWriter {
     validateSheetNames(sheetNames);
     const sheetStates = data.map(sheet => sheet.options?.state ?? 'visible');
 
-    if (data.length > 0 && !sheetStates.includes('visible')) {
+    if (!sheetStates.includes('visible')) {
       throw new Error('At least one sheet must be visible');
     }
 

@@ -9,6 +9,7 @@ export const DATE_STYLES = `<?xml version="1.0"?><styleSheet xmlns="${SPREADSHEE
 export interface BuildOptions {
   workbookProperties?: string;
   styles?: string;
+  sheetName?: string;
 }
 
 export const buildXlsx = (
@@ -22,7 +23,7 @@ export const buildXlsx = (
     ),
     '_rels/.rels': strToU8(`<?xml version="1.0"?><Relationships xmlns="${REL_NS}"/>`),
     'xl/workbook.xml': strToU8(
-      `<?xml version="1.0"?><workbook xmlns="${SPREADSHEET_NS}" xmlns:r="${OFFICE_REL_NS}">${options.workbookProperties ?? ''}<sheets><sheet name="S" sheetId="1" r:id="rId1"/></sheets></workbook>`
+      `<?xml version="1.0"?><workbook xmlns="${SPREADSHEET_NS}" xmlns:r="${OFFICE_REL_NS}">${options.workbookProperties ?? ''}<sheets><sheet name="${options.sheetName ?? 'S'}" sheetId="1" r:id="rId1"/></sheets></workbook>`
     ),
     'xl/_rels/workbook.xml.rels': strToU8(
       `<?xml version="1.0"?><Relationships xmlns="${REL_NS}"><Relationship Id="rId1" Type="worksheet" Target="worksheets/sheet1.xml"/></Relationships>`
