@@ -181,7 +181,7 @@ The same measurement for other libraries:
 Tree-shaking relies on the ESM build, which bundlers pick for `import`; `require('excel-bridge')`
 loads the whole CommonJS build.
 
-<sub>excel-bridge rows measured 2026-10-07 on 1.4.1, the other libraries on 2026-09-24. Each row bundles a one-line
+<sub>excel-bridge rows measured 2026-10-07 from this repository's build with the dependency versions in `pnpm-lock.yaml` (a fresh install resolving newer `fast-xml-parser` patch releases can add about 50 bytes), the other libraries on 2026-09-24. Each row bundles a one-line
 `export { … } from '<package>'` entry with esbuild 0.27.3
 (`--bundle --minify --platform=browser --format=esm`), then gzips it with Node's zlib at the default
 level; 1 KB = 1,000 bytes. The hucre figures are rounded from a separate run with the `gzip` CLI;

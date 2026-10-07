@@ -8,7 +8,7 @@ on:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -28,6 +28,8 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
+        with:
+          standalone: true
 
       - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
@@ -50,12 +52,32 @@ jobs:
       - name: Test
         run: pnpm run test:run
 
+  package:
+    name: package (metadata and bundle size)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm run build
+
       - name: Check package metadata
-        if: matrix.node-version == '22.x'
         run: pnpm run check:package
 
       - name: Check bundle size against the README
-        if: matrix.node-version == '22.x'
         run: pnpm run size:check
 
   smoke:
@@ -76,9 +98,13 @@ jobs:
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.x
 
       - name: Setup Deno
         uses: denoland/setup-deno@v2
+        with:
+          deno-version: 2.x
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile

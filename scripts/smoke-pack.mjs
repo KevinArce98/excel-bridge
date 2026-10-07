@@ -5,7 +5,13 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+const KNOWN_RUNTIMES = ['node', 'bun', 'deno'];
 const required = new Set((process.env.SMOKE_REQUIRE_RUNTIMES ?? '').split(',').filter(Boolean));
+const unknown = [...required].filter(name => !KNOWN_RUNTIMES.includes(name));
+if (unknown.length) {
+  console.error(`Unknown runtime in SMOKE_REQUIRE_RUNTIMES: ${unknown.join(', ')}`);
+  process.exit(1);
+}
 
 if (!existsSync(join(root, 'dist', 'index.mjs'))) {
   console.error('dist/ not found. Build first:\n  pnpm run build');
@@ -43,8 +49,8 @@ console.log('ok');
 
 const names = 'ExcelWriter, ExcelReader, Workbook, createExcelWorkbookStream, streamToBuffer';
 const files = {
-  'smoke.mjs': `import { ${names} } from 'excel-bridge';\n${body}`,
-  'smoke.cjs': `const { ${names} } = require('excel-bridge');\n(async () => {\n${body}\n})().catch(error => {\n  console.error(error);\n  process.exit(1);\n});\n`,
+  'smoke.mjs': `import { ${names} } from 'excel-bridge';\nconst entry = import.meta.resolve('excel-bridge');\nif (!entry.endsWith('/dist/index.mjs')) throw new Error('ESM resolved to ' + entry);\n${body}`,
+  'smoke.cjs': `const { ${names} } = require('excel-bridge');\n(async () => {\nconst entry = require.resolve('excel-bridge');\nif (!entry.endsWith('/dist/index.js')) throw new Error('CJS resolved to ' + entry);\n${body}\n})().catch(error => {\n  console.error(error);\n  process.exit(1);\n});\n`,
 };
 
 const runtimes = [
@@ -76,7 +82,7 @@ try {
   for (const [name, content] of Object.entries(files)) writeFileSync(join(appDir, name), content);
 
   for (const { name, command, args, runtime } of runtimes) {
-    const result = spawnSync(command, args, { cwd: appDir, encoding: 'utf8' });
+    const result = spawnSync(command, args, { cwd: appDir, encoding: 'utf8', timeout: 60_000 });
 
     if (result.error?.code === 'ENOENT') {
       if (required.has(runtime)) failures.push(`${name}: ${command} is required but not installed`);

@@ -56,8 +56,8 @@ jobs:
       - name: Check package metadata
         run: pnpm run check:package
 
-      - name: Check bundle size against the README
-        run: pnpm run size:check
+      - name: Smoke test the packed tarball
+        run: pnpm run smoke:pack
 
       - name: Release
         run: pnpm exec semantic-release
