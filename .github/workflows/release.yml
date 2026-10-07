@@ -53,6 +53,12 @@ jobs:
       - name: Build
         run: pnpm run build
 
+      - name: Check package metadata
+        run: pnpm run check:package
+
+      - name: Check bundle size against the README
+        run: pnpm run size:check
+
       - name: Release
         run: pnpm exec semantic-release
         env:

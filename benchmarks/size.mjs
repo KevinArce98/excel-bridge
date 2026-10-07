@@ -57,7 +57,53 @@ const measure = async contents => {
 
 const fmtKB = bytes => `${(bytes / 1000).toFixed(1)} KB`;
 
+const README_TOLERANCE_BYTES = 100;
+
+const readmeRowPattern = names =>
+  names === '*'
+    ? /^\| Everything \| ([\d.]+) KB \|$/m
+    : new RegExp(`^\\| \`${names}\`[^|]*\\| ([\\d.]+) KB \\|$`, 'm');
+
+const checkReadme = async () => {
+  const readme = readFileSync(join(root, 'README.md'), 'utf8');
+  const failures = [];
+
+  for (const [name, names] of CASES.filter(([name]) => name === SELF)) {
+    const { gzip } = await measure(entryFor(name, names));
+    const match = readmeRowPattern(names).exec(readme);
+    const label = names === '*' ? 'everything' : names;
+
+    if (!match) {
+      failures.push(`${label}: no row in the README bundle size table`);
+      continue;
+    }
+
+    const documented = Number(match[1]) * 1000;
+    const drift = gzip - documented;
+    const status = Math.abs(drift) <= README_TOLERANCE_BYTES ? 'ok' : 'FAIL';
+    console.log(
+      `${status.padEnd(4)} ${label.padEnd(28)} measured ${gzip} B, README ${match[1]} KB (${drift >= 0 ? '+' : ''}${Math.round(drift)} B)`
+    );
+    if (status === 'FAIL') {
+      failures.push(
+        `${label}: measured ${gzip} B but README says ${match[1]} KB (more than ${README_TOLERANCE_BYTES} B apart)`
+      );
+    }
+  }
+
+  if (failures.length) {
+    console.error(`\nBundle size no longer matches the README:\n  ${failures.join('\n  ')}`);
+    console.error('Update the README tables and prose, or fix the regression.');
+    process.exit(1);
+  }
+};
+
 const main = async () => {
+  if (process.argv.includes('--check')) {
+    await checkReadme();
+    return;
+  }
+
   console.log(
     `\nBundle size — esbuild ${esbuildVersion} (--bundle --minify --platform=browser --format=esm), gzip via Node ${process.version} zlib, 1 KB = 1,000 bytes\n`
   );

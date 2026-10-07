@@ -24,6 +24,8 @@
     "exceljs-alternative",
     "sheetjs-alternative"
   ],
+  "type": "commonjs",
+  "sideEffects": false,
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
@@ -41,13 +43,17 @@
     "format": "prettier --write src/**/*.ts",
     "format:check": "prettier --check src/**/*.ts",
     "bench": "pnpm run build && node benchmarks/bench.mjs",
-    "size": "pnpm run build && node benchmarks/size.mjs"
+    "size": "pnpm run build && node benchmarks/size.mjs",
+    "size:check": "node benchmarks/size.mjs --check",
+    "check:package": "publint --strict && attw --pack .",
+    "smoke:pack": "node scripts/smoke-pack.mjs"
   },
   "dependencies": {
     "fast-xml-parser": "^5.11.1",
     "fflate": "^0.8.3"
   },
   "devDependencies": {
+    "@arethetypeswrong/cli": "^0.18.5",
     "@eslint/js": "^10.0.1",
     "@semantic-release/changelog": "^7.0.0",
     "@semantic-release/commit-analyzer": "^13.0.1",
@@ -63,6 +69,7 @@
     "eslint-plugin-prettier": "^5.5.6",
     "globals": "^17.11.0",
     "prettier": "^3.9.6",
+    "publint": "^0.3.25",
     "semantic-release": "^25.0.9",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",
@@ -70,10 +77,16 @@
   },
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
-    }
+      "import": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
+    },
+    "./package.json": "./package.json"
   },
   "directories": {
     "test": "tests"

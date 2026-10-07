@@ -77,18 +77,27 @@ pnpm run size
 
 The script prints a Markdown table, ready to paste into the main README.
 
+To check the main README against the build without printing the table:
+
+```bash
+pnpm run build && pnpm run size:check
+```
+
+It measures only the excel-bridge entries and exits with an error when one differs by more than 100
+bytes from the figure in the README bundle size table. CI runs it on every push and pull request.
+
 ### Reference results
 
-Measured 2026-09-24 with esbuild 0.27.3 and Node 22; 1 KB = 1,000 bytes.
+excel-bridge rows measured 2026-10-07 on 1.4.1, the other rows on 2026-09-24, with esbuild 0.27.3 and Node 22; 1 KB = 1,000 bytes.
 
 | Package | Import | Min | Min+gzip |
 | --- | --- | ---: | ---: |
-| excel-bridge@1.4.0 (dist) | `{ createExcelWorkbookStream }` | 30.1 KB | 11.4 KB |
-| excel-bridge@1.4.0 (dist) | `{ ExcelWriter }` | 31.8 KB | 12.0 KB |
-| excel-bridge@1.4.0 (dist) | `{ ExcelReader }` | 79.1 KB | 27.6 KB |
-| excel-bridge@1.4.0 (dist) | `{ Workbook }` | 112.6 KB | 38.9 KB |
-| excel-bridge@1.4.0 (dist) | `{ ExcelBridge }` | 113.0 KB | 39.0 KB |
-| excel-bridge@1.4.0 (dist) | `* (everything)` | 120.2 KB | 41.5 KB |
+| excel-bridge@1.4.1 (dist) | `{ createExcelWorkbookStream }` | 30.1 KB | 11.4 KB |
+| excel-bridge@1.4.1 (dist) | `{ ExcelWriter }` | 31.8 KB | 12.0 KB |
+| excel-bridge@1.4.1 (dist) | `{ ExcelReader }` | 80.2 KB | 28.1 KB |
+| excel-bridge@1.4.1 (dist) | `{ Workbook }` | 113.4 KB | 39.2 KB |
+| excel-bridge@1.4.1 (dist) | `{ ExcelBridge }` | 113.8 KB | 39.3 KB |
+| excel-bridge@1.4.1 (dist) | `* (everything)` | 120.9 KB | 41.8 KB |
 | hucre@1.1.0 | `{ writeXlsx }` | | ~40 KB |
 | hucre@1.1.0 | `{ readXlsx }` | | ~40 KB |
 | xlsx@0.18.5 | `{ utils, write }` | 287.4 KB | 95.8 KB |

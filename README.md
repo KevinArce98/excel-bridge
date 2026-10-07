@@ -11,7 +11,7 @@
 [![Live demo](https://img.shields.io/badge/demo-live-22c55e?labelColor=1e293b)](https://kevinarce98.github.io/excel-bridge/)
 [![npm version](https://img.shields.io/npm/v/excel-bridge?logo=npm&label=npm&color=22c55e)](https://www.npmjs.com/package/excel-bridge)
 [![downloads](https://img.shields.io/npm/dm/excel-bridge?label=downloads&color=22c55e)](https://www.npmjs.com/package/excel-bridge)
-[![min+gzip](https://img.shields.io/bundlephobia/minzip/excel-bridge?label=min%2Bgzip&color=22c55e)](https://bundlephobia.com/package/excel-bridge)
+[![ExcelWriter size](https://img.shields.io/badge/ExcelWriter-12.0%20KB%20min%2Bgzip-22c55e?labelColor=1e293b)](#bundle-size)
 [![provenance](https://img.shields.io/badge/provenance-signed-22c55e?logo=npm)](https://www.npmjs.com/package/excel-bridge)
 [![CI](https://img.shields.io/github/actions/workflow/status/KevinArce98/excel-bridge/ci.yml?branch=main&label=CI&logo=github)](https://github.com/KevinArce98/excel-bridge/actions)
 [![types](https://img.shields.io/npm/types/excel-bridge?color=22c55e)](https://www.npmjs.com/package/excel-bridge)
@@ -127,7 +127,7 @@ It also offers `ExcelBridge.readFromFile(file)` for browser `File`s and `ExcelBr
 for Node.js ([all entry points](#entry-points)).
 
 > Bundlers keep an object whole, so even a lone `ExcelBridge.write` call ships the reader too:
-> 39.0 KB min+gzip, against 12.0 KB for `ExcelWriter`. In browser code, prefer the named imports.
+> 39.3 KB min+gzip, against 12.0 KB for `ExcelWriter`. In browser code, prefer the named imports.
 
 ## Why excel-bridge?
 
@@ -165,10 +165,10 @@ bundle:
 | --- | ---: |
 | `createExcelWorkbookStream` | 11.4 KB |
 | `ExcelWriter` | 12.0 KB |
-| `ExcelReader` | 27.6 KB |
-| `Workbook` (reader + writer) | 38.9 KB |
-| `ExcelBridge` (convenience object) | 39.0 KB |
-| Everything | 41.5 KB |
+| `ExcelReader` | 28.1 KB |
+| `Workbook` (reader + writer) | 39.2 KB |
+| `ExcelBridge` (convenience object) | 39.3 KB |
+| Everything | 41.8 KB |
 
 The same measurement for other libraries:
 
@@ -181,13 +181,13 @@ The same measurement for other libraries:
 Tree-shaking relies on the ESM build, which bundlers pick for `import`; `require('excel-bridge')`
 loads the whole CommonJS build.
 
-<sub>Measured 2026-09-24 on excel-bridge 1.4.0. Each row bundles a one-line
+<sub>excel-bridge rows measured 2026-10-07 on 1.4.1, the other libraries on 2026-09-24. Each row bundles a one-line
 `export { … } from '<package>'` entry with esbuild 0.27.3
 (`--bundle --minify --platform=browser --format=esm`), then gzips it with Node's zlib at the default
 level; 1 KB = 1,000 bytes. The hucre figures are rounded from a separate run with the `gzip` CLI;
 gzip implementations differ by about 1% (macOS `gzip` comes out slightly smaller). Newer SheetJS
 Community Edition builds ship from the SheetJS CDN and weren't measured. Regenerate the table with
-[`pnpm run size`](./benchmarks/README.md#bundle-size).</sub>
+[`pnpm run size`](./benchmarks/README.md#bundle-size); CI runs `pnpm run size:check`, which fails when an excel-bridge row drifts more than 100 bytes from the measured size.</sub>
 
 ### Performance
 
