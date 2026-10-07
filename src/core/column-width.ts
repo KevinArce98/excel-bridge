@@ -1,8 +1,11 @@
+import { rowIndexes } from './rows';
+
 export function calculateColumnWidths(data: any[][]): number[] {
   const widths: number[] = [];
   let maxCols = 0;
 
-  data.forEach(row => {
+  rowIndexes(data).forEach(index => {
+    const row = data[index];
     maxCols = Math.max(maxCols, row.length);
     row.forEach((cell, colIndex) => {
       const cellText = cell?.toString() || '';

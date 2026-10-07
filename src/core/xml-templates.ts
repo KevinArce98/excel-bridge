@@ -8,6 +8,7 @@ import {
   validateCellValue,
 } from './date-utils';
 import { calculateColumnWidths, generateColsXml } from './column-width';
+import { rowIndexes } from './rows';
 import { indexToColumnLetter, parseRange, formatRange, quoteSheetName } from './cell-ref';
 import { PreparedHyperlink, prepareHyperlinks, withHyperlinkStyles } from './hyperlinks';
 import {
@@ -280,8 +281,14 @@ export const generatePreparedSheetXml = (
 
   let rowsXml = '';
 
-  data.forEach((row, rowIndex) => {
-    rowsXml += generateRowXml(row, rowIndex, sheetStyles, styleManager, options.sharedStrings);
+  rowIndexes(data).forEach(rowIndex => {
+    rowsXml += generateRowXml(
+      data[rowIndex],
+      rowIndex,
+      sheetStyles,
+      styleManager,
+      options.sharedStrings
+    );
   });
 
   const colsXml = options.columnWidths

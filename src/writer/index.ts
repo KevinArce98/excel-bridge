@@ -17,6 +17,7 @@ import {
 import { StyleManager } from '../core/style-manager';
 import { isDate } from '../core/date-utils';
 import { validateSheetNames } from '../core/sheet-name';
+import { rowIndexes } from '../core/rows';
 import { prepareHyperlinks, withHyperlinkStyles } from '../core/hyperlinks';
 import {
   AutoFilter,
@@ -108,7 +109,7 @@ export class ExcelWriter {
     });
 
     const containsDates = data.some(sheetData =>
-      sheetData.data.some(row => row.some(cell => isDate(cell)))
+      rowIndexes(sheetData.data).some(index => sheetData.data[index].some(cell => isDate(cell)))
     );
 
     if (containsDates) {
@@ -200,8 +201,8 @@ export class ExcelWriter {
     const list: string[] = [];
 
     data.forEach(sheetData => {
-      sheetData.data.forEach(row => {
-        row.forEach(cell => {
+      rowIndexes(sheetData.data).forEach(index => {
+        sheetData.data[index].forEach(cell => {
           if (typeof cell === 'string' && !cell.startsWith('=') && !map.has(cell)) {
             map.set(cell, list.length);
             list.push(cell);
