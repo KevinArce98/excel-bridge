@@ -796,13 +796,13 @@
               <tr><th scope="col">Library</th><th scope="col" class="n">Write time</th><th scope="col" class="barh"><span class="sr-only">Relative write time</span></th><th scope="col" class="n">Output</th><th scope="col" class="n">vs excel-bridge</th></tr>
             </thead>
             <tbody>
-              <tr class="us"><th scope="row">excel-bridge</th><td class="n">625 ms</td><td class="barcell"><span class="t-bar" style="--w: 43%"></span></td><td class="n">2.41 MB</td><td class="n">1×</td></tr>
-              <tr><th scope="row">exceljs</th><td class="n">1459 ms</td><td class="barcell"><span class="t-bar" style="--w: 100%"></span></td><td class="n">2.82 MB</td><td class="n">2.3×</td></tr>
-              <tr><th scope="row">xlsx / SheetJS</th><td class="n">519 ms</td><td class="barcell"><span class="t-bar" style="--w: 36%"></span></td><td class="n">18.23 MB</td><td class="n">0.8×</td></tr>
+              <tr class="us"><th scope="row">excel-bridge</th><td class="n">560 ms</td><td class="barcell"><span class="t-bar" style="--w: 38%"></span></td><td class="n">2.41 MiB</td><td class="n">1×</td></tr>
+              <tr><th scope="row">exceljs</th><td class="n">1490 ms</td><td class="barcell"><span class="t-bar" style="--w: 100%"></span></td><td class="n">2.82 MiB</td><td class="n">2.7×</td></tr>
+              <tr><th scope="row">xlsx / SheetJS</th><td class="n">510 ms</td><td class="barcell"><span class="t-bar" style="--w: 34%"></span></td><td class="n">18.23 MiB</td><td class="n">0.9×</td></tr>
             </tbody>
           </table>
         </div>
-        <p class="perf-cap">Writing 50,000 rows × 10 columns, median of 5 runs (Node 22, Apple Silicon). Numbers vary by machine; reproduce them with <code>pnpm run bench</code>. SheetJS is fast to write but its default output is far larger.</p>
+        <p class="perf-cap">Writing 50,000 rows × 10 columns, median of 5 runs (Node 24.19, Apple M4). Numbers vary by machine; reproduce them with <code>pnpm run bench</code>. SheetJS is fast to write but its default output is far larger.</p>
       </div>
     </div>
   </section>
