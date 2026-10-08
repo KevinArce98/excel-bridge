@@ -1,3 +1,24 @@
+# [1.5.0](https://github.com/KevinArce98/excel-bridge/compare/v1.4.0...v1.5.0) (2026-10-08)
+
+
+### Bug Fixes
+
+* **ci:** keep the release gate working with npm 12 ([9b257c7](https://github.com/KevinArce98/excel-bridge/commit/9b257c770d5686057483780c3b2fa5c8c8a7905f))
+* **package:** resolve ESM types correctly and check the package in CI ([d789fef](https://github.com/KevinArce98/excel-bridge/commit/d789fefe9149ff853524c90b91f5f457340dd36f))
+* **reader:** bound grid references, column ranges and zip inflation ([7f7d866](https://github.com/KevinArce98/excel-bridge/commit/7f7d8668150eb5a978759853275955c28488939f))
+* **workbook:** keep rows, validations, number formats and sheet visibility on save ([2675051](https://github.com/KevinArce98/excel-bridge/commit/26750510a9577e8e15ec21a6a792140f0b9c216c))
+* **writer:** reject input that produces files other tools cannot open ([69e7ed5](https://github.com/KevinArce98/excel-bridge/commit/69e7ed57e20c1dd1b86127632caf1b1446760cef))
+
+
+### Features
+
+* **workbook:** rename sheets and read error cells, and fix review findings ([8a5941d](https://github.com/KevinArce98/excel-bridge/commit/8a5941d08cb1edd756494831a4b3444704c7349a))
+
+
+### Performance Improvements
+
+* **writer:** visit only the populated rows of sparse sheets ([ec5e60e](https://github.com/KevinArce98/excel-bridge/commit/ec5e60e1c09b07e791f0f17c9af73b654e7c3a31))
+
 # [1.4.0](https://github.com/KevinArce98/excel-bridge/compare/v1.3.0...v1.4.0) (2026-09-25)
 
 
