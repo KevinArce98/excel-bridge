@@ -28,3 +28,6 @@ export const CELL_TYPES = {
   BOOLEAN: 'b',
   ERROR: 'e',
 } as const;
+
+export const XLSX_CONTENT_TYPE =
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';

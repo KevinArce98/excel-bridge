@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { strToU8, unzipSync, zipSync } from 'fflate';
 import { ExcelBridge, ExcelReader } from '../src';
-import { MAX_PLACEHOLDER_CELLS } from '../src/reader';
+import { DEFAULT_READER_LIMITS } from '../src/reader';
 import { REL_NS, SPREADSHEET_NS, buildXlsx } from './helpers/xlsx';
 
 const corruptEntry = (zip: Uint8Array, entryName: string): Uint8Array => {
@@ -83,9 +83,9 @@ describe('reader placeholder budget', () => {
   };
 
   it('rejects sheets that pad more empty cells than the budget', () => {
-    const rows = Math.ceil(MAX_PLACEHOLDER_CELLS / 16383) + 1;
+    const rows = Math.ceil(DEFAULT_READER_LIMITS.maxCells / 16383) + 1;
     const xlsx = buildXlsx(wideSparseRows(rows));
-    expect(() => ExcelBridge.read(xlsx)).toThrow(/Workbook pads more than \d+ empty cells/);
+    expect(() => ExcelBridge.read(xlsx)).toThrow(/Workbook has at least \d+ cells/);
   });
 
   it('accepts sheets under the budget', () => {

@@ -1,3 +1,4 @@
+import { invalidInput } from './errors';
 import { BORDER_SIDES, BORDER_STYLES } from './borders';
 import type { BorderLine, BorderSide, BorderSides } from './borders';
 import { isDateFormatCode } from './date-utils';
@@ -6,7 +7,7 @@ import { CellStyle, ConditionalFormatStyle } from './types';
 export function normalizeColor(color: string): string {
   const match = /^#?([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.exec(color);
   if (!match) {
-    throw new Error(`Invalid colour "${color}": use #RGB, #RRGGBB or #AARRGGBB`);
+    throw invalidInput(`Invalid colour "${color}": use #RGB, #RRGGBB or #AARRGGBB`);
   }
   let normalized = match[1];
 
@@ -139,7 +140,7 @@ const borderSideXml = (side: string, spec?: BorderSide): string => {
   if (!spec) return `<${side}/>`;
   const { style, color }: Partial<BorderLine> = typeof spec === 'string' ? { style: spec } : spec;
   if (!style || !BORDER_STYLES.includes(style)) {
-    throw new Error(
+    throw invalidInput(
       `Invalid border style "${style ?? JSON.stringify(spec)}": use ${BORDER_STYLES.join(', ')}`
     );
   }

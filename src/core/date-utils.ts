@@ -1,3 +1,4 @@
+import { invalidInput } from './errors';
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const EXCEL_EPOCH_UTC = Date.UTC(1899, 11, 30);
 
@@ -64,19 +65,19 @@ export const EXCEL_LIMITS = {
 
 export function validateRowIndex(row: number): void {
   if (row < 0 || row >= EXCEL_LIMITS.MAX_ROWS) {
-    throw new Error(`Row index ${row} exceeds Excel limit (0-${EXCEL_LIMITS.MAX_ROWS - 1})`);
+    throw invalidInput(`Row index ${row} exceeds Excel limit (0-${EXCEL_LIMITS.MAX_ROWS - 1})`);
   }
 }
 
 export function validateColIndex(col: number): void {
   if (col < 0 || col >= EXCEL_LIMITS.MAX_COLS) {
-    throw new Error(`Column index ${col} exceeds Excel limit (0-${EXCEL_LIMITS.MAX_COLS - 1})`);
+    throw invalidInput(`Column index ${col} exceeds Excel limit (0-${EXCEL_LIMITS.MAX_COLS - 1})`);
   }
 }
 
 export function validateCellValue(value: string): void {
   if (value.length > EXCEL_LIMITS.MAX_CELL_LENGTH) {
-    throw new Error(
+    throw invalidInput(
       `Cell value length ${value.length} exceeds Excel limit (${EXCEL_LIMITS.MAX_CELL_LENGTH})`
     );
   }

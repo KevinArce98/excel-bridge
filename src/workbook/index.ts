@@ -1,4 +1,6 @@
+import { invalidInput } from '../core/errors';
 import { ExcelReader, ParsedCell, ParsedWorkbook } from '../reader';
+import type { ExcelReaderOptions } from '../reader';
 import { ExcelWriter } from '../writer';
 import { parseRange, formatRange } from '../core/cell-ref';
 import { EXCEL_LIMITS } from '../core/date-utils';
@@ -137,13 +139,13 @@ export class Workbook {
     return new Workbook();
   }
 
-  static fromBuffer(buffer: Uint8Array): Workbook {
-    const reader = new ExcelReader();
+  static fromBuffer(buffer: Uint8Array, options?: ExcelReaderOptions): Workbook {
+    const reader = new ExcelReader(options);
     return Workbook.fromParsed(reader.parseFromBuffer(buffer));
   }
 
-  static async fromFile(file: File): Promise<Workbook> {
-    const reader = new ExcelReader();
+  static async fromFile(file: File, options?: ExcelReaderOptions): Promise<Workbook> {
+    const reader = new ExcelReader(options);
     return Workbook.fromParsed(await reader.parseFromFile(file));
   }
 
@@ -194,7 +196,7 @@ export class Workbook {
   private findSheet(name: string): WorkbookSheet {
     const sheet = this.sheets.find(s => s.name === name);
     if (!sheet) {
-      throw new Error(`Sheet "${name}" not found`);
+      throw invalidInput(`Sheet "${name}" not found`);
     }
     return sheet;
   }
@@ -202,7 +204,7 @@ export class Workbook {
   addSheet(name: string, data: CellValue[][] = []): void {
     validateSheetName(name);
     if (this.sheets.some(s => s.name.toLowerCase() === name.toLowerCase())) {
-      throw new Error(`Sheet "${name}" already exists`);
+      throw invalidInput(`Sheet "${name}" already exists`);
     }
     this.sheets.push({
       name,
@@ -222,7 +224,7 @@ export class Workbook {
     const sheet = this.findSheet(from);
     validateSheetName(to);
     if (this.sheets.some(s => s !== sheet && s.name.toLowerCase() === to.toLowerCase())) {
-      throw new Error(`Sheet "${to}" already exists`);
+      throw invalidInput(`Sheet "${to}" already exists`);
     }
     sheet.name = to;
   }
@@ -230,7 +232,7 @@ export class Workbook {
   removeSheet(name: string): void {
     const index = this.sheets.findIndex(s => s.name === name);
     if (index === -1) {
-      throw new Error(`Sheet "${name}" not found`);
+      throw invalidInput(`Sheet "${name}" not found`);
     }
     this.sheets.splice(index, 1);
   }

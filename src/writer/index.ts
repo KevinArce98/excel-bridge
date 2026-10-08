@@ -1,3 +1,4 @@
+import { invalidInput } from '../core/errors';
 import { createExcelBlob, createExcelBuffer, ExcelFiles } from '../core/zip-manager';
 import {
   generatePreparedSheetXml,
@@ -111,7 +112,7 @@ export class ExcelWriter {
     const sheetStates = data.map(sheet => sheet.options?.state ?? 'visible');
 
     if (!sheetStates.includes('visible')) {
-      throw new Error('At least one sheet must be visible');
+      throw invalidInput('At least one sheet must be visible');
     }
 
     data.forEach((sheetData, index) => {

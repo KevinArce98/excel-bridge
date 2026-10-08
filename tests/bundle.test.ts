@@ -46,4 +46,39 @@ describe('Tree-shaking', () => {
       inputs.filter(path => /src\/(writer\/|core\/(hyperlinks|cell-ref|xml-templates))/.test(path))
     ).toEqual([]);
   });
+
+  it.each(['ExcelWriter', 'createExcelWorkbookStream', 'ExcelReader', 'Workbook', 'hyperlink'])(
+    '%s leaves the object helpers and the delivery helpers out of the bundle',
+    async name => {
+      const inputs = await bundledInputs(name);
+
+      expect(inputs.filter(path => /src\/(objects|delivery)\//.test(path))).toEqual([]);
+    }
+  );
+
+  it('sheetToObjects needs neither the writer nor the XML parser', async () => {
+    const inputs = await bundledInputs('sheetToObjects');
+
+    expect(inputs.some(path => path.includes('src/objects/read'))).toBe(true);
+    expect(inputs.filter(path => /src\/(reader|writer)\/|fast-xml-parser|core\/xml-templates/.test(path))).toEqual([]);
+  });
+
+  it.each(['objectsToSheet', 'objectsToStreamingSheet', 'downloadXlsx', 'xlsxResponse', 'toReadableStream'])(
+    '%s leaves the reader out of the bundle',
+    async name => {
+      const inputs = await bundledInputs(name);
+
+      expect(inputs.length).toBeGreaterThan(0);
+      expect(inputs.filter(path => /src\/reader\/|fast-xml-parser/.test(path))).toEqual([]);
+    }
+  );
+
+  it.each(['downloadXlsx', 'xlsxResponse', 'toReadableStream'])(
+    '%s leaves the writer out of the bundle',
+    async name => {
+      const inputs = await bundledInputs(name);
+
+      expect(inputs.filter(path => /src\/(writer\/|core\/(xml-templates|style-manager|zip-manager))/.test(path))).toEqual([]);
+    }
+  );
 });

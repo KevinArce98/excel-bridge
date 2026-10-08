@@ -1,5 +1,8 @@
 import { XMLParser } from 'fast-xml-parser';
 import { extractParts, validateExcelStructure } from '../core/zip-manager';
+import type { PartBudget } from '../core/zip-manager';
+import { ExcelBridgeError, invalidInput, limitExceeded } from '../core/errors';
+import type { ReaderLimitName } from '../core/errors';
 import {
   EXCEL_LIMITS,
   excelSerialToDate,
@@ -131,7 +134,30 @@ const toArray = <T>(value: T | T[] | undefined): T[] => {
   return Array.isArray(value) ? value : [value];
 };
 
-export const MAX_PLACEHOLDER_CELLS = 5_000_000;
+export interface ExcelReaderOptions {
+  maxCells?: number;
+  maxPartBytes?: number;
+  maxTotalBytes?: number;
+  maxSheets?: number;
+}
+
+export const DEFAULT_READER_LIMITS: Required<ExcelReaderOptions> = {
+  maxCells: 5_000_000,
+  maxPartBytes: 268_435_456,
+  maxTotalBytes: 536_870_912,
+  maxSheets: Infinity,
+};
+
+const resolveLimits = (options: ExcelReaderOptions = {}): Required<ExcelReaderOptions> => {
+  const limits = { ...DEFAULT_READER_LIMITS };
+  (Object.keys(limits) as ReaderLimitName[]).forEach(name => {
+    const value = options[name];
+    if (value === undefined) return;
+    if (!(value > 0)) throw invalidInput(`${name} must be a number above 0, or Infinity`);
+    limits[name] = value;
+  });
+  return limits;
+};
 
 const isFlag = (value: unknown): boolean => value === '1' || value === 'true';
 
@@ -166,7 +192,8 @@ const relsPathFor = (partPath: string): string =>
 const loadSheetParts = (
   buffer: Uint8Array,
   files: Record<string, string>,
-  sheetPaths: Array<string | undefined>
+  sheetPaths: Array<string | undefined>,
+  budget: PartBudget
 ): void => {
   const wanted = new Set<string>();
   for (const path of sheetPaths) {
@@ -177,14 +204,16 @@ const loadSheetParts = (
   }
   Object.assign(
     files,
-    extractParts(buffer, path => wanted.has(path))
+    extractParts(buffer, path => wanted.has(path), budget)
   );
 };
 
 export class ExcelReader {
   private parser: XMLParser;
+  private limits: Required<ExcelReaderOptions>;
 
-  constructor() {
+  constructor(options?: ExcelReaderOptions) {
+    this.limits = resolveLimits(options);
     this.parser = new XMLParser({
       ignoreAttributes: false,
       attributeNamePrefix: '',
@@ -202,10 +231,11 @@ export class ExcelReader {
 
   parseFromBuffer(buffer: Uint8Array): ParsedWorkbook {
     try {
-      const files = extractParts(buffer, path => STRUCTURAL_PARTS.has(path));
+      const budget: PartBudget = { ...this.limits, total: 0 };
+      const files = extractParts(buffer, path => STRUCTURAL_PARTS.has(path), budget);
 
       if (!files['xl/workbook.xml']) {
-        throw new Error('Invalid Excel file structure');
+        throw new ExcelBridgeError('INVALID_FILE', 'Invalid Excel file structure');
       }
 
       const workbook = this.parser.parse(files['xl/workbook.xml']);
@@ -215,16 +245,23 @@ export class ExcelReader {
 
       const sheets: ParsedSheet[] = [];
       const sheetElements = toArray(workbook.workbook?.sheets?.sheet);
+      if (sheetElements.length > this.limits.maxSheets) {
+        throw limitExceeded(
+          'maxSheets',
+          this.limits.maxSheets,
+          `Workbook has ${sheetElements.length} sheets`
+        );
+      }
       const sheetPaths = sheetElements.map((sheetElement, index) =>
         this.resolveSheetPath(sheetElement, relMap, index)
       );
-      loadSheetParts(buffer, files, sheetPaths);
+      loadSheetParts(buffer, files, sheetPaths, budget);
 
       if (!validateExcelStructure(files)) {
-        throw new Error('Invalid Excel file structure');
+        throw new ExcelBridgeError('INVALID_FILE', 'Invalid Excel file structure');
       }
 
-      const cellBudget = { placeholders: 0 };
+      const cellBudget = { cells: 0 };
 
       sheetElements.forEach((sheetElement, index) => {
         const sheetName = sheetElement.name ?? `Sheet${index + 1}`;
@@ -252,8 +289,15 @@ export class ExcelReader {
         metadata: this.extractMetadata(files),
       };
     } catch (error) {
-      throw new Error(
-        `Failed to parse Excel file: ${error instanceof Error ? error.message : 'Unknown error'}`
+      throw new ExcelBridgeError(
+        error instanceof ExcelBridgeError && error.code === 'LIMIT_EXCEEDED'
+          ? 'LIMIT_EXCEEDED'
+          : 'INVALID_FILE',
+        `Failed to parse Excel file: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        {
+          cause: error,
+          limit: error instanceof ExcelBridgeError ? error.limit : undefined,
+        }
       );
     }
   }
@@ -496,7 +540,7 @@ export class ExcelReader {
     sheetXml: string,
     sharedStrings: string[],
     styleSheet: StyleSheetData,
-    cellBudget: { placeholders: number },
+    cellBudget: { cells: number },
     relsXml?: string
   ): Omit<ParsedSheet, 'name'> {
     const parsed = this.parser.parse(sheetXml);
@@ -526,11 +570,9 @@ export class ExcelReader {
 
       const rowData: ParsedCell[] = [];
       let maxCol = -1;
-      let filled = 0;
 
       for (const cell of cells) {
         const parsedCell = this.parseCell(cell, rowIndex, sharedStrings, styleSheet);
-        if (parsedCell.columnIndex >= 0 && !rowData[parsedCell.columnIndex]) filled++;
         rowData[parsedCell.columnIndex] = parsedCell;
         maxCol = Math.max(maxCol, parsedCell.columnIndex);
 
@@ -541,10 +583,12 @@ export class ExcelReader {
         }
       }
 
-      cellBudget.placeholders += maxCol + 1 - filled;
-      if (cellBudget.placeholders > MAX_PLACEHOLDER_CELLS) {
-        throw new Error(
-          `Workbook pads more than ${MAX_PLACEHOLDER_CELLS} empty cells to keep rows rectangular`
+      cellBudget.cells += maxCol + 1;
+      if (cellBudget.cells > this.limits.maxCells) {
+        throw limitExceeded(
+          'maxCells',
+          this.limits.maxCells,
+          `Workbook has at least ${cellBudget.cells} cells, counting the empty cells that pad rows`
         );
       }
 
@@ -871,7 +915,7 @@ export class ExcelReader {
   }
 }
 
-export const parseExcel = (buffer: Uint8Array): ParsedWorkbook => {
-  const reader = new ExcelReader();
+export const parseExcel = (buffer: Uint8Array, options?: ExcelReaderOptions): ParsedWorkbook => {
+  const reader = new ExcelReader(options);
   return reader.parseFromBuffer(buffer);
 };

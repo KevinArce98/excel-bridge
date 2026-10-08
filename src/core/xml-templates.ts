@@ -1,3 +1,4 @@
+import { invalidInput } from './errors';
 import { XML_NS } from './constants';
 import { StyleManager, normalizeColor } from './style-manager';
 import {
@@ -98,7 +99,7 @@ const valueCellXml = (
   }
 
   if (value instanceof Date && !isDate(value)) {
-    throw new Error(`Cell ${ref} holds an invalid Date`);
+    throw invalidInput(`Cell ${ref} holds an invalid Date`);
   }
 
   if (isDate(value)) {
@@ -107,7 +108,7 @@ const valueCellXml = (
 
   if (typeof value === 'number') {
     if (!Number.isFinite(value)) {
-      throw new Error(`Cell ${ref} holds ${value}, which a worksheet cannot store`);
+      throw invalidInput(`Cell ${ref} holds ${value}, which a worksheet cannot store`);
     }
     return `${open}>${formulaXml}<v>${value}</v></c>`;
   }
@@ -119,12 +120,12 @@ const valueCellXml = (
   if (typeof value === 'object') {
     if ('error' in value) {
       if (!isExcelError(value.error)) {
-        throw new Error(`Cell ${ref} holds ${value.error}, which a worksheet cannot store`);
+        throw invalidInput(`Cell ${ref} holds ${value.error}, which a worksheet cannot store`);
       }
       return `${open} t="e">${formulaXml}<v>${value.error}</v></c>`;
     }
     if ('formula' in value || 'text' in value) {
-      throw new Error(`Cell ${ref} needs a string formula or text`);
+      throw invalidInput(`Cell ${ref} needs a string formula or text`);
     }
   }
 
@@ -165,7 +166,7 @@ export const generateRowXml = (
     }
     const { formula, value } = splitCell(cellValue);
     if (formula === '' && typeof cellValue === 'object') {
-      throw new Error(`Cell ${ref} needs a formula`);
+      throw invalidInput(`Cell ${ref} needs a formula`);
     }
     const styleId = isDate(value)
       ? styleManager

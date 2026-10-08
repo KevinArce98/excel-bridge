@@ -156,6 +156,6 @@ describe('prefixed SpreadsheetML', () => {
     () => {
       expect(() => ExcelBridge.read(prefixed('x'))).not.toThrow();
     },
-    { message: /not throw an error but .*Failed to parse Excel file/ }
+    { message: /not throw an error but .*Failed to parse/ }
   );
 });

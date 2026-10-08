@@ -1,5 +1,5 @@
 export { ExcelReader, parseExcel } from './reader';
-export type { ParsedCell, ParsedSheet, ParsedWorkbook } from './reader';
+export type { ExcelReaderOptions, ParsedCell, ParsedSheet, ParsedWorkbook } from './reader';
 export { Workbook } from './workbook';
 export type { WorkbookMetadata } from './workbook';
 
@@ -97,6 +97,7 @@ import { coordinateToIndex, indexToCoordinate } from './core/cell-ref';
 export { coordinateToIndex, indexToCoordinate };
 
 import { ExcelReader as ReaderClass, parseExcel as parseFunction } from './reader';
+import type { ExcelReaderOptions } from './reader';
 import {
   ExcelWriter as WriterClass,
   createExcelFile as createFile,
@@ -106,8 +107,8 @@ import { Workbook as WorkbookClass } from './workbook';
 
 export const ExcelBridge = {
   read: parseFunction,
-  readFromFile: (file: File) => {
-    const reader = new ReaderClass();
+  readFromFile: (file: File, options?: ExcelReaderOptions) => {
+    const reader = new ReaderClass(options);
     return reader.parseFromFile(file);
   },
 
@@ -121,3 +122,19 @@ export const ExcelBridge = {
   Reader: ReaderClass,
   Workbook: WorkbookClass,
 };
+export { ExcelBridgeError, isExcelBridgeError } from './core/errors';
+export type { ExcelBridgeErrorCode, ExcelBridgeErrorOptions, ReaderLimitName } from './core/errors';
+
+export { sheetToObjects } from './objects/read';
+export type { ObjectCellValue, ReadColumn, SheetToObjectsOptions } from './objects/read';
+export { objectsToSheet, objectsToStreamingSheet } from './objects/write';
+export type {
+  ObjectsToSheetOptions,
+  ObjectsToStreamingSheetOptions,
+  StreamingColumn,
+  WriteColumn,
+} from './objects/write';
+
+export { XLSX_CONTENT_TYPE } from './core/constants';
+export { downloadXlsx } from './delivery/download';
+export { toReadableStream, xlsxResponse } from './delivery/response';
