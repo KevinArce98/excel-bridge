@@ -1,3 +1,10 @@
+# [1.6.0](https://github.com/KevinArce98/excel-bridge/compare/v1.5.0...v1.6.0) (2026-10-08)
+
+
+### Features
+
+* add per-side borders, cell objects, row layout and styles on dates ([4f6227d](https://github.com/KevinArce98/excel-bridge/commit/4f6227dd5f053e407377759122204141610615f6))
+
 # [1.5.0](https://github.com/KevinArce98/excel-bridge/compare/v1.4.0...v1.5.0) (2026-10-08)
 
 
