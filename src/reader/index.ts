@@ -16,8 +16,9 @@ import { BORDER_SIDES, BORDER_STYLES } from '../core/borders';
 import type { BorderLine, BorderLines, BorderStyleName, ParsedBorder } from '../core/borders';
 import type {
   AutoFilter,
-  ParsedCellStyle,
+  CellStyle,
   CellValidation,
+  ExcelErrorValue,
   ConditionalFormat,
   ConditionalFormatStyle,
   ConditionalFormatOperator,
@@ -28,24 +29,60 @@ import type {
   SheetState,
 } from '../core/types';
 
-export interface ParsedCell {
-  value: any;
-  type: 'string' | 'number' | 'boolean' | 'date' | 'error' | 'empty';
+interface ParsedCellBase {
   coordinate: string;
   rowIndex: number;
   columnIndex: number;
   formula?: string;
 }
 
+export interface ParsedStringCell extends ParsedCellBase {
+  type: 'string';
+  value: string;
+}
+
+export interface ParsedNumberCell extends ParsedCellBase {
+  type: 'number';
+  value: number;
+}
+
+export interface ParsedBooleanCell extends ParsedCellBase {
+  type: 'boolean';
+  value: boolean;
+}
+
+export interface ParsedDateCell extends ParsedCellBase {
+  type: 'date';
+  value: Date;
+}
+
+export interface ParsedErrorCell extends ParsedCellBase {
+  type: 'error';
+  value: ExcelErrorValue | (string & {});
+}
+
+export interface ParsedEmptyCell extends ParsedCellBase {
+  type: 'empty';
+  value: null;
+}
+
+export type ParsedCell =
+  | ParsedStringCell
+  | ParsedNumberCell
+  | ParsedBooleanCell
+  | ParsedDateCell
+  | ParsedErrorCell
+  | ParsedEmptyCell;
+
+export type ParsedRow = ParsedCell[];
+
 export interface ParsedSheet extends SheetLayout {
   name: string;
-  data: ParsedCell[][];
+  data: ParsedRow[];
   validations: CellValidation[];
   state?: Exclude<SheetState, 'visible'>;
-  styles?: Record<string, ParsedCellStyle>;
+  styles?: Record<string, CellStyle<ParsedBorder>>;
   mergeCells?: string[];
-  freezePane?: { row?: number; col?: number };
-  columnWidths?: number[];
   conditionalFormats?: ConditionalFormat[];
   autoFilter?: AutoFilter;
   hyperlinks?: Hyperlink[];
@@ -157,6 +194,13 @@ const resolveLimits = (options: ExcelReaderOptions = {}): Required<ExcelReaderOp
     limits[name] = value;
   });
   return limits;
+};
+
+const STRING_TYPES = new Set(['s', 'str', 'e', 'b']);
+
+const withFormula = <T extends ParsedCell>(cell: T, formula: string): T => {
+  if (formula) cell.formula = formula;
+  return cell;
 };
 
 const isFlag = (value: unknown): boolean => value === '1' || value === 'true';
@@ -489,7 +533,7 @@ export class ExcelReader {
   private decodeCellStyle(
     styleIndex: number | undefined,
     styleSheet: StyleSheetData
-  ): ParsedCellStyle | undefined {
+  ): CellStyle<ParsedBorder> | undefined {
     if (styleIndex === undefined) return undefined;
 
     const xf = styleSheet.cellXfs[styleIndex];
@@ -510,7 +554,7 @@ export class ExcelReader {
     const fill = styleSheet.fills[xf.fillId];
     const border = structuredClone(styleSheet.borders[xf.borderId]);
 
-    const style: ParsedCellStyle = {};
+    const style: CellStyle<ParsedBorder> = {};
 
     if (font?.bold) style.bold = true;
     if (font?.italic) style.italic = true;
@@ -553,37 +597,48 @@ export class ExcelReader {
       .map((validation: any) => this.parseValidation(validation))
       .filter((validation): validation is CellValidation => validation !== undefined);
 
-    const data: ParsedCell[][] = [];
-    const styles: Record<string, ParsedCellStyle> = {};
+    const data: ParsedRow[] = [];
+    const styles: Record<string, CellStyle<ParsedBorder>> = {};
     const rowHeights: Record<number, number> = {};
     const hiddenRows: number[] = [];
+    let previousRow = -1;
 
     for (const rowElement of rows) {
-      const rowIndex = parseInt(rowElement.r, 10) - 1;
+      const declaredRow = parseInt(rowElement.r, 10) - 1;
+      const rowIndex = declaredRow >= 0 ? declaredRow : previousRow + 1;
       if (rowIndex >= EXCEL_LIMITS.MAX_ROWS) validateRowIndex(rowIndex);
-      if (rowIndex >= 0) {
-        const height = Number(rowElement.ht);
-        if (isFlag(rowElement.customHeight) && isRowHeight(height)) rowHeights[rowIndex] = height;
-        if (isFlag(rowElement.hidden)) hiddenRows.push(rowIndex);
-      }
-      const cells = toArray(rowElement.c);
+      previousRow = rowIndex;
 
-      const rowData: ParsedCell[] = [];
-      let maxCol = -1;
+      const height = Number(rowElement.ht);
+      if (isFlag(rowElement.customHeight) && isRowHeight(height)) rowHeights[rowIndex] = height;
+      if (isFlag(rowElement.hidden)) hiddenRows.push(rowIndex);
+
+      const cells = toArray(rowElement.c);
+      if (cells.length === 0) continue;
+
+      const rowData: ParsedRow = data[rowIndex] ?? [];
+      const widthBefore = rowData.length;
+      let previousColumn = -1;
 
       for (const cell of cells) {
-        const parsedCell = this.parseCell(cell, rowIndex, sharedStrings, styleSheet);
-        rowData[parsedCell.columnIndex] = parsedCell;
-        maxCol = Math.max(maxCol, parsedCell.columnIndex);
+        const parsedCell = this.parseCell(
+          cell,
+          rowIndex,
+          previousColumn,
+          sharedStrings,
+          styleSheet
+        );
+        previousColumn = parsedCell.columnIndex;
+        rowData[previousColumn] = parsedCell;
 
         const styleIndex = cell.s !== undefined ? Number(cell.s) : undefined;
         const decodedStyle = this.decodeCellStyle(styleIndex, styleSheet);
         if (decodedStyle) {
-          styles[`${rowIndex}-${parsedCell.columnIndex}`] = decodedStyle;
+          styles[`${rowIndex}-${previousColumn}`] = decodedStyle;
         }
       }
 
-      cellBudget.cells += maxCol + 1;
+      cellBudget.cells += rowData.length - widthBefore;
       if (cellBudget.cells > this.limits.maxCells) {
         throw limitExceeded(
           'maxCells',
@@ -592,19 +647,17 @@ export class ExcelReader {
         );
       }
 
-      for (let c = 0; c <= maxCol; c++) {
-        if (!rowData[c]) {
-          rowData[c] = {
-            value: null,
-            type: 'empty',
-            coordinate: `${this.columnIndexToLetter(c)}${rowIndex + 1}`,
-            rowIndex,
-            columnIndex: c,
-          };
-        }
+      for (let c = 0; c < rowData.length; c++) {
+        rowData[c] ??= {
+          value: null,
+          type: 'empty',
+          coordinate: `${this.columnIndexToLetter(c)}${rowIndex + 1}`,
+          rowIndex,
+          columnIndex: c,
+        };
       }
 
-      data.push(rowData);
+      data[rowIndex] = rowData;
     }
 
     const mergeCells = toArray(worksheet?.mergeCells?.mergeCell)
@@ -646,15 +699,10 @@ export class ExcelReader {
       allowBlank: isFlag(validation.allowBlank),
     };
 
-    if (type === 'list') {
-      const literal = /^"([\s\S]*)"$/.exec(formula1 ?? '');
-      if (literal) return { ...base, options: literal[1].replace(/""/g, '"') };
-      return { ...base, options: formula1 ?? '', ...(formula1 !== undefined ? { formula1 } : {}) };
-    }
+    if (type === 'list') return formula1 === undefined ? undefined : { ...base, formula1 };
 
     return {
       ...base,
-      options: formula1 ?? '',
       ...(VALIDATION_OPERATORS.has(validation.operator)
         ? { operator: validation.operator as DataValidationOperator }
         : {}),
@@ -799,67 +847,82 @@ export class ExcelReader {
   private parseCell(
     cell: any,
     rowIndex: number,
+    previousColumn: number,
     sharedStrings: string[],
     styleSheet: StyleSheetData
   ): ParsedCell {
-    const coordinate = String(cell.r ?? '');
-    const columnIndex = this.columnLetterToIndex(coordinate.replace(/\d+/g, ''));
+    const declaredColumn = this.columnLetterToIndex(String(cell.r ?? '').replace(/\d+/g, ''));
+    const columnIndex = declaredColumn >= 0 ? declaredColumn : previousColumn + 1;
     if (columnIndex >= EXCEL_LIMITS.MAX_COLS) validateColIndex(columnIndex);
+    const coordinate = `${this.columnIndexToLetter(columnIndex)}${rowIndex + 1}`;
     const styleIndex = cell.s !== undefined ? Number(cell.s) : undefined;
-
-    let value: any = null;
-    let type: ParsedCell['type'] = 'empty';
-    let formula: string | undefined;
-
-    if (cell.f !== undefined) {
-      formula = this.extractText(cell.f);
-    }
+    const formula = cell.f === undefined ? '' : this.extractText(cell.f);
 
     if (cell.t === 'inlineStr' || (cell.t === undefined && cell.is !== undefined)) {
-      value = this.extractStringItem(cell.is);
-      type = 'string';
-    } else if (cell.v !== undefined) {
-      const raw = cell.v;
-
-      if (cell.t === 'b') {
-        value = raw === '1';
-        type = 'boolean';
-      } else if (cell.t === 's') {
-        value = sharedStrings[parseInt(raw, 10)] ?? '';
-        type = 'string';
-      } else if (cell.t === 'str') {
-        value = String(raw);
-        type = 'string';
-      } else if (cell.t === 'e') {
-        value = String(raw);
-        type = 'error';
-      } else if (raw !== '') {
-        const num = parseFloat(raw);
-        const date =
-          styleIndex !== undefined && styleSheet.dateStyles.has(styleIndex) && Number.isFinite(num)
-            ? excelSerialToDate(num)
-            : undefined;
-        if (!Number.isFinite(num)) {
-          value = '#NUM!';
-          type = 'error';
-        } else if (date && isDate(date)) {
-          value = date;
-          type = 'date';
-        } else {
-          value = num;
-          type = 'number';
-        }
-      }
+      return withFormula(
+        {
+          coordinate,
+          rowIndex,
+          columnIndex,
+          type: 'string',
+          value: this.extractStringItem(cell.is),
+        },
+        formula
+      );
     }
 
-    return {
-      value,
-      type,
-      coordinate,
-      rowIndex,
-      columnIndex,
-      ...(formula !== undefined ? { formula } : {}),
-    };
+    const raw = cell.v;
+    if (raw === undefined || (raw === '' && !STRING_TYPES.has(cell.t))) {
+      return withFormula(
+        { coordinate, rowIndex, columnIndex, type: 'empty', value: null },
+        formula
+      );
+    }
+
+    if (cell.t === 'b')
+      return withFormula(
+        { coordinate, rowIndex, columnIndex, type: 'boolean', value: raw === '1' },
+        formula
+      );
+    if (cell.t === 's') {
+      return withFormula(
+        {
+          coordinate,
+          rowIndex,
+          columnIndex,
+          type: 'string',
+          value: sharedStrings[parseInt(raw, 10)] ?? '',
+        },
+        formula
+      );
+    }
+    if (cell.t === 'str')
+      return withFormula(
+        { coordinate, rowIndex, columnIndex, type: 'string', value: String(raw) },
+        formula
+      );
+    if (cell.t === 'e')
+      return withFormula(
+        { coordinate, rowIndex, columnIndex, type: 'error', value: String(raw) },
+        formula
+      );
+
+    const num = parseFloat(raw);
+    if (!Number.isFinite(num))
+      return withFormula(
+        { coordinate, rowIndex, columnIndex, type: 'error', value: '#NUM!' },
+        formula
+      );
+
+    if (styleIndex !== undefined && styleSheet.dateStyles.has(styleIndex)) {
+      const date = excelSerialToDate(num);
+      if (isDate(date))
+        return withFormula(
+          { coordinate, rowIndex, columnIndex, type: 'date', value: date },
+          formula
+        );
+    }
+    return withFormula({ coordinate, rowIndex, columnIndex, type: 'number', value: num }, formula);
   }
 
   private columnLetterToIndex(letters: string): number {

@@ -45,17 +45,17 @@ describe('formula cells', () => {
     );
   });
 
-  it('writes the same bytes as the string shorthand when there is no result', () => {
-    expect(sheetXml([[{ formula: 'A1*2' }, { formula: 'B1', result: undefined }]])).toBe(
-      sheetXml([['=A1*2', '=B1']])
-    );
+  it('writes a formula without a result as an element with no value', () => {
+    expect(written({ formula: 'A1*2' })).toBe('<c r="A1"><f>A1*2</f></c>');
+    expect(written({ formula: 'B1', result: undefined })).toBe('<c r="A1"><f>B1</f></c>');
     expect(written({ formula: 'F', result: null as unknown as undefined })).toBe(
       '<c r="A1"><f>F</f></c>'
     );
   });
 
   it('drops one leading = from the formula', () => {
-    expect(written({ formula: '=SUM(B1:B2)' })).toBe(written('=SUM(B1:B2)'));
+    expect(written({ formula: '=SUM(B1:B2)' })).toBe('<c r="A1"><f>SUM(B1:B2)</f></c>');
+    expect(written({ formula: '==A1' })).toBe('<c r="A1"><f>=A1</f></c>');
   });
 
   it('escapes the formula and a text result and strips control characters', () => {
@@ -112,10 +112,10 @@ describe('text cells', () => {
     const bytes = new ExcelWriter({ sharedStrings: true }).createWorkbookBuffer([
       { data: [[{ text: '=A1' }, '=A1x', 'dup', { text: 'dup' }]] },
     ]);
-    expect(part(bytes, 'xl/sharedStrings.xml')).toContain('uniqueCount="2"');
+    expect(part(bytes, 'xl/sharedStrings.xml')).toContain('uniqueCount="3"');
     expect(part(bytes, 'xl/sharedStrings.xml')).toContain('<si><t>=A1</t></si>');
     expect(part(bytes, 'xl/worksheets/sheet1.xml')).toContain(
-      '<c r="A1" t="s"><v>0</v></c><c r="B1"><f>A1x</f></c><c r="C1" t="s"><v>1</v></c><c r="D1" t="s"><v>1</v></c>'
+      '<c r="A1" t="s"><v>0</v></c><c r="B1" t="s"><v>1</v></c><c r="C1" t="s"><v>2</v></c><c r="D1" t="s"><v>2</v></c>'
     );
   });
 
@@ -166,8 +166,14 @@ describe('error cells', () => {
 });
 
 describe('values that keep their behaviour', () => {
-  it('still writes a string that starts with = as a formula', () => {
-    expect(written('=1+1')).toBe('<c r="A1"><f>1+1</f></c>');
+  it('writes a string that starts with = as text', () => {
+    expect(written('=1+1')).toBe('<c r="A1" t="inlineStr"><is><t>=1+1</t></is></c>');
+    expect(written('=')).toBe('<c r="A1" t="inlineStr"><is><t>=</t></is></c>');
+  });
+
+  it('writes a plain string and a text cell with the same bytes, whatever the first character', () => {
+    const values = ['=SUM(A1)', '=', '== x ==', '+1', '@x', '-1'];
+    expect(sheetXml([values.map(text => ({ text }))])).toBe(sheetXml([values]));
   });
 
   it('still writes an object without a cell key as its string form', () => {
@@ -202,7 +208,7 @@ describe('column widths', () => {
     );
   });
 
-  it('measures a formula without a result like the string shorthand', () => {
+  it('measures a formula without a result like the text of its formula', () => {
     expect(calculateColumnWidths([[{ formula: 'B2*C2*D2*E2*F2*G2*H2*I2' }]])).toEqual(
       calculateColumnWidths([['=B2*C2*D2*E2*F2*G2*H2*I2']])
     );
@@ -310,14 +316,60 @@ describe('Workbook', () => {
     );
   });
 
-  it('saves a formula without its cached result, which it cannot recalculate', () => {
+  it('returns a loaded formula with its cached result and saves both', () => {
     const original = writer.createWorkbookBuffer([{ data: [[2, { formula: 'A1*2', result: 4 }]] }]);
     const workbook = Workbook.fromBuffer(original);
-    expect(workbook.getCellValue('Sheet1', 0, 1)).toBe('=A1*2');
-    expect(cellAt(readFirstSheet(workbook.toBuffer()), 'B1')).toMatchObject({
-      type: 'empty',
-      formula: 'A1*2',
+    expect(workbook.getCellValue('Sheet1', 0, 1)).toEqual({ formula: 'A1*2', result: 4 });
+    expect(part(workbook.toBuffer(), 'xl/worksheets/sheet1.xml')).toBe(
+      part(original, 'xl/worksheets/sheet1.xml')
+    );
+  });
+
+  it.each([
+    ['text', '<c r="A1" t="str"><f>F</f><v>x</v></c>', { formula: 'F', result: 'x' }],
+    ['a boolean', '<c r="A1" t="b"><f>F</f><v>1</v></c>', { formula: 'F', result: true }],
+    ['a classic error', '<c r="A1" t="e"><f>F</f><v>#N/A</v></c>', { formula: 'F', result: { error: '#N/A' } }],
+    ['an unknown error', '<c r="A1" t="e"><f>F</f><v>#SPILL!</v></c>', { formula: 'F' }],
+    ['no value', '<c r="A1"><f>F</f></c>', { formula: 'F' }],
+  ])('returns a loaded formula whose cached value is %s', (_label, cell, expected) => {
+    const bytes = buildXlsx(`<sheetData><row r="1">${cell}</row></sheetData>`);
+    expect(Workbook.fromBuffer(bytes).getCellValue('S', 0, 0)).toEqual(expected);
+  });
+
+  it('returns a loaded formula with a cached date and saves the date style', () => {
+    const bytes = buildXlsx(
+      '<sheetData><row r="1"><c r="A1" s="1"><f>TODAY()</f><v>45306</v></c></row></sheetData>',
+      {},
+      { styles: DATE_STYLES }
+    );
+    const workbook = Workbook.fromBuffer(bytes);
+    expect(workbook.getCellValue('S', 0, 0)).toEqual({
+      formula: 'TODAY()',
+      result: new Date(2024, 0, 15),
     });
+    expect(cellAt(readFirstSheet(workbook.toBuffer()), 'A1')).toMatchObject({
+      type: 'date',
+      formula: 'TODAY()',
+    });
+  });
+
+  it('returns a loaded error cell as an error cell', () => {
+    const bytes = buildXlsx(
+      '<sheetData><row r="1"><c r="A1" t="e"><v>#DIV/0!</v></c></row></sheetData>'
+    );
+    expect(Workbook.fromBuffer(bytes).getCellValue('S', 0, 0)).toEqual({ error: '#DIV/0!' });
+  });
+
+  it('keeps loaded errors and = text in place when the row array is edited directly', () => {
+    const bytes = buildXlsx(
+      '<sheetData><row r="1"><c r="A1" t="e"><v>#N/A</v></c><c r="B1" t="inlineStr"><is><t>=== x ===</t></is></c></row></sheetData>'
+    );
+    const workbook = Workbook.fromBuffer(bytes);
+    workbook.getSheetData('S')[0].unshift('first');
+    const sheet = readFirstSheet(workbook.toBuffer());
+    expect(cellAt(sheet, 'A1')?.value).toBe('first');
+    expect(cellAt(sheet, 'B1')).toMatchObject({ type: 'error', value: '#N/A' });
+    expect(cellAt(sheet, 'C1')).toMatchObject({ type: 'string', value: '=== x ===' });
   });
 
   it('does not turn text from a loaded file into a formula', () => {

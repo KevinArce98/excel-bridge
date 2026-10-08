@@ -5,7 +5,6 @@ import {
   ExcelReader,
   Workbook,
   createExcelWorkbookStream,
-  generateColsXml,
 } from '../src';
 import type { CellStyle } from '../src';
 
@@ -147,7 +146,7 @@ const rewriteSheet = (transform: (xml: string) => string): Uint8Array => {
 };
 
 describe('loaded literals', () => {
-  it('returns the loaded strings and saves error cells and = text as literals', () => {
+  it('returns loaded error cells as error cells and saves them and = text as what they were', () => {
     const source = rewriteSheet(xml =>
       xml
         .replace('<c r="A1" t="inlineStr"><is><t>a</t></is></c>', '<c r="A1" t="e"><v>#N/A</v></c>')
@@ -157,7 +156,7 @@ describe('loaded literals', () => {
         )
     );
     const workbook = Workbook.fromBuffer(source);
-    expect(workbook.getSheetData('Sheet1')[0]).toEqual(['#N/A', '=== x ===', 1]);
+    expect(workbook.getSheetData('Sheet1')[0]).toEqual([{ error: '#N/A' }, '=== x ===', 1]);
     const xml = part(workbook.toBuffer(), 'xl/worksheets/sheet1.xml');
     expect(xml).toContain('<c r="A1" t="e"><v>#N/A</v></c>');
     expect(xml).toContain('<t>=== x ===</t>');
@@ -178,11 +177,16 @@ describe('loaded literals', () => {
     );
   });
 
-  it('rejects an empty formula object but keeps the = shorthand bytes', () => {
+  it('rejects an empty formula object and writes a lone = as text', () => {
     expect(() => writer.createWorkbookBuffer([{ data: [[{ formula: '' }]] }])).toThrow(
       'Cell A1 needs a formula'
     );
-    expect(() => writer.createWorkbookBuffer([{ data: [['=']] }])).not.toThrow();
+    expect(() => writer.createWorkbookBuffer([{ data: [[{ formula: '=' }]] }])).toThrow(
+      'Cell A1 needs a formula'
+    );
+    expect(part(writer.createWorkbookBuffer([{ data: [['=']] }]), 'xl/worksheets/sheet1.xml')).toContain(
+      '<is><t>=</t></is>'
+    );
   });
 });
 
@@ -208,10 +212,5 @@ describe('autofilter and layout', () => {
     workbook.removeAutoFilter('Sheet1');
     expect(workbook.isRowHidden('Sheet1', 1)).toBe(false);
     expect(workbook.isRowHidden('Sheet1', 3)).toBe(false);
-  });
-
-  it('survives being used as an array callback', () => {
-    expect(() => [[10, 20], [5]].map(generateColsXml)).not.toThrow();
-    expect([[10, 20]].map(generateColsXml)[0]).toBe(generateColsXml([10, 20]));
   });
 });

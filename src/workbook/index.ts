@@ -1,6 +1,7 @@
 import { invalidInput } from '../core/errors';
 import { ExcelReader, ParsedCell, ParsedWorkbook } from '../reader';
 import type { ExcelReaderOptions } from '../reader';
+import { rowIndexes } from '../core/rows';
 import { ExcelWriter } from '../writer';
 import { parseRange, formatRange } from '../core/cell-ref';
 import { EXCEL_LIMITS } from '../core/date-utils';
@@ -11,8 +12,7 @@ import { HYPERLINK_STYLE, prepareHyperlink } from '../core/hyperlinks';
 import {
   AutoFilter,
   CellValue,
-  ErrorCell,
-  TextCell,
+  FormulaResult,
   CellValidation,
   CellStyle,
   ConditionalFormat,
@@ -37,62 +37,39 @@ interface WorkbookSheet {
   hiddenRows: Set<number>;
   hiddenColumns: Set<number>;
   autoWidth?: boolean;
-  literals: Map<string, LiteralCell>;
 }
-
-type LiteralCell = TextCell | ErrorCell;
 
 const setMember = (members: Set<number>, index: number, present: boolean): void => {
   if (present) members.add(index);
   else members.delete(index);
 };
 
+const resultOf = (cell: ParsedCell): FormulaResult | undefined => {
+  switch (cell.type) {
+    case 'empty':
+      return undefined;
+    case 'error':
+      return isExcelError(cell.value) ? { error: cell.value } : undefined;
+    default:
+      return cell.value;
+  }
+};
+
 const cellToValue = (cell: ParsedCell): CellValue => {
-  if (cell.formula !== undefined) return `=${cell.formula}`;
-  if (cell.type === 'empty') return null;
+  if (cell.formula !== undefined) {
+    const result = resultOf(cell);
+    return result === undefined ? { formula: cell.formula } : { formula: cell.formula, result };
+  }
+  if (cell.type === 'error' && isExcelError(cell.value)) return { error: cell.value };
   return cell.value;
 };
 
-const literalOf = (cell: ParsedCell): LiteralCell | undefined => {
-  if (cell.formula !== undefined) return undefined;
-  if (cell.type === 'error' && isExcelError(cell.value)) return { error: cell.value };
-  if (typeof cell.value === 'string' && cell.value.startsWith('=')) return { text: cell.value };
-  return undefined;
-};
-
-const loadedText = (literal: LiteralCell): string => literal.error ?? literal.text;
-
-const withLiterals = (sheet: WorkbookSheet): CellValue[][] => {
-  if (sheet.literals.size === 0) return sheet.data;
-  const data = sheet.data.slice();
-  sheet.literals.forEach((literal, key) => {
-    const [row, col] = key.split('-').map(Number);
-    if (data[row]?.[col] !== loadedText(literal)) return;
-    data[row] = data[row].slice();
-    data[row][col] = literal;
+const placeRows = (rows: ParsedCell[][]): CellValue[][] => {
+  const data: CellValue[][] = [];
+  rowIndexes(rows).forEach(index => {
+    data[index] = rows[index].map(cellToValue);
   });
   return data;
-};
-
-const placeRows = (
-  rows: ParsedCell[][]
-): { data: CellValue[][]; literals: Map<string, LiteralCell> } => {
-  const data: CellValue[][] = [];
-  const literals = new Map<string, LiteralCell>();
-  let next = 0;
-
-  for (const row of rows) {
-    const declared = row[0]?.rowIndex ?? -1;
-    const index = declared >= next ? declared : next;
-    data[index] = row.map((cell, col) => {
-      const literal = literalOf(cell);
-      if (literal !== undefined) literals.set(`${index}-${col}`, literal);
-      return cellToValue(cell);
-    });
-    next = index + 1;
-  }
-
-  return { data, literals };
 };
 
 const canonicalHyperlink = (link: Hyperlink): Hyperlink => ({
@@ -157,12 +134,10 @@ export class Workbook {
       subject: parsed.metadata.subject,
     };
     workbook.sheets = parsed.sheets.map(sheet => {
-      const placed = placeRows(sheet.data);
       return {
         name: sheet.name,
         ...(sheet.state ? { state: sheet.state } : {}),
-        data: placed.data,
-        literals: placed.literals,
+        data: placeRows(sheet.data),
         styles: sheet.styles ?? {},
         validations: sheet.validations.map(validation => ({ ...validation })),
         mergeCells: sheet.mergeCells ?? [],
@@ -216,7 +191,6 @@ export class Workbook {
       hyperlinks: [],
       hiddenRows: new Set(),
       hiddenColumns: new Set(),
-      literals: new Map(),
     });
   }
 
@@ -249,7 +223,6 @@ export class Workbook {
     const sheet = this.findSheet(sheetName);
     if (!sheet.data[row]) sheet.data[row] = [];
     sheet.data[row][col] = value;
-    sheet.literals.delete(`${row}-${col}`);
   }
 
   getCellStyle(sheetName: string, row: number, col: number): CellStyle | undefined {
@@ -391,7 +364,7 @@ export class Workbook {
 
   private toExcelData() {
     return this.sheets.map(sheet => ({
-      data: withLiterals(sheet),
+      data: sheet.data,
       validations: sheet.validations,
       styles: sheet.styles,
       mergeCells: sheet.mergeCells,

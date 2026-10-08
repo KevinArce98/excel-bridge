@@ -93,8 +93,6 @@ export const extractParts = (
   }
 };
 
-export const extractExcelFiles = (buffer: Uint8Array): ExcelFiles => extractParts(buffer);
-
 export const validateExcelStructure = (files: ExcelFiles): boolean => {
   const requiredFiles = ['[Content_Types].xml', '_rels/.rels', 'xl/workbook.xml'];
 

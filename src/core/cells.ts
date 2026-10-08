@@ -19,11 +19,6 @@ export interface CellParts {
 }
 
 export const splitCell = (cell: CellValue): CellParts => {
-  if (typeof cell === 'string') {
-    return cell.startsWith('=')
-      ? { formula: cell.substring(1), value: undefined }
-      : { value: cell };
-  }
   if (typeof cell === 'object' && cell !== null && !(cell instanceof Date)) {
     if (typeof cell.formula === 'string') {
       return { formula: cell.formula.replace(/^=/, ''), value: cell.result };

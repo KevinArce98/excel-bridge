@@ -1,5 +1,17 @@
 export { ExcelReader, parseExcel } from './reader';
-export type { ExcelReaderOptions, ParsedCell, ParsedSheet, ParsedWorkbook } from './reader';
+export type {
+  ExcelReaderOptions,
+  ParsedCell,
+  ParsedStringCell,
+  ParsedNumberCell,
+  ParsedBooleanCell,
+  ParsedDateCell,
+  ParsedErrorCell,
+  ParsedEmptyCell,
+  ParsedRow,
+  ParsedSheet,
+  ParsedWorkbook,
+} from './reader';
 export { Workbook } from './workbook';
 export type { WorkbookMetadata } from './workbook';
 
@@ -40,7 +52,6 @@ export type {
   BorderSideName,
   BorderStyleName,
   ParsedBorder,
-  ParsedCellStyle,
   ConditionalFormatStyle,
   ConditionalFormatOperator,
   CellValueConditionalFormat,
@@ -53,45 +64,11 @@ export type {
 export { createExcelWorkbookStream, streamToBuffer } from './writer/stream';
 export type { StreamingSheetInput } from './writer/stream';
 
-export {
-  createExcelBlob,
-  createExcelBuffer,
-  extractExcelFiles,
-  validateExcelStructure,
-} from './core/zip-manager';
-export type { ExcelFiles } from './core/zip-manager';
+export { dateToExcelSerial, excelSerialToDate, isDate, EXCEL_LIMITS } from './core/date-utils';
 
-export { XML_NS, CONTENT_TYPES, RELATIONSHIP_TYPES, CELL_TYPES } from './core/constants';
-export {
-  generateSheetXml,
-  generateSharedStringsXml,
-  generateStylesXml,
-  generateContentTypesXml,
-  generateWorkbookXml,
-  generateWorkbookRelsXml,
-  generateRootRelsXml,
-  generateCorePropsXml,
-  generateAppPropsXml,
-  generateSheetRelsXml,
-} from './core/xml-templates';
-export type { SheetGenerationOptions, DefinedName } from './core/xml-templates';
+export { isExcelError } from './core/cells';
 
-export { StyleManager } from './core/style-manager';
-export type { ExcelStyle, Font, Fill, Border, CellAlignment } from './core/style-manager';
-
-export {
-  dateToExcelSerial,
-  excelSerialToDate,
-  isDate,
-  isDateNumFmtId,
-  isDateFormatCode,
-  EXCEL_LIMITS,
-  validateRowIndex,
-  validateColIndex,
-  validateCellValue,
-} from './core/date-utils';
-
-export { calculateColumnWidths, generateColsXml } from './core/column-width';
+export { calculateColumnWidths } from './core/column-width';
 
 import { coordinateToIndex, indexToCoordinate } from './core/cell-ref';
 export { coordinateToIndex, indexToCoordinate };

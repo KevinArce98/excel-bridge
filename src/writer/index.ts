@@ -55,9 +55,7 @@ export type { HyperlinkOptions } from './hyperlink';
 export interface SheetOptions extends SheetLayout {
   name?: string;
   state?: SheetState;
-  freezePane?: { row?: number; col?: number };
   autoWidth?: boolean;
-  columnWidths?: number[];
   autoFilter?: AutoFilter;
 }
 
@@ -211,53 +209,12 @@ export class ExcelWriter {
 
     return { map, list };
   }
-
-  addValidation(data: ExcelData[], range: string, options: string): ExcelData[] {
-    const newData = [...data];
-    const lastSheet = newData[newData.length - 1];
-
-    if (lastSheet) {
-      if (!lastSheet.validations) {
-        lastSheet.validations = [];
-      }
-      lastSheet.validations.push({ range, options });
-    }
-
-    return newData;
-  }
-
-  addStyle(data: ExcelData[], rowIndex: number, colIndex: number, style: CellStyle): ExcelData[] {
-    const newData = [...data];
-    const lastSheet = newData[newData.length - 1];
-
-    if (lastSheet) {
-      if (!lastSheet.styles) {
-        lastSheet.styles = {};
-      }
-      lastSheet.styles[`${rowIndex}-${colIndex}`] = style;
-    }
-
-    return newData;
-  }
-
-  static createSimple(data: CellValue[][], options?: ExcelWriterOptions): Blob {
-    const writer = new ExcelWriter(options);
-    return writer.createWorkbook([{ data }]);
-  }
-
-  static createSimpleBuffer(data: CellValue[][], options?: ExcelWriterOptions): Uint8Array {
-    const writer = new ExcelWriter(options);
-    return writer.createWorkbookBuffer([{ data }]);
-  }
 }
 
-export const createExcelFile = (data: CellValue[][], options?: ExcelWriterOptions): Blob => {
-  return ExcelWriter.createSimple(data, options);
-};
+export const createExcelFile = (data: CellValue[][], options?: ExcelWriterOptions): Blob =>
+  new ExcelWriter(options).createWorkbook([{ data }]);
 
 export const createExcelFileBuffer = (
   data: CellValue[][],
   options?: ExcelWriterOptions
-): Uint8Array => {
-  return ExcelWriter.createSimpleBuffer(data, options);
-};
+): Uint8Array => new ExcelWriter(options).createWorkbookBuffer([{ data }]);

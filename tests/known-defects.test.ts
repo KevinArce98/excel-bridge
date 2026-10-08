@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { strToU8, zipSync } from 'fflate';
-import { ExcelBridge, ExcelWriter } from '../src';
+import { ExcelBridge, ExcelWriter, Workbook } from '../src';
 import { knownDefect } from './helpers/known-defect';
-import { calendarDay, cellAt, readFirstSheet } from './helpers/read';
+import { calendarDay, cellAt, dateOf, readFirstSheet } from './helpers/read';
 import { DATE_STYLES, REL_NS, SPREADSHEET_NS, buildXlsx } from './helpers/xlsx';
 
 const writer = new ExcelWriter();
@@ -45,7 +45,7 @@ describe('date systems', () => {
 
   it('reads the 1900 system', () => {
     const date = cellAt(readFirstSheet(buildXlsx(serial, {}, { styles: DATE_STYLES })), 'A1');
-    expect(calendarDay(date?.value)).toEqual([2009, 7, 6]);
+    expect(calendarDay(dateOf(date))).toEqual([2009, 7, 6]);
   });
 
   knownDefect(
@@ -56,7 +56,7 @@ describe('date systems', () => {
         {},
         { styles: DATE_STYLES, workbookProperties: '<workbookPr date1904="1"/>' }
       );
-      expect(calendarDay(cellAt(readFirstSheet(bytes), 'A1')?.value)).toEqual([2013, 7, 7]);
+      expect(calendarDay(dateOf(cellAt(readFirstSheet(bytes), 'A1')))).toEqual([2013, 7, 7]);
     },
     { message: /expected \[ 2009, 7, 6 \] to deeply equal \[ 2013, 7, 7 \]/ }
   );
@@ -91,12 +91,24 @@ describe('formulas from other tools', () => {
     expect(cellAt(sheet, 'B1')?.formula).toBe('A1*2');
   });
 
+  it('reads a shared formula follower as its cached value, without a formula', () => {
+    expect(cellAt(sheet, 'B2')).toMatchObject({ type: 'number', value: 4 });
+    expect(cellAt(sheet, 'B2')).not.toHaveProperty('formula');
+  });
+
+  it('saves a workbook with a shared formula follower as its cached value', () => {
+    const saved = readFirstSheet(Workbook.fromBuffer(buildXlsx(body)).toBuffer());
+    expect(cellAt(saved, 'B2')).toMatchObject({ type: 'number', value: 4 });
+    expect(cellAt(saved, 'B2')).not.toHaveProperty('formula');
+    expect(cellAt(saved, 'B1')).toMatchObject({ type: 'number', value: 2, formula: 'A1*2' });
+  });
+
   knownDefect(
-    'a shared formula follower reads an empty formula (expected: A2*2) (R9)',
+    'a shared formula follower reads no formula (expected: A2*2) (R9)',
     () => {
       expect(cellAt(sheet, 'B2')?.formula).toBe('A2*2');
     },
-    { message: /expected '' to be 'A2\*2'/ }
+    { message: /expected undefined to be 'A2\*2'/ }
   );
 });
 

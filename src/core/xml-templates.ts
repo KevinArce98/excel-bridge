@@ -13,7 +13,7 @@ import { rowIndexes } from './rows';
 import { prepareLayout } from './sheet-layout';
 import { isExcelError, splitCell } from './cells';
 import { indexToColumnLetter, parseRange, formatRange, quoteSheetName } from './cell-ref';
-import { PreparedHyperlink, prepareHyperlinks, withHyperlinkStyles } from './hyperlinks';
+import { PreparedHyperlink, withHyperlinkStyles } from './hyperlinks';
 import {
   AutoFilter,
   CellValue,
@@ -29,9 +29,7 @@ import {
 export type { CellValidation, CellStyle } from './types';
 
 export interface SheetGenerationOptions extends SheetLayout {
-  freezePane?: { row?: number; col?: number };
   autoWidth?: boolean;
-  columnWidths?: number[];
   mergeCells?: string[];
   conditionalFormats?: ConditionalFormat[];
   sharedStrings?: Map<string, number>;
@@ -165,7 +163,7 @@ export const generateRowXml = (
       return;
     }
     const { formula, value } = splitCell(cellValue);
-    if (formula === '' && typeof cellValue === 'object') {
+    if (formula === '') {
       throw invalidInput(`Cell ${ref} needs a formula`);
     }
     const styleId = isDate(value)
@@ -259,9 +257,6 @@ export const generateHyperlinkRelsXml = (links: PreparedHyperlink[]): string => 
 </Relationships>`;
 };
 
-export const generateSheetRelsXml = (hyperlinks: Hyperlink[] = []): string =>
-  generateHyperlinkRelsXml(prepareHyperlinks(hyperlinks));
-
 export const sheetRelsPath = (sheetNumber: number): string =>
   `xl/worksheets/_rels/sheet${sheetNumber}.xml.rels`;
 
@@ -338,22 +333,6 @@ export const generatePreparedSheetXml = (
   );
 };
 
-export const generateSheetXml = (
-  data: CellValue[][],
-  validations: CellValidation[] = [],
-  styles: Record<string, CellStyle> = {},
-  styleManager?: StyleManager,
-  options: SheetGenerationOptions = {}
-) =>
-  generatePreparedSheetXml(
-    data,
-    validations,
-    styles,
-    styleManager,
-    options,
-    prepareHyperlinks(options.hyperlinks)
-  );
-
 export const generateDataValidationsXml = (validations: CellValidation[] = []): string => {
   let validationsXml = '';
   if (validations.length > 0) {
@@ -365,13 +344,12 @@ export const generateDataValidationsXml = (validations: CellValidation[] = []): 
       const sqref = escapeXmlAttr(v.range);
 
       if (type === 'list') {
-        const formula1 =
-          v.formula1 !== undefined
-            ? escapeXml(v.formula1)
-            : `"${escapeXml(v.options.replace(/"/g, '""'))}"`;
+        if (v.formula1 === undefined) {
+          throw invalidInput(`Validation at ${v.range} needs formula1`);
+        }
         validationsXml += `
     <dataValidation type="list" allowBlank="${allowBlank}" showInputMessage="1" showErrorMessage="1" sqref="${sqref}">
-      <formula1>${formula1}</formula1>
+      <formula1>${escapeXml(v.formula1)}</formula1>
     </dataValidation>`;
         return;
       }

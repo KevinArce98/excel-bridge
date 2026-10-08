@@ -30,8 +30,6 @@ export interface StreamingSheetInput extends SheetLayout {
   name?: string;
   rows: Iterable<CellValue[]> | AsyncIterable<CellValue[]>;
   styles?: Record<string, CellStyle>;
-  freezePane?: { row?: number; col?: number };
-  columnWidths?: number[];
   mergeCells?: string[];
   autoFilter?: AutoFilter;
   hyperlinks?: Hyperlink[];

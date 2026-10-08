@@ -8,7 +8,7 @@ import {
   streamToBuffer,
 } from '../src';
 import type { WriteColumn } from '../src';
-import { part } from './helpers/read';
+import { cellAt, part } from './helpers/read';
 
 interface Order {
   id: number;
@@ -127,6 +127,14 @@ describe('objectsToSheet', () => {
     expect(parsed.styles?.['0-0']).toMatchObject({ bold: true });
     expect(parsed.styles?.['1-1']).toMatchObject({ numberFormat: '#,##0.00' });
     expect(parsed.styles?.['1-2']).toMatchObject({ numberFormat: 'yyyy-mm-dd' });
+  });
+
+  it('writes a string that starts with = as text, not as a formula', () => {
+    const sheet = objectsToSheet([{ a: '=1+1' }], [{ key: 'a' }]);
+    const cell = cellAt(read(new ExcelWriter().createWorkbookBuffer([sheet])), 'A2');
+
+    expect(cell).toMatchObject({ type: 'string', value: '=1+1' });
+    expect(cell).not.toHaveProperty('formula');
   });
 
   it('checks the column keys against the row type', () => {

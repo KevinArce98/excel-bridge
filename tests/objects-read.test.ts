@@ -32,8 +32,28 @@ describe('sheetToObjects with the header row as keys', () => {
   it('returns every kind of cell value', () => {
     const born = new Date(2024, 0, 15);
     const sheet = sheetOf([
-      ['text', 'number', 'flag', 'date', 'error', 'formula', 'bare formula', 'empty'],
-      ['x', 1.5, true, born, { error: '#N/A' }, { formula: 'A2', result: 'x' }, '=A2', null],
+      [
+        'text',
+        'number',
+        'flag',
+        'date',
+        'error',
+        'formula',
+        'formula without result',
+        'equals text',
+        'empty',
+      ],
+      [
+        'x',
+        1.5,
+        true,
+        born,
+        { error: '#N/A' },
+        { formula: 'A2', result: 'x' },
+        { formula: 'A2' },
+        '=A2',
+        null,
+      ],
     ]);
     expect(sheetToObjects(sheet)).toEqual([
       {
@@ -43,7 +63,8 @@ describe('sheetToObjects with the header row as keys', () => {
         date: born,
         error: { error: '#N/A' },
         formula: 'x',
-        'bare formula': null,
+        'formula without result': null,
+        'equals text': '=A2',
         empty: null,
       },
     ]);
@@ -123,12 +144,10 @@ describe('sheetToObjects headerRow', () => {
     expect(sheetToObjects(sheet, { headerRow: 3 })).toEqual([]);
   });
 
-  it('reads a sparse data array the same way', () => {
-    const rows = sheet.data;
-    const sparse = {
-      data: Object.assign([], { 1: rows[1], 4: rows[2], 8: rows[3] }) as ParsedSheet['data'],
-    };
-    expect(sheetToObjects(sparse, { headerRow: 4 })).toEqual(
+  it('reads a data array without holes the same way', () => {
+    const dense = { data: Object.values(sheet.data) };
+    expect(dense.data).toHaveLength(4);
+    expect(sheetToObjects(dense, { headerRow: 4 })).toEqual(
       sheetToObjects(sheet, { headerRow: 4 })
     );
   });

@@ -25,47 +25,6 @@ export function normalizeColor(color: string): string {
   return normalized.toUpperCase();
 }
 
-export interface CellAlignment {
-  horizontal?: 'left' | 'center' | 'right';
-  vertical?: 'top' | 'middle' | 'bottom';
-  wrapText?: boolean;
-}
-
-export interface ExcelStyle {
-  fontId: number;
-  fillId: number;
-  borderId: number;
-  numFmtId: number;
-  applyFont?: boolean;
-  applyFill?: boolean;
-  applyBorder?: boolean;
-  applyNumberFormat?: boolean;
-  alignment?: CellAlignment;
-}
-
-export interface Font {
-  bold?: boolean;
-  italic?: boolean;
-  underline?: boolean;
-  color?: string;
-  size?: number;
-  name?: string;
-}
-
-export interface Fill {
-  fgColor?: string;
-  bgColor?: string;
-  patternType?: string;
-}
-
-export interface Border {
-  left?: boolean;
-  right?: boolean;
-  top?: boolean;
-  bottom?: boolean;
-  color?: string;
-}
-
 type Table = Map<string, number>;
 
 const FIRST_CUSTOM_NUM_FMT_ID = 164;

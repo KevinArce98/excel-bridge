@@ -9,7 +9,6 @@ import {
   ExcelWriter,
   Workbook,
   coordinateToIndex,
-  createExcelBlob,
   createExcelWorkbookStream,
   dataValidation,
   hyperlink,
@@ -127,7 +126,7 @@ describe('codes of the errors the library throws', () => {
   it('reports a missing Blob as UNSUPPORTED', () => {
     vi.stubGlobal('Blob', undefined);
     try {
-      expect(codeOf(() => createExcelBlob({ 'a.xml': '<a/>' }))).toBe('UNSUPPORTED');
+      expect(codeOf(() => new ExcelWriter().createWorkbook([{ data: [['a']] }]))).toBe('UNSUPPORTED');
     } finally {
       vi.unstubAllGlobals();
     }

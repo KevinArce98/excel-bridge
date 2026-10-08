@@ -41,13 +41,15 @@ describe('rows keep their position through Workbook', () => {
     expect(cellAt(readFirstSheet(roundTrip(bytes)), 'A6')?.value).toBe(6);
   });
 
-  it('keeps both rows that share a row number, the second one after the first', () => {
+  it('merges rows that share a row number, the later cell winning', () => {
     const bytes = buildXlsx(
-      '<sheetData><row r="3"><c r="A3" t="inlineStr"><is><t>x</t></is></c></row><row r="3"><c r="A3" t="inlineStr"><is><t>y</t></is></c></row></sheetData>'
+      '<sheetData><row r="3"><c r="A3" t="inlineStr"><is><t>x</t></is></c><c r="B3"><v>1</v></c></row><row r="3"><c r="A3" t="inlineStr"><is><t>y</t></is></c><c r="C3"><v>2</v></c></row></sheetData>'
     );
     const sheet = readFirstSheet(roundTrip(bytes));
-    expect(cellAt(sheet, 'A3')?.value).toBe('x');
-    expect(cellAt(sheet, 'A4')?.value).toBe('y');
+    expect(cellAt(sheet, 'A3')?.value).toBe('y');
+    expect(cellAt(sheet, 'B3')?.value).toBe(1);
+    expect(cellAt(sheet, 'C3')?.value).toBe(2);
+    expect(cellAt(sheet, 'A4')).toBeUndefined();
   });
 
   it('keeps a formula through a save', () => {
@@ -91,12 +93,12 @@ describe('data validations keep their rule through Workbook', () => {
     ],
     [
       'time',
-      { range: 'E2:E10', type: 'time', operator: 'lessThan', formula1: '0.5', options: '' },
+      { range: 'E2:E10', type: 'time', operator: 'lessThan', formula1: '0.5' },
       /type="time" operator="lessThan"[^>]*sqref="E2:E10">\s*<formula1>0\.5<\/formula1>/,
     ],
     [
       'custom formula',
-      { range: 'F2:F10', type: 'custom', formula1: 'ISNUMBER(F2)', options: '' },
+      { range: 'F2:F10', type: 'custom', formula1: 'ISNUMBER(F2)' },
       /type="custom" allowBlank="1"[^>]*sqref="F2:F10">\s*<formula1>ISNUMBER\(F2\)<\/formula1>/,
     ],
     [
@@ -106,7 +108,7 @@ describe('data validations keep their rule through Workbook', () => {
     ],
     [
       'list from a range',
-      { range: 'H2:H10', type: 'list', formula1: '$K$1:$K$3', options: '' },
+      { range: 'H2:H10', type: 'list', formula1: '$K$1:$K$3' },
       /type="list"[^>]*sqref="H2:H10">\s*<formula1>\$K\$1:\$K\$3<\/formula1>/,
     ],
     [
@@ -159,10 +161,10 @@ describe('data validations keep their rule through Workbook', () => {
     });
   });
 
-  it('reads an inline list as its values without the quotes', () => {
+  it('reads an inline list as its formula1, quotes included', () => {
     const inline = readFirstSheet(original).validations.find(rule => rule.range === 'I2:I10');
-    expect(inline).toMatchObject({ type: 'list', options: 'say "hi",bye' });
-    expect(inline?.formula1).toBeUndefined();
+    expect(inline).toMatchObject({ type: 'list', formula1: '"say ""hi"",bye"' });
+    expect(inline).not.toHaveProperty('options');
   });
 
   const operators = [
@@ -234,7 +236,7 @@ describe('text that looks like a number stays text', () => {
     const bytes = writer.createWorkbookBuffer([
       {
         data: [['x']],
-        validations: [{ range: 'A1', type: 'custom', formula1: '1.50', options: '' }],
+        validations: [{ range: 'A1', type: 'custom', formula1: '1.50' }],
         conditionalFormats: [
           { type: 'expression', range: 'A1', formula: '007', style: { bold: true } },
         ],

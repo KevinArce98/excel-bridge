@@ -43,10 +43,11 @@ describe('reader grid limits', () => {
   it('reads the last cell of the grid', () => {
     const xlsx = buildXlsx(singleCellSheet('XFD1048576', 1048576));
     const [sheet] = ExcelBridge.read(xlsx).sheets;
-    expect(sheet.data).toHaveLength(1);
-    expect(sheet.data[0]).toHaveLength(16384);
-    expect(sheet.data[0][16383].value).toBe(1);
-    expect(sheet.data[0][16383].coordinate).toBe('XFD1048576');
+    expect(sheet.data).toHaveLength(1048576);
+    expect(Object.keys(sheet.data)).toEqual(['1048575']);
+    expect(sheet.data[1048575]).toHaveLength(16384);
+    expect(sheet.data[1048575][16383].value).toBe(1);
+    expect(sheet.data[1048575][16383].coordinate).toBe('XFD1048576');
   });
 
   it('clamps a huge <col> range to the grid', () => {

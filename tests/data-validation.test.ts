@@ -13,7 +13,7 @@ const write = (validations: ReturnType<typeof dataValidation.list>[]) =>
 describe('dataValidation builders', () => {
   it('builds a list (dropdown) validation', () => {
     const v = dataValidation.list('A2:A10', ['Yes', 'No', 'Maybe']);
-    expect(v).toEqual({ range: 'A2:A10', type: 'list', options: 'Yes,No,Maybe' });
+    expect(v).toEqual({ range: 'A2:A10', type: 'list', formula1: '"Yes,No,Maybe"' });
 
     const xml = write([v]);
     expect(xml).toContain('type="list"');
@@ -62,9 +62,19 @@ describe('dataValidation builders', () => {
     expect(xml).toContain('<formula2>45657</formula2>');
   });
 
-  it('keeps the legacy { range, options } list shape working', () => {
-    const xml = write([{ range: 'A2:A5', options: 'Low,High' }]);
+  it('doubles the quotes inside the values of a list', () => {
+    expect(dataValidation.list('A1', ['say "hi"', 'bye']).formula1).toBe('"say ""hi"",bye"');
+  });
+
+  it('writes a list given as formula1', () => {
+    const xml = write([{ range: 'A2:A5', formula1: '"Low,High"' }]);
     expect(xml).toContain('type="list"');
     expect(xml).toContain('<formula1>"Low,High"</formula1>');
+  });
+
+  it('rejects a list without formula1, which is what the removed options shorthand left behind', () => {
+    expect(() => write([{ range: 'A2:A5', options: 'Low,High' } as never])).toThrow(
+      'Validation at A2:A5 needs formula1'
+    );
   });
 });
