@@ -6,13 +6,13 @@
 
 **Read and write styled `.xlsx` files in the browser and Node.js, without shipping ExcelJS or SheetJS.**
 
-Import a class and your bundler ships only that part: the writer adds 12.5 KB min+gzip.
+Import a class and your bundler ships only that part: the writer adds 12.9 KB min+gzip.
 
 <br />
 
 [![Live demo](https://img.shields.io/badge/demo-live-22c55e?labelColor=1e293b)](https://kevinarce98.github.io/excel-bridge/)
 [![npm version](https://img.shields.io/npm/v/excel-bridge?logo=npm&label=npm&color=22c55e)](https://www.npmjs.com/package/excel-bridge)
-[![ExcelWriter size](https://img.shields.io/badge/ExcelWriter-12.5%20KB%20min%2Bgzip-22c55e?labelColor=1e293b)](#bundle-size)
+[![ExcelWriter size](https://img.shields.io/badge/ExcelWriter-12.9%20KB%20min%2Bgzip-22c55e?labelColor=1e293b)](#bundle-size)
 [![CI](https://img.shields.io/github/actions/workflow/status/KevinArce98/excel-bridge/ci.yml?branch=main&label=CI&logo=github)](https://github.com/KevinArce98/excel-bridge/actions)
 [![types](https://img.shields.io/npm/types/excel-bridge?color=22c55e)](https://www.npmjs.com/package/excel-bridge)
 [![license](https://img.shields.io/npm/l/excel-bridge?color=22c55e)](./LICENSE)
@@ -25,8 +25,8 @@ Import a class and your bundler ships only that part: the writer adds 12.5 KB mi
 
 ## Highlights
 
-- **Small and tree-shakeable.** `ExcelWriter` adds 12.5 KB min+gzip. Import only the class you need ([sizes](#bundle-size)). ESM and CJS builds.
-- **Read and write.** Cell styles (fill, font, one box border, alignment, number formats), formulas, dates, merged cells, freeze panes, column widths, **conditional formatting**, data validation, **autofilters**, **hyperlinks**, hidden sheets and multi-sheet workbooks.
+- **Small and tree-shakeable.** `ExcelWriter` adds 12.9 KB min+gzip. Import only the class you need ([sizes](#bundle-size)). ESM and CJS builds.
+- **Read and write.** Cell styles (fill, font, **per-side borders**, alignment, number formats), formulas with optional cached results, dates, merged cells, freeze panes, column widths, **row heights**, hidden rows and columns, **conditional formatting**, data validation, **autofilters**, **hyperlinks**, hidden sheets and multi-sheet workbooks.
 - **One API for the browser and Node.js.** `Blob` and `File` in the browser, `Uint8Array` in Node.js (a `Buffer` is one). Reading and writing buffers is synchronous; reading a `File` and streaming are async.
 - **TypeScript-first.** Complete types and IntelliSense for every public export.
 - **Built for large exports.** A streaming writer produces million-row files from sync or async iterables, so the rows never all live in memory at once.
@@ -134,7 +134,7 @@ const blob = ExcelBridge.write([
 It also offers `ExcelBridge.readFromFile(file)` for browser `File`s and `ExcelBridge.writeBuffer(data)`
 for Node.js ([all entry points](#entry-points)).
 
-> **Bundle size:** `ExcelBridge` is 40.1 KB min+gzip, against 12.5 KB for `ExcelWriter`, because bundlers keep an object whole: even a lone `ExcelBridge.write` call ships the reader too. In browser code, prefer the named imports.
+> **Bundle size:** `ExcelBridge` is 41.1 KB min+gzip, against 12.9 KB for `ExcelWriter`, because bundlers keep an object whole: even a lone `ExcelBridge.write` call ships the reader too. In browser code, prefer the named imports.
 
 ## Why excel-bridge?
 
@@ -146,7 +146,7 @@ into a front-end bundle.
 | --- | :---: | :---: | :---: |
 | Read `.xlsx` | ✅ | ✅ | ✅ |
 | Write `.xlsx` | ✅ | ✅ | ✅ |
-| Cell styling (color, font, one box border) | ✅ | ✅ | ⚠️ Pro edition |
+| Cell styling (color, font, per-side borders) | ✅ | ✅ | ⚠️ Pro edition |
 | Conditional formatting | ✅ | ✅ | ⚠️ Pro edition |
 | Formulas | ✅ | ✅ | ✅ |
 | Merged cells | ✅ | ✅ | ✅ |
@@ -155,7 +155,7 @@ into a front-end bundle.
 | First-class TypeScript types | ✅ | ✅ | ✅ |
 | ESM **and** CJS, tree-shakeable | ✅ | ⚠️ CJS-first | ✅ |
 | Direct runtime dependencies ² | 2 | 9 | 7 |
-| Bundle size to write a file ¹ | **12.5 KB** | 272.1 KB | 95.8 KB |
+| Bundle size to write a file ¹ | **12.9 KB** | 272.1 KB | 95.8 KB |
 
 <sub>¹ Minified + gzipped code that a browser bundle needs to write an `.xlsx`: `ExcelWriter`, ExcelJS's default browser build (not tree-shakeable) and SheetJS `utils` + `write` from npm `xlsx@0.18.5`, bundled with esbuild. See [Bundle size](#bundle-size) for the method, reader sizes and more libraries. Bundlephobia measures each whole package with its own toolchain, so its numbers differ: [excel-bridge](https://bundlephobia.com/package/excel-bridge) · [exceljs](https://bundlephobia.com/package/exceljs) · [xlsx](https://bundlephobia.com/package/xlsx).</sub>
 
@@ -168,12 +168,12 @@ browser bundle:
 
 | Import from `excel-bridge` | min+gzip |
 | --- | ---: |
-| `createExcelWorkbookStream` | 11.9 KB |
-| `ExcelWriter` | 12.5 KB |
-| `ExcelReader` | 28.2 KB |
-| `Workbook` (reader + writer) | 39.9 KB |
-| `ExcelBridge` (convenience object) | 40.1 KB |
-| Everything | 42.6 KB |
+| `createExcelWorkbookStream` | 12.3 KB |
+| `ExcelWriter` | 12.9 KB |
+| `ExcelReader` | 28.7 KB |
+| `Workbook` (reader + writer) | 41.0 KB |
+| `ExcelBridge` (convenience object) | 41.1 KB |
+| Everything | 43.7 KB |
 
 The same measurement for other libraries (2026-10-07):
 
@@ -190,7 +190,7 @@ The same measurement for other libraries (2026-10-07):
 | ExcelJS 4.4.0 | default browser build, not tree-shakeable | 272.1 KB |
 
 **`excel-bridge` is not the smallest on every row.** `ExcelWriter` writes styles, conditional
-formatting, data validation, autofilters and hyperlinks in 12.5 KB. Some libraries are smaller for
+formatting, data validation, autofilters and hyperlinks in 12.9 KB. Some libraries are smaller for
 one job, or give up a feature to get there (the `excelents` entry has no conditional formatting at
 1.0.1). Compare what you get for the bytes, not the bytes alone.
 
@@ -200,7 +200,7 @@ the whole CommonJS build.
 <details>
 <summary>How these numbers were measured</summary>
 
-- **Toolchain:** esbuild 0.28.2 (`--bundle --minify --platform=browser --format=esm`), measured 2026-10-07.
+- **Toolchain:** esbuild 0.28.2 (`--bundle --minify --platform=browser --format=esm`), measured 2026-10-08 for the excel-bridge rows and 2026-10-07 for the other libraries.
 - **Entry:** each row bundles a one-line `export { … } from '<package>'` file, then gzips the output with Node's zlib at the default level. 1 KB = 1,000 bytes.
 - **Sources:** the excel-bridge rows come from this repository's build with the dependency versions in `pnpm-lock.yaml` (a fresh install that resolves newer `fast-xml-parser` patch releases can add about 50 bytes). The other libraries were installed in a scratch directory.
 - **Margin:** gzip implementations differ by about 1%. macOS `gzip` comes out slightly smaller.
@@ -233,7 +233,7 @@ Writing **50,000 rows × 10 columns** (median of 5 runs, Node 24.19, Apple M4, m
 
 `excel-bridge` writes reports and reads them back. It does not cover everything:
 
-- **Images, charts, comments, Excel tables, pivot tables, print setup, rich text, per-side borders, row heights, hidden rows and columns.** None of these are supported. ExcelJS and hucre cover many of them.
+- **Images, charts, comments, Excel tables, pivot tables, print setup, rich text, diagonal borders.** None of these are supported. ExcelJS and hucre cover many of them.
 - **Editing a file and keeping everything you did not touch** (templates with charts or macros). `Workbook` rebuilds the file from what it models, so anything else is dropped. hucre's `openXlsx`/`saveXlsx` keeps the parts it does not model.
 - **Reading very large files without loading them whole.** `ExcelReader` has no streaming mode. hucre has `streamXlsxRows`.
 - **CSV, ODS or legacy `.xls`/`.xlsb`.** Use hucre or SheetJS.
@@ -245,7 +245,8 @@ Writing **50,000 rows × 10 columns** (median of 5 runs, Node 24.19, Apple M4, m
 - [Multi-sheet workbooks](#multi-sheet-workbooks)
 - [Styling cells](#styling-cells)
 - [Extended cell styles](#extended-cell-styles)
-- [Formulas & dates](#formulas--dates)
+- [Borders](#borders)
+- [Formulas, cell objects & dates](#formulas-cell-objects--dates)
 - [Merged cells & layout](#merged-cells--layout)
 - [Conditional formatting](#conditional-formatting)
 - [Data validation](#data-validation)
@@ -261,8 +262,7 @@ Writing **50,000 rows × 10 columns** (median of 5 runs, Node 24.19, Apple M4, m
 `Workbook` builds a workbook, or loads one, edits it and saves it back, without rebuilding sheet
 data by hand. It rebuilds the file from what the library models, so it suits files this library
 wrote and simple files from other tools. It does not keep images, charts, comments, Excel tables,
-pivot tables, defined names, print setup, themes, macros, row heights or hidden rows and columns of
-a file you load.
+pivot tables, defined names, print setup, themes or macros of a file you load.
 
 ```typescript
 import fs from 'node:fs';
@@ -292,7 +292,7 @@ on an instance:
 | --- | --- |
 | Sheets | `addSheet`, `renameSheet`, `removeSheet`, `getSheetNames`, `getSheetData`, `getSheetState`, `setSheetState` |
 | Cells | `getCellValue`, `setCellValue`, `getCellStyle`, `setCellStyle` |
-| Layout | `setMergeCells`, `setFreezePane`, `setColumnWidths`, `setAutoWidth` |
+| Layout | `setMergeCells`, `setFreezePane`, `setColumnWidths`, `setAutoWidth`, `setRowHeight`/`getRowHeight`, `setRowHidden`/`isRowHidden`, `setColumnHidden`/`isColumnHidden` |
 | Rules and links | `addValidation`, `addConditionalFormat`, `setAutoFilter`, `getAutoFilter`, `removeAutoFilter`, `setHyperlink`, `getHyperlinks`, `removeHyperlink` |
 | Document | `getMetadata`, `setMetadata` |
 | Output | `toBuffer`, `toBlob` |
@@ -302,21 +302,31 @@ on an instance:
 `Workbook.fromBuffer` and `fromFile` restore:
 
 - data at its row and column, styles, merges, freeze panes and column widths
+- **per-side borders, row heights, hidden rows and hidden columns**
 - **data validations, conditional formatting rules, autofilter ranges, hyperlinks and sheet visibility**
+- error cells (the seven classic errors) and text that starts with `=`, as what they were
 
 They change or drop:
 
-- Filter criteria and sort state set in Excel.
+- Cached formula results. Formulas are saved without a result.
+- Filter criteria and sort state set in Excel. Rows hidden by a filter stay hidden, and `removeAutoFilter` shows the rows under the removed range.
 - Links the writer does not accept (anything but `http:`, `https:`, `mailto:` or a location in the workbook), and validations of a type the writer does not know. `ExcelReader` still returns the links.
 - Validation input and error messages, the error style (stop, warning, information) and the "show message" switches. Every saved rule shows both messages and blocks bad entries.
-- Error cells, which are saved as text.
-- Date cells, which lose their style and number format.
-- Colours other than RGB, and built-in number formats such as `0%`. Only RGB colours and custom number formats are read.
-- Border detail: every border becomes a thin black box on all four sides.
-- Shared-formula followers and text cells that start with `=`, which are saved as formulas.
+- Error text other than the seven classic errors, which is saved as text. A number that is `NaN` or `INF` in the file is saved as `#NUM!`.
+- Locale-dependent built-in date and time formats, which are written back as explicit en-US codes. The built-in short date (id 14) stays the short date.
+- Theme and indexed colours, and built-in number formats such as `0%`. Only RGB colours, custom number formats and the built-in date and time formats are read, and theme or indexed border colours become black.
+- Diagonal borders.
+- Shared-formula followers, which are saved as formulas.
 - Rich text, which is flattened, and split panes, which become freeze panes.
 - Conditional formatting rules other than `cellIs`, `expression` and `colorScale`.
 - Dates in the 1904 date system, which are read incorrectly.
+- Sheet defaults (`<sheetFormatPr>`: default row height and column width, outline levels) and the height or hidden flag of a `<row>` without an `r` attribute. A collapsed outline group stays hidden but loses its buttons.
+
+`getCellValue` and `getSheetData` return the string for a loaded error cell (`'#N/A'`) or for
+loaded text that starts with `=`; use `ExcelReader` to see the cell type. Loaded text and errors are
+tracked by position, so edit cells with `setCellValue` rather than `splice` or `unshift` on the array
+`getSheetData` returns. A column stored with width 0 stays 0 wide when you unhide it with
+`setColumnHidden`; set its width as well.
 
 After loading a file with blank rows, `getSheetData(name)` has holes at those rows: `length` is the
 last row plus one, `for...of` yields `undefined` for a hole and `JSON.stringify` writes `null`. A
@@ -406,10 +416,11 @@ Beyond background, bold, color and borders, cells support fonts, alignment and n
 
 ```typescript
 import { ExcelWriter } from 'excel-bridge';
+import type { ExcelData } from 'excel-bridge';
 
 const writer = new ExcelWriter();
 
-const sheet = {
+const sheet: ExcelData = {
   data: [
     ['Invoice', 1250.5],
     ['Tax', 237.6],
@@ -426,10 +437,59 @@ const sheet = {
 const buffer = writer.createWorkbookBuffer([sheet]);
 ```
 
-### Formulas & dates
+### Borders
+
+`border: true` draws a thin black box on all four sides, as before. For anything else, pass a line
+style, a `{ style, color }` pair, or an object with one entry per side:
+
+```typescript
+import { ExcelWriter } from 'excel-bridge';
+import type { ExcelData } from 'excel-bridge';
+
+const writer = new ExcelWriter();
+
+const sheet: ExcelData = {
+  data: [
+    ['Region', 'Revenue'],
+    ['North', 1200],
+    ['South', 480],
+  ],
+  styles: {
+    '0-0': { bold: true, border: { bottom: 'medium' } },
+    '0-1': { bold: true, border: { bottom: 'medium' } },
+    '1-1': { border: { left: { style: 'thin', color: '#CCCCCC' } } },
+    '2-0': { border: 'thin' },
+    '2-1': { border: { top: 'thin', bottom: { style: 'double', color: '#CC0000' } } },
+  },
+};
+
+const buffer = writer.createWorkbookBuffer([sheet]);
+```
+
+- **Accepted values:** `true` or `false`; a line style for all four sides; `{ style, color? }` for all four sides; or `{ left?, right?, top?, bottom? }`, each a line style or `{ style, color? }`.
+- **Line styles (13):** `thin`, `medium`, `thick`, `dashed`, `dotted`, `double`, `hair`, `mediumDashed`, `dashDot`, `mediumDashDot`, `dashDotDot`, `mediumDashDotDot`, `slantDashDot`.
+- **Colours:** `#RGB`, `#RRGGBB` or `#AARRGGBB`. Without a colour the line is black.
+- **Errors:** an unknown line style or a colour such as `red` throws and names the value.
+- **Merged cells:** the file stores borders per cell, and the writer does not copy a border across a merged range. Set the side on each edge cell and pad the data with `null` so those cells exist. A style on a cell past the end of its row is ignored.
+- **Not supported:** diagonal borders, and borders in conditional formats.
+
+### Formulas, cell objects & dates
 
 `Date` objects are converted to Excel serials automatically, and any string starting with `=` is
-written as a formula. Excel recalculates formulas when it opens the file.
+written as a formula. The workbook asks Excel to recalculate formulas when it opens the file. A cell can also be an
+object, for more control:
+
+| Cell value | What is written |
+| --- | --- |
+| `'=SUM(A1:A3)'` | A formula (the shorthand). |
+| `{ formula: 'SUM(A1:A3)' }` | A formula with no cached value. |
+| `{ formula: 'SUM(A1:A3)', result: 6 }` | A formula and the value it last had. `result` is a string, number, boolean, `Date` or `{ error }`. |
+| `{ text: '=SUM(A1:A3)' }` | The text `=SUM(A1:A3)`, never a formula. |
+| `{ error: '#N/A' }` | An error value: `#NULL!`, `#DIV/0!`, `#VALUE!`, `#REF!`, `#NAME?`, `#NUM!` or `#N/A`. |
+
+The library never calculates a formula. The workbook asks Excel to do it on open, but a reader that
+does not calculate shows `result` when you provide one and an empty cell when you do not. Never pass untrusted input to
+`{ formula }`. Wrap user text in `{ text }`, which prevents formula interpretation and nothing else.
 
 ```typescript
 import { ExcelWriter } from 'excel-bridge';
@@ -443,13 +503,21 @@ const projectSheet = {
     ['Development', new Date(2024, 1, 21), new Date(2024, 4, 30), '=C3-B3', 'In Progress'],
     ['Testing', new Date(2024, 5, 1), new Date(2024, 5, 15), '=C4-B4', 'Planned'],
     ['', '', '', '', ''],
-    ['Tasks Completed', '', '', '=COUNTIF(E2:E4,"Completed")', ''],
+    ['Tasks Completed', '', '', { formula: 'COUNTIF(E2:E4,"Completed")', result: 1 }, ''],
+    ['Note', { text: '=not a formula' }, '', '', ''],
   ],
+  styles: {
+    '1-1': { numberFormat: 'yyyy-mm-dd', bold: true },
+  },
   options: { name: 'Project Timeline', freezePane: { row: 1 }, autoWidth: true },
 };
 
 const buffer = writer.createWorkbookBuffer([projectSheet]);
 ```
+
+A `Date` cell takes its cell style like any other cell. It uses the built-in short date format
+unless the style has a date `numberFormat`, such as `'yyyy-mm-dd hh:mm'` to show the time of day. A
+`numberFormat` that is not a date format is ignored on a `Date` cell.
 
 Numbers must be finite. `NaN`, `Infinity` and invalid `Date` values throw an error that names the
 cell, such as `Cell B2 holds NaN, which a worksheet cannot store`, so a failed calculation never
@@ -476,11 +544,21 @@ const reportSheet = {
   },
   mergeCells: ['A1:D1'], // merge the title row
   // Fixed widths instead of autoWidth
-  options: { name: 'Quarterly Report', freezePane: { row: 2 }, columnWidths: [24, 12, 12, 12] },
+  options: {
+    name: 'Quarterly Report',
+    freezePane: { row: 2 },
+    columnWidths: [24, 12, 12, 12],
+    rowHeights: { 0: 28 }, // points, zero-based row index
+  },
 };
 
 const buffer = writer.createWorkbookBuffer([reportSheet]);
 ```
+
+`rowHeights` maps zero-based row indexes to heights in points (above 0 and at most 409.5), and
+`hiddenRows` and `hiddenColumns` list zero-based indexes. A row without a height keeps Excel's
+default. All three work in the streaming writer, and on a `Workbook` through `setRowHeight`,
+`setRowHidden` and `setColumnHidden`.
 
 ### Conditional formatting
 
@@ -580,7 +658,8 @@ const buffer = new ExcelWriter().createWorkbookBuffer([
 
 A sheet holds one filter. The writer also adds the hidden `_xlnm._FilterDatabase` name that Excel
 writes and LibreOffice reads the range from. Filter criteria and sort state are not written or
-read, so the file opens with every row visible. On a `Workbook`, use `setAutoFilter`,
+read, so a file written by `ExcelWriter` opens with every row visible unless you pass `hiddenRows`.
+On a `Workbook`, use `setAutoFilter`,
 `getAutoFilter` and `removeAutoFilter`.
 
 ### Hyperlinks
@@ -654,7 +733,8 @@ const buffer = await streamToBuffer(
 ```
 
 A streaming sheet (`StreamingSheetInput`) supports `name`, `rows`, `styles`, `freezePane`,
-`columnWidths`, `mergeCells`, `autoFilter` and `hyperlinks`. Pass the final filter range and links
+`columnWidths`, `rowHeights`, `hiddenRows`, `hiddenColumns`, `mergeCells`, `autoFilter` and
+`hyperlinks`. Pass the final filter range and links
 up front: they are validated, and the range is written to the workbook part, before the first row.
 It does **not** support `autoWidth`, `validations` or `conditionalFormats`. Use
 `ExcelWriter` or `Workbook` when you need those.
@@ -687,15 +767,21 @@ const sheet = workbook.sheets[0];
 sheet.name; // "Sales Report"
 sheet.state; // "hidden" | "veryHidden" when the sheet is hidden, otherwise undefined
 sheet.data; // the rows present in the file, in order; use cell.rowIndex for the position
-sheet.styles; // Record<"row-col", CellStyle>
+sheet.styles; // Record<"row-col", ParsedCellStyle>
 sheet.mergeCells; // ["A1:D1", ...]
 sheet.freezePane; // { row?: number; col?: number }
 sheet.columnWidths; // number[]
+sheet.rowHeights; // Record<row, points>, only rows with a manual height
+sheet.hiddenRows; // number[]
+sheet.hiddenColumns; // number[]
 sheet.validations; // CellValidation[]: type, operator, formulas and allowBlank as stored
 sheet.conditionalFormats; // ConditionalFormat[]: rules the writer produces, read back
 
 workbook.metadata; // { created?, modified?, creator?, title?, subject? }
 ```
+
+In `sheet.styles`, `border` is `true` for a thin black line on all four sides and otherwise an
+object with a `{ style, color? }` entry for each side that has a line.
 
 Sheets with a filter or links also carry `sheet.autoFilter` (`{ range }`) and `sheet.hyperlinks`
 (`Hyperlink[]`). The reader returns every link as stored, whatever its scheme, so check `url`
@@ -758,7 +844,26 @@ bundles as a unit. For the smallest browser bundles, import the [classes](#class
 
 ```typescript
 // Values accepted in a cell. Dates become Excel serials; strings starting with "=" are formulas.
-type CellValue = string | number | boolean | Date | null | undefined;
+type CellValue =
+  | string | number | boolean | Date | null | undefined
+  | FormulaCell | TextCell | ErrorCell;
+
+interface FormulaCell {
+  formula: string; // without the leading "="
+  result?: FormulaResult; // the cached value; the library never calculates
+}
+
+type FormulaResult = string | number | boolean | Date | ErrorCell;
+
+interface TextCell {
+  text: string; // literal text, never a formula
+}
+
+interface ErrorCell {
+  error: ExcelErrorValue;
+}
+
+type ExcelErrorValue = '#NULL!' | '#DIV/0!' | '#VALUE!' | '#REF!' | '#NAME?' | '#NUM!' | '#N/A';
 
 interface ExcelData {
   data: CellValue[][];
@@ -776,6 +881,9 @@ interface SheetOptions {
   freezePane?: { row?: number; col?: number };
   autoWidth?: boolean;
   columnWidths?: number[];
+  rowHeights?: Record<number, number>; // points, above 0 and at most 409.5
+  hiddenRows?: number[];
+  hiddenColumns?: number[];
   autoFilter?: AutoFilter;
 }
 
@@ -801,7 +909,7 @@ interface InternalHyperlink {
 
 interface CellStyle {
   background?: string;
-  border?: boolean;
+  border?: CellBorder;
   bold?: boolean;
   italic?: boolean;
   underline?: boolean;
@@ -814,6 +922,29 @@ interface CellStyle {
   /** Custom Excel number-format code, e.g. "0.00" or "#,##0". */
   numberFormat?: string;
 }
+
+type CellBorder = boolean | BorderSide | BorderSides;
+
+type BorderSide = BorderStyleName | BorderLine;
+
+interface BorderLine {
+  style: BorderStyleName;
+  color?: string; // #RGB, #RRGGBB or #AARRGGBB; black when omitted
+}
+
+interface BorderSides {
+  left?: BorderSide;
+  right?: BorderSide;
+  top?: BorderSide;
+  bottom?: BorderSide;
+  style?: never; // the whole-border and per-side forms cannot be mixed
+  color?: never;
+}
+
+type BorderStyleName =
+  | 'thin' | 'medium' | 'thick' | 'dashed' | 'dotted' | 'double' | 'hair'
+  | 'mediumDashed' | 'dashDot' | 'mediumDashDot' | 'dashDotDot' | 'mediumDashDotDot'
+  | 'slantDashDot';
 
 /** A data-validation rule. Build one with the `dataValidation` helpers. */
 interface CellValidation {
@@ -915,11 +1046,11 @@ apps only need the entry points above.
 ### Known limitations
 
 - **Inline strings by default.** Enable a shared-strings table with `new ExcelWriter({ sharedStrings: true })` for smaller files with lots of repeated text. The streaming writer ignores that option and always writes inline strings.
-- **Formulas recalculate on open.** Formula cells are written without a cached value; Excel computes them on load (`fullCalcOnLoad`). A reader that does not calculate shows them empty: SheetJS with default options skips the cell and openpyxl with `data_only` returns `None`.
-- **Strings starting with `=` are formulas.** There is no way to write such text literally yet. Do not pass user-controlled text that starts with `=` to the writers.
-- **Date cells cannot be styled.** A `Date` is always written with the built-in date format, and the reader returns no style for date-formatted cells.
-- **Dates are local wall-clock values.** `new Date(2024, 0, 15)` is written as 15 January whatever the time zone, with the built-in short date format (no time of day, locale dependent). A UTC-midnight `Date` such as `new Date('2024-01-15')` falls on the previous day in negative offsets.
-- **One box border.** `border: true` draws the same border on all four sides. There are no per-side borders, row heights or hidden rows and columns.
+- **Formulas recalculate on open.** The workbook asks Excel to recalculate every formula on load (`fullCalcOnLoad`). A formula without a `result` carries no cached value, so a reader that does not calculate shows it empty: SheetJS with default options skips the cell and openpyxl with `data_only` returns `None`. Pass `result` to store one.
+- **Strings starting with `=` are formulas.** The shorthand stays a formula. To store text that starts with `=`, use `{ text: '=…' }`, and wrap user-controlled text that way: `{ text }` prevents formula interpretation and nothing else.
+- **Dates are local wall-clock values.** `new Date(2024, 0, 15)` is written as 15 January whatever the time zone, with the built-in short date format (locale dependent) unless the cell's style has a date `numberFormat`. A UTC-midnight `Date` such as `new Date('2024-01-15')` falls on the previous day in negative offsets, and a local time that does not exist (inside a daylight-saving gap) moves forward.
+- **No diagonal borders.** Borders cover the four sides, with 13 line styles and RGB colours. Theme and indexed border colours are read as black.
+- **Layout defaults.** A row without a height uses Excel's default. Sheet defaults (default row height and column width, outline levels) are not written or kept.
 - **AutoFilter ranges only.** Filter criteria and sort state are not written or read.
 - **Hyperlink schemes.** The writer accepts `http:`, `https:`, `mailto:` and locations inside the workbook.
 - **Reader limits.** The reader rejects cell and row references outside Excel's grid (`XFD1048576`), clamps `<col>` ranges to 16,384 columns and throws when a workbook needs more than 5,000,000 empty cells of padding to keep rows rectangular. It still holds the whole file in memory, so cap the upload size before parsing untrusted files.

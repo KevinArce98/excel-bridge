@@ -8,9 +8,12 @@ import {
   validateColIndex,
   validateRowIndex,
 } from '../core/date-utils';
+import { isRowHeight } from '../core/row-height';
+import { BORDER_SIDES, BORDER_STYLES } from '../core/borders';
+import type { BorderLine, BorderLines, BorderStyleName, ParsedBorder } from '../core/borders';
 import type {
   AutoFilter,
-  CellStyle,
+  ParsedCellStyle,
   CellValidation,
   ConditionalFormat,
   ConditionalFormatStyle,
@@ -18,6 +21,7 @@ import type {
   DataValidationOperator,
   DataValidationType,
   Hyperlink,
+  SheetLayout,
   SheetState,
 } from '../core/types';
 
@@ -30,12 +34,12 @@ export interface ParsedCell {
   formula?: string;
 }
 
-export interface ParsedSheet {
+export interface ParsedSheet extends SheetLayout {
   name: string;
   data: ParsedCell[][];
   validations: CellValidation[];
   state?: Exclude<SheetState, 'visible'>;
-  styles?: Record<string, CellStyle>;
+  styles?: Record<string, ParsedCellStyle>;
   mergeCells?: string[];
   freezePane?: { row?: number; col?: number };
   columnWidths?: number[];
@@ -55,6 +59,16 @@ export interface ParsedWorkbook {
   };
 }
 
+const isBorderStyleName = (style: unknown): style is BorderStyleName =>
+  BORDER_STYLES.includes(style as BorderStyleName);
+
+type RawBorder = Partial<Record<(typeof BORDER_SIDES)[number], RawBorderSide>> | undefined;
+
+interface RawBorderSide {
+  style?: string;
+  color?: { rgb?: string };
+}
+
 interface DecodedFont {
   bold?: boolean;
   italic?: boolean;
@@ -67,13 +81,6 @@ interface DecodedFont {
 interface DecodedFill {
   fgColor?: string;
   patternType?: string;
-}
-
-interface DecodedBorder {
-  left?: boolean;
-  right?: boolean;
-  top?: boolean;
-  bottom?: boolean;
 }
 
 interface DecodedXf {
@@ -91,7 +98,7 @@ interface DecodedXf {
 interface StyleSheetData {
   fonts: DecodedFont[];
   fills: DecodedFill[];
-  borders: DecodedBorder[];
+  borders: (ParsedBorder | undefined)[];
   customFormats: Record<number, string>;
   cellXfs: DecodedXf[];
   dateStyles: Set<number>;
@@ -125,6 +132,22 @@ const toArray = <T>(value: T | T[] | undefined): T[] => {
 };
 
 export const MAX_PLACEHOLDER_CELLS = 5_000_000;
+
+const isFlag = (value: unknown): boolean => value === '1' || value === 'true';
+
+const BUILT_IN_DATE_FORMATS: Record<number, string> = {
+  15: 'd-mmm-yy',
+  16: 'd-mmm',
+  17: 'mmm-yy',
+  18: 'h:mm AM/PM',
+  19: 'h:mm:ss AM/PM',
+  20: 'h:mm',
+  21: 'h:mm:ss',
+  22: 'm/d/yy h:mm',
+  45: 'mm:ss',
+  46: '[h]:mm:ss',
+  47: 'mmss.0',
+};
 
 const STRUCTURAL_PARTS = new Set([
   '[Content_Types].xml',
@@ -356,12 +379,7 @@ export class ExcelReader {
         };
       });
 
-      result.borders = toArray(styleSheet.borders?.border).map((border: any) => ({
-        left: border?.left !== undefined && border.left.style !== undefined,
-        right: border?.right !== undefined && border.right.style !== undefined,
-        top: border?.top !== undefined && border.top.style !== undefined,
-        bottom: border?.bottom !== undefined && border.bottom.style !== undefined,
-      }));
+      result.borders = toArray(styleSheet.borders?.border).map(border => this.decodeBorder(border));
 
       const xfs = toArray(styleSheet.cellXfs?.xf);
       result.cellXfs = xfs.map((xf: any) => {
@@ -375,7 +393,7 @@ export class ExcelReader {
             ? {
                 horizontal: alignment.horizontal,
                 vertical: alignment.vertical === 'center' ? 'middle' : alignment.vertical,
-                wrapText: alignment.wrapText === '1' || alignment.wrapText === 'true',
+                wrapText: isFlag(alignment.wrapText),
               }
             : undefined,
         };
@@ -404,6 +422,21 @@ export class ExcelReader {
     return result;
   }
 
+  private decodeBorder(border: RawBorder): ParsedBorder | undefined {
+    const lines: BorderLines = {};
+    let plain = 0;
+    for (const side of BORDER_SIDES) {
+      const { style, color } = border?.[side] ?? {};
+      if (!isBorderStyleName(style)) continue;
+      const line: BorderLine = { style };
+      const hex = color?.rgb === undefined ? '#000000' : this.argbToHex(String(color.rgb));
+      if (hex.toUpperCase() !== '#000000') line.color = hex;
+      lines[side] = line;
+      if (style === 'thin' && !line.color) plain++;
+    }
+    return plain === 4 ? true : Object.keys(lines).length > 0 ? lines : undefined;
+  }
+
   private argbToHex(argb: string): string {
     const hex = argb.length === 8 ? argb.slice(2) : argb;
     return `#${hex}`;
@@ -412,19 +445,28 @@ export class ExcelReader {
   private decodeCellStyle(
     styleIndex: number | undefined,
     styleSheet: StyleSheetData
-  ): CellStyle | undefined {
-    if (styleIndex === undefined || styleSheet.dateStyles.has(styleIndex)) {
-      return undefined;
-    }
+  ): ParsedCellStyle | undefined {
+    if (styleIndex === undefined) return undefined;
 
     const xf = styleSheet.cellXfs[styleIndex];
     if (!xf) return undefined;
 
+    const numberFormat =
+      styleSheet.customFormats[xf.numFmtId] ?? BUILT_IN_DATE_FORMATS[xf.numFmtId];
+    const isPlainDate =
+      styleSheet.dateStyles.has(styleIndex) &&
+      !numberFormat &&
+      !xf.fontId &&
+      !xf.fillId &&
+      !xf.borderId &&
+      !xf.alignment;
+    if (isPlainDate) return undefined;
+
     const font = styleSheet.fonts[xf.fontId];
     const fill = styleSheet.fills[xf.fillId];
-    const border = styleSheet.borders[xf.borderId];
+    const border = structuredClone(styleSheet.borders[xf.borderId]);
 
-    const style: CellStyle = {};
+    const style: ParsedCellStyle = {};
 
     if (font?.bold) style.bold = true;
     if (font?.italic) style.italic = true;
@@ -437,9 +479,7 @@ export class ExcelReader {
       style.background = this.argbToHex(fill.fgColor);
     }
 
-    if (border && (border.left || border.right || border.top || border.bottom)) {
-      style.border = true;
-    }
+    if (border) style.border = border;
 
     if (xf.alignment) {
       if (xf.alignment.horizontal) style.align = xf.alignment.horizontal;
@@ -447,10 +487,7 @@ export class ExcelReader {
       if (xf.alignment.wrapText) style.wrapText = true;
     }
 
-    if (xf.numFmtId) {
-      const code = styleSheet.customFormats[xf.numFmtId];
-      if (code) style.numberFormat = code;
-    }
+    if (numberFormat) style.numberFormat = numberFormat;
 
     return Object.keys(style).length > 0 ? style : undefined;
   }
@@ -473,11 +510,18 @@ export class ExcelReader {
       .filter((validation): validation is CellValidation => validation !== undefined);
 
     const data: ParsedCell[][] = [];
-    const styles: Record<string, CellStyle> = {};
+    const styles: Record<string, ParsedCellStyle> = {};
+    const rowHeights: Record<number, number> = {};
+    const hiddenRows: number[] = [];
 
     for (const rowElement of rows) {
       const rowIndex = parseInt(rowElement.r, 10) - 1;
       if (rowIndex >= EXCEL_LIMITS.MAX_ROWS) validateRowIndex(rowIndex);
+      if (rowIndex >= 0) {
+        const height = Number(rowElement.ht);
+        if (isFlag(rowElement.customHeight) && isRowHeight(height)) rowHeights[rowIndex] = height;
+        if (isFlag(rowElement.hidden)) hiddenRows.push(rowIndex);
+      }
       const cells = toArray(rowElement.c);
 
       const rowData: ParsedCell[] = [];
@@ -524,7 +568,7 @@ export class ExcelReader {
       .filter((ref): ref is string => ref !== undefined);
 
     const freezePane = this.parseFreezePane(worksheet);
-    const columnWidths = this.parseColumnWidths(worksheet);
+    const columns = this.parseColumns(worksheet);
     const conditionalFormats = this.parseConditionalFormats(worksheet, styleSheet);
     const autoFilterRef = worksheet?.autoFilter?.ref;
     const hyperlinks = this.parseHyperlinks(worksheet, relsXml);
@@ -535,7 +579,9 @@ export class ExcelReader {
       ...(Object.keys(styles).length > 0 ? { styles } : {}),
       ...(mergeCells.length > 0 ? { mergeCells } : {}),
       ...(freezePane ? { freezePane } : {}),
-      ...(columnWidths ? { columnWidths } : {}),
+      ...columns,
+      ...(Object.keys(rowHeights).length > 0 ? { rowHeights } : {}),
+      ...(hiddenRows.length > 0 ? { hiddenRows } : {}),
       ...(conditionalFormats.length > 0 ? { conditionalFormats } : {}),
       ...(autoFilterRef !== undefined ? { autoFilter: { range: String(autoFilterRef) } } : {}),
       ...(hyperlinks.length > 0 ? { hyperlinks } : {}),
@@ -553,7 +599,7 @@ export class ExcelReader {
     const base = {
       range: String(validation.sqref),
       type: type as DataValidationType,
-      allowBlank: validation.allowBlank === '1' || validation.allowBlank === 'true',
+      allowBlank: isFlag(validation.allowBlank),
     };
 
     if (type === 'list') {
@@ -684,21 +730,26 @@ export class ExcelReader {
     return { ...(row ? { row } : {}), ...(col ? { col } : {}) };
   }
 
-  private parseColumnWidths(worksheet: any): number[] | undefined {
+  private parseColumns(worksheet: any): Pick<ParsedSheet, 'columnWidths' | 'hiddenColumns'> {
     const cols = toArray(worksheet?.cols?.col);
-    if (cols.length === 0) return undefined;
+    if (cols.length === 0) return {};
 
     const widths: number[] = [];
+    const hidden = new Set<number>();
     cols.forEach((col: any) => {
       const min = Math.max(Number(col.min) - 1, 0);
       const max = Math.min(Number(col.max) - 1, EXCEL_LIMITS.MAX_COLS - 1);
       const width = Number(col.width);
       for (let c = min; c <= max; c++) {
-        widths[c] = width;
+        if (Number.isFinite(width)) widths[c] = width;
+        if (isFlag(col.hidden)) hidden.add(c);
       }
     });
 
-    return widths;
+    return {
+      columnWidths: widths,
+      ...(hidden.size > 0 ? { hiddenColumns: [...hidden].sort((a, b) => a - b) } : {}),
+    };
   }
 
   private parseCell(
@@ -738,7 +789,7 @@ export class ExcelReader {
       } else if (cell.t === 'e') {
         value = String(raw);
         type = 'error';
-      } else {
+      } else if (raw !== '') {
         const num = parseFloat(raw);
         const date =
           styleIndex !== undefined && styleSheet.dateStyles.has(styleIndex) && Number.isFinite(num)

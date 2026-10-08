@@ -46,10 +46,10 @@ describe('error cells and values a worksheet cannot hold', () => {
 
   it('saves a workbook that holds them instead of throwing', () => {
     const saved = readFirstSheet(roundTrip(bytes));
-    expect(cellAt(saved, 'A1')).toMatchObject({ type: 'string', value: '#DIV/0!' });
+    expect(cellAt(saved, 'A1')).toMatchObject({ type: 'error', value: '#DIV/0!' });
     expect(cellAt(saved, 'B1')?.formula).toBe('1/0');
-    expect(cellAt(saved, 'C1')).toMatchObject({ type: 'string', value: '#NUM!' });
-    expect(cellAt(saved, 'D1')).toMatchObject({ type: 'string', value: '#NUM!' });
+    expect(cellAt(saved, 'C1')).toMatchObject({ type: 'error', value: '#NUM!' });
+    expect(cellAt(saved, 'D1')).toMatchObject({ type: 'error', value: '#NUM!' });
     expect(cellAt(saved, 'E1')).toMatchObject({ type: 'number', value: 1e12 });
     expect(cellAt(saved, 'F1')?.value).toBe(7);
   });

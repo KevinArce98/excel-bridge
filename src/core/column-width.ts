@@ -1,4 +1,12 @@
 import { rowIndexes } from './rows';
+import { splitCell } from './cells';
+import { CellValue } from './types';
+
+const displayedText = (cell: CellValue): string => {
+  const { formula, value } = splitCell(cell);
+  const shown = value ?? (formula === undefined ? undefined : `=${formula}`);
+  return (typeof shown === 'object' && 'error' in shown ? shown.error : shown)?.toString() || '';
+};
 
 export function calculateColumnWidths(data: any[][]): number[] {
   const widths: number[] = [];
@@ -8,7 +16,7 @@ export function calculateColumnWidths(data: any[][]): number[] {
     const row = data[index];
     maxCols = Math.max(maxCols, row.length);
     row.forEach((cell, colIndex) => {
-      const cellText = cell?.toString() || '';
+      const cellText = displayedText(cell);
       widths[colIndex] = Math.max(widths[colIndex] ?? 0, estimateTextWidth(cellText));
     });
   });
@@ -33,13 +41,25 @@ function estimateTextWidth(text: string): number {
   return Math.ceil(width);
 }
 
-export function generateColsXml(widths: number[]): string {
-  if (widths.length === 0) return '';
+const DEFAULT_COLUMN_WIDTH = 9.140625;
 
-  const colsXml = widths
+export function generateColsXml(
+  widths: number[],
+  { hiddenColumns = [] }: { hiddenColumns?: Iterable<number> } = {}
+): string {
+  const hidden = new Set(hiddenColumns);
+  const columns = widths.slice();
+  hidden.forEach(index => {
+    columns[index] ??= DEFAULT_COLUMN_WIDTH;
+  });
+
+  if (columns.length === 0) return '';
+
+  const colsXml = columns
     .map((width, index) => {
       const colNum = index + 1;
-      return `    <col min="${colNum}" max="${colNum}" width="${width}" customWidth="1"/>`;
+      const hiddenAttr = hidden.has(index) ? ' hidden="1"' : '';
+      return `    <col min="${colNum}" max="${colNum}" width="${width}" customWidth="1"${hiddenAttr}/>`;
     })
     .join('\n');
 

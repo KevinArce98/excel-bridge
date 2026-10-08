@@ -97,16 +97,16 @@ bytes from the figure in the README bundle size table. CI runs it on every push 
 
 ### Reference results
 
-Measured 2026-10-07 with esbuild 0.28.2 and Node 22; 1 KB = 1,000 bytes. The excel-bridge rows come from this repository's build with the dependency versions in `pnpm-lock.yaml`; the version in the first column is the one in `package.json` when the table was generated.
+The excel-bridge rows were measured 2026-10-08 and the other rows 2026-10-07, with esbuild 0.28.2 and Node 22; 1 KB = 1,000 bytes. The excel-bridge rows come from this repository's build with the dependency versions in `pnpm-lock.yaml`; the version in the first column is the release the build belongs to.
 
 | Package | Import | Min | Min+gzip |
 | --- | --- | ---: | ---: |
-| excel-bridge@1.4.0 (dist) | `{ createExcelWorkbookStream }` | 31.2 KB | 11.9 KB |
-| excel-bridge@1.4.0 (dist) | `{ ExcelWriter }` | 32.9 KB | 12.5 KB |
-| excel-bridge@1.4.0 (dist) | `{ ExcelReader }` | 80.7 KB | 28.2 KB |
-| excel-bridge@1.4.0 (dist) | `{ Workbook }` | 115.4 KB | 39.9 KB |
-| excel-bridge@1.4.0 (dist) | `{ ExcelBridge }` | 115.8 KB | 40.1 KB |
-| excel-bridge@1.4.0 (dist) | `* (everything)` | 123.1 KB | 42.6 KB |
+| excel-bridge@1.6.0 (dist) | `{ createExcelWorkbookStream }` | 30.6 KB | 12.3 KB |
+| excel-bridge@1.6.0 (dist) | `{ ExcelWriter }` | 32.2 KB | 12.9 KB |
+| excel-bridge@1.6.0 (dist) | `{ ExcelReader }` | 81.7 KB | 28.7 KB |
+| excel-bridge@1.6.0 (dist) | `{ Workbook }` | 116.6 KB | 41.0 KB |
+| excel-bridge@1.6.0 (dist) | `{ ExcelBridge }` | 117.0 KB | 41.1 KB |
+| excel-bridge@1.6.0 (dist) | `* (everything)` | 124.4 KB | 43.7 KB |
 | hucre@1.2.0 | `{ writeXlsx }` | 136.2 KB | 41.6 KB |
 | hucre@1.2.0 | `{ readXlsx }` | 136.6 KB | 41.1 KB |
 | hucre/xlsx@1.2.0 | `{ XlsxStreamWriter }` | 36.8 KB | 12.1 KB |

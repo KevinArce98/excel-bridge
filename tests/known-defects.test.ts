@@ -35,13 +35,9 @@ describe('styled cells', () => {
     expect(styleOf(1)?.bold).toBe(true);
   });
 
-  knownDefect(
-    'a Date cell loses its bold style (expected: bold stays) (I4)',
-    () => {
-      expect(styleOf(new Date(2024, 0, 15))?.bold).toBe(true);
-    },
-    { message: /expected undefined to be true/ }
-  );
+  it('reads the style of a Date cell', () => {
+    expect(styleOf(new Date(2024, 0, 15))?.bold).toBe(true);
+  });
 });
 
 describe('date systems', () => {

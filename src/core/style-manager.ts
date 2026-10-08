@@ -1,3 +1,6 @@
+import { BORDER_SIDES, BORDER_STYLES } from './borders';
+import type { BorderLine, BorderSide, BorderSides } from './borders';
+import { isDateFormatCode } from './date-utils';
 import { CellStyle, ConditionalFormatStyle } from './types';
 
 export function normalizeColor(color: string): string {
@@ -62,289 +65,234 @@ export interface Border {
   color?: string;
 }
 
+type Table = Map<string, number>;
+
+const FIRST_CUSTOM_NUM_FMT_ID = 164;
+const BUILT_IN_DATE_NUM_FMT_ID = 14;
+
+type ApplyFlags = Partial<
+  Record<
+    'applyFont' | 'applyFill' | 'applyBorder' | 'applyNumberFormat' | 'applyAlignment',
+    unknown
+  >
+>;
+
+const KEYED_STYLE_FIELDS: Record<keyof CellStyle, true> = {
+  background: true,
+  border: true,
+  bold: true,
+  italic: true,
+  underline: true,
+  color: true,
+  fontSize: true,
+  fontName: true,
+  align: true,
+  verticalAlign: true,
+  wrapText: true,
+  numberFormat: true,
+};
+
+const STYLE_FIELDS = Object.keys(KEYED_STYLE_FIELDS) as (keyof CellStyle)[];
+
+const intern = (table: Table, xml: string): number => {
+  let id = table.get(xml);
+  if (id === undefined) {
+    id = table.size;
+    table.set(xml, id);
+  }
+  return id;
+};
+
+const joinEntries = (table: Table): string => Array.from(table.keys()).join('\n');
+
+const escapeAttr = (text: string): string =>
+  text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+const indentedLines = (...lines: unknown[]): string =>
+  lines
+    .filter(Boolean)
+    .map(line => `\n      ${line}`)
+    .join('');
+
+const fontXml = ({ bold, italic, underline, color, fontSize, fontName }: CellStyle): string =>
+  '    <font>' +
+  indentedLines(
+    bold && '<b/>',
+    italic && '<i/>',
+    underline && '<u/>',
+    `<sz val="${fontSize || 11}"/>`,
+    color && `<color rgb="${normalizeColor(color)}"/>`,
+    `<name val="${escapeAttr(fontName || 'Calibri')}"/>`
+  ) +
+  '\n    </font>';
+
+const fillXml = (background?: string): string =>
+  `    <fill>\n      <patternFill patternType="${background ? 'solid' : 'none'}"${
+    background
+      ? `>\n        <fgColor rgb="${normalizeColor(background)}"/>\n      </patternFill>`
+      : '/>'
+  }\n    </fill>`;
+
+const OPAQUE_BLACK = 'FF000000';
+
+const borderSideXml = (side: string, spec?: BorderSide): string => {
+  if (!spec) return `<${side}/>`;
+  const { style, color }: Partial<BorderLine> = typeof spec === 'string' ? { style: spec } : spec;
+  if (!style || !BORDER_STYLES.includes(style)) {
+    throw new Error(
+      `Invalid border style "${style ?? JSON.stringify(spec)}": use ${BORDER_STYLES.join(', ')}`
+    );
+  }
+  return `<${side} style="${style}"><color rgb="${color ? normalizeColor(color) : OPAQUE_BLACK}"/></${side}>`;
+};
+
+const isPerSide = (border: BorderSide | BorderSides): border is BorderSides =>
+  typeof border === 'object' && border.style === undefined && border.color === undefined;
+
+const borderXml = (border: CellStyle['border'] = false): string => {
+  const whole = border === true ? 'thin' : border;
+  const sides: BorderSides = !whole
+    ? {}
+    : isPerSide(whole)
+      ? whole
+      : { left: whole, right: whole, top: whole, bottom: whole };
+  return (
+    '    <border>' +
+    BORDER_SIDES.map(side => borderSideXml(side, sides[side])).join('') +
+    '\n      <diagonal/>\n    </border>'
+  );
+};
+
+const alignmentXml = ({ align, verticalAlign, wrapText }: CellStyle): string =>
+  align || verticalAlign || wrapText
+    ? `<alignment${align ? ` horizontal="${escapeAttr(align)}"` : ''}${
+        verticalAlign
+          ? ` vertical="${escapeAttr(verticalAlign === 'middle' ? 'center' : verticalAlign)}"`
+          : ''
+      }${wrapText ? ' wrapText="1"' : ''}/>`
+    : '';
+
+const dxfXml = ({ bold, italic, color, background }: ConditionalFormatStyle): string => {
+  const font =
+    bold || italic || color
+      ? `<font>${bold ? '<b/>' : ''}${italic ? '<i/>' : ''}${color ? `<color rgb="${normalizeColor(color)}"/>` : ''}</font>`
+      : '';
+  const fill = background
+    ? `<fill><patternFill><bgColor rgb="${normalizeColor(background)}"/></patternFill></fill>`
+    : '';
+  return `    <dxf>${font}${fill}</dxf>`;
+};
+
+const styleKey = (style: CellStyle): string =>
+  JSON.stringify(STYLE_FIELDS.map(field => style[field]));
+
 export class StyleManager {
-  private fonts: Font[] = [];
-  private fills: Fill[] = [];
-  private borders: Border[] = [];
-  private cellXfs: ExcelStyle[] = [];
-  private styleMap: Map<string, number> = new Map();
-  private numFmts: Map<string, number> = new Map();
-  private nextNumFmtId = 164;
-  private dxfs: ConditionalFormatStyle[] = [];
-  private dxfMap: Map<string, number> = new Map();
+  private fonts: Table = new Map();
+  private fills: Table = new Map();
+  private borders: Table = new Map();
+  private numFmts: Table = new Map();
+  private dxfs: Table = new Map();
+  private cellXfs: Table = new Map();
+  private styleIds: Map<string, number> = new Map();
 
   constructor() {
-    this.fonts.push({ size: 11, name: 'Calibri' });
-
-    this.fills.push({ patternType: 'none' });
-    this.fills.push({ patternType: 'gray125' });
-
-    this.borders.push({});
-
-    this.cellXfs.push({
-      fontId: 0,
-      fillId: 0,
-      borderId: 0,
-      numFmtId: 0,
-    });
+    intern(this.fonts, fontXml({}));
+    intern(this.fills, fillXml());
+    intern(this.fills, '    <fill>\n      <patternFill patternType="gray125"/>\n    </fill>');
+    intern(this.borders, borderXml());
+    this.internXf(0, 0, 0, 0);
   }
 
   getStyleId(style: CellStyle): number {
-    const hash = this.hashStyle(style);
-
-    if (this.styleMap.has(hash)) {
-      return this.styleMap.get(hash)!;
+    const key = styleKey(style);
+    let id = this.styleIds.get(key);
+    if (id === undefined) {
+      id = this.registerStyle(style);
+      this.styleIds.set(key, id);
     }
+    return id;
+  }
 
-    const fontId = this.addFont({
-      bold: style.bold,
-      italic: style.italic,
-      underline: style.underline,
-      color: style.color,
-      size: style.fontSize,
-      name: style.fontName,
-    });
+  getDateStyleId(style?: CellStyle): number {
+    const key = style ? `date${styleKey(style)}` : 'date';
+    let id = this.styleIds.get(key);
+    if (id === undefined) {
+      id = this.registerStyle(style ?? {}, BUILT_IN_DATE_NUM_FMT_ID);
+      this.styleIds.set(key, id);
+    }
+    return id;
+  }
 
-    const fillId = this.addFill({
-      fgColor: style.background,
-      patternType: style.background ? 'solid' : 'none',
-    });
-
-    const borderId = this.addBorder({
-      left: style.border,
-      right: style.border,
-      top: style.border,
-      bottom: style.border,
-    });
-
-    const numFmtId = style.numberFormat ? this.addNumFmt(style.numberFormat) : 0;
-
-    const hasAlignment = !!(style.align || style.verticalAlign || style.wrapText);
-    const alignment: CellAlignment | undefined = hasAlignment
-      ? { horizontal: style.align, vertical: style.verticalAlign, wrapText: style.wrapText }
-      : undefined;
-
-    const hasFont =
-      style.bold ||
-      style.italic ||
-      style.underline ||
-      !!style.color ||
-      !!style.fontSize ||
-      !!style.fontName;
-
-    const cellXf: ExcelStyle = {
+  private registerStyle(style: CellStyle, defaultNumFmtId = 0): number {
+    const { background, bold, italic, underline, color, fontSize, fontName } = style;
+    const numberFormat =
+      defaultNumFmtId && style.numberFormat && !isDateFormatCode(style.numberFormat)
+        ? undefined
+        : style.numberFormat;
+    const alignment = alignmentXml(style);
+    const fontId = intern(this.fonts, fontXml(style));
+    const fillId = intern(this.fills, fillXml(background));
+    const borderId = intern(this.borders, borderXml(style.border));
+    const numFmtId = numberFormat
+      ? FIRST_CUSTOM_NUM_FMT_ID + intern(this.numFmts, numberFormat)
+      : defaultNumFmtId;
+    return this.internXf(
       fontId,
       fillId,
       borderId,
       numFmtId,
-      applyFont: hasFont,
-      applyFill: !!style.background,
-      applyBorder: !!style.border,
-      applyNumberFormat: !!style.numberFormat,
-      alignment,
-    };
-
-    this.cellXfs.push(cellXf);
-    const styleId = this.cellXfs.length - 1;
-    this.styleMap.set(hash, styleId);
-
-    return styleId;
-  }
-
-  private addNumFmt(code: string): number {
-    const existing = this.numFmts.get(code);
-    if (existing !== undefined) {
-      return existing;
-    }
-    const id = this.nextNumFmtId++;
-    this.numFmts.set(code, id);
-    return id;
-  }
-
-  getDateStyleId(): number {
-    const hash = 'DATE_FORMAT_14';
-
-    if (this.styleMap.has(hash)) {
-      return this.styleMap.get(hash)!;
-    }
-
-    const cellXf: ExcelStyle = {
-      fontId: 0,
-      fillId: 0,
-      borderId: 0,
-      numFmtId: 14,
-      applyNumberFormat: true,
-    };
-
-    this.cellXfs.push(cellXf);
-    const styleId = this.cellXfs.length - 1;
-    this.styleMap.set(hash, styleId);
-
-    return styleId;
-  }
-
-  private hashStyle(style: CellStyle): string {
-    return JSON.stringify({
-      bg: style.background || '',
-      bold: style.bold || false,
-      italic: style.italic || false,
-      underline: style.underline || false,
-      border: style.border || false,
-      color: style.color || '',
-      fontSize: style.fontSize || 0,
-      fontName: style.fontName || '',
-      align: style.align || '',
-      valign: style.verticalAlign || '',
-      wrap: style.wrapText || false,
-      numFmt: style.numberFormat || '',
-    });
-  }
-
-  private addFont(font: Font): number {
-    const normalized: Font = {
-      size: font.size || 11,
-      name: font.name || 'Calibri',
-      bold: font.bold,
-      italic: font.italic,
-      underline: font.underline,
-      color: font.color,
-    };
-
-    const existing = this.fonts.findIndex(
-      f =>
-        f.bold === normalized.bold &&
-        f.italic === normalized.italic &&
-        f.underline === normalized.underline &&
-        f.color === normalized.color &&
-        f.size === normalized.size &&
-        f.name === normalized.name
+      {
+        applyFont: bold || italic || underline || color || fontSize || fontName,
+        applyFill: background,
+        applyBorder: borderId,
+        applyNumberFormat: numFmtId,
+        applyAlignment: alignment,
+      },
+      alignment
     );
-
-    if (existing !== -1) {
-      return existing;
-    }
-
-    this.fonts.push(normalized);
-
-    return this.fonts.length - 1;
   }
 
-  private addFill(fill: Fill): number {
-    const existing = this.fills.findIndex(
-      f => f.fgColor === fill.fgColor && f.patternType === fill.patternType
+  private internXf(
+    fontId: number,
+    fillId: number,
+    borderId: number,
+    numFmtId: number,
+    applied: ApplyFlags = {},
+    alignment = ''
+  ): number {
+    const flags = Object.entries(applied)
+      .filter(([, enabled]) => enabled)
+      .map(([flag]) => ` ${flag}="1"`)
+      .join('');
+    const open = `    <xf numFmtId="${numFmtId}" fontId="${fontId}" fillId="${fillId}" borderId="${borderId}" xfId="0"${flags}`;
+    return intern(
+      this.cellXfs,
+      alignment ? `${open}>\n      ${alignment}\n    </xf>` : `${open}/>`
     );
-
-    if (existing !== -1) {
-      return existing;
-    }
-
-    this.fills.push(fill);
-    return this.fills.length - 1;
-  }
-
-  private addBorder(border: Border): number {
-    const existing = this.borders.findIndex(
-      b =>
-        b.left === border.left &&
-        b.right === border.right &&
-        b.top === border.top &&
-        b.bottom === border.bottom
-    );
-
-    if (existing !== -1) {
-      return existing;
-    }
-
-    this.borders.push(border);
-    return this.borders.length - 1;
   }
 
   generateFontsXml(): string {
-    return this.fonts
-      .map(font => {
-        let xml = '    <font>';
-        if (font.bold) xml += '\n      <b/>';
-        if (font.italic) xml += '\n      <i/>';
-        if (font.underline) xml += '\n      <u/>';
-        if (font.size) xml += `\n      <sz val="${font.size}"/>`;
-        if (font.color) xml += `\n      <color rgb="${this.colorAttr(font.color)}"/>`;
-        if (font.name) xml += `\n      <name val="${this.escapeAttr(font.name)}"/>`;
-        xml += '\n    </font>';
-        return xml;
-      })
-      .join('\n');
+    return joinEntries(this.fonts);
   }
 
   generateFillsXml(): string {
-    return this.fills
-      .map(fill => {
-        if (fill.patternType === 'none' || fill.patternType === 'gray125') {
-          return `    <fill>\n      <patternFill patternType="${fill.patternType}"/>\n    </fill>`;
-        }
-
-        let xml = '    <fill>\n      <patternFill patternType="solid">';
-        if (fill.fgColor) {
-          xml += `\n        <fgColor rgb="${this.colorAttr(fill.fgColor)}"/>`;
-        }
-        xml += '\n      </patternFill>\n    </fill>';
-        return xml;
-      })
-      .join('\n');
+    return joinEntries(this.fills);
   }
 
   generateBordersXml(): string {
-    return this.borders
-      .map(border => {
-        let xml = '    <border>';
-        xml += this.generateBorderSide('left', border.left);
-        xml += this.generateBorderSide('right', border.right);
-        xml += this.generateBorderSide('top', border.top);
-        xml += this.generateBorderSide('bottom', border.bottom);
-        xml += '\n      <diagonal/>';
-        xml += '\n    </border>';
-        return xml;
-      })
-      .join('\n');
-  }
-
-  private generateBorderSide(side: string, enabled?: boolean): string {
-    if (!enabled) {
-      return `<${side}/>`;
-    }
-    return `<${side} style="thin"><color rgb="FF000000"/></${side}>`;
+    return joinEntries(this.borders);
   }
 
   generateCellXfsXml(): string {
-    return this.cellXfs
-      .map(xf => {
-        let xml = `    <xf numFmtId="${xf.numFmtId}" fontId="${xf.fontId}" fillId="${xf.fillId}" borderId="${xf.borderId}" xfId="0"`;
-        if (xf.applyFont) xml += ' applyFont="1"';
-        if (xf.applyFill) xml += ' applyFill="1"';
-        if (xf.applyBorder) xml += ' applyBorder="1"';
-        if (xf.applyNumberFormat) xml += ' applyNumberFormat="1"';
-        if (xf.alignment) xml += ' applyAlignment="1"';
-
-        if (xf.alignment) {
-          const { horizontal, vertical, wrapText } = xf.alignment;
-          const verticalValue = vertical === 'middle' ? 'center' : vertical;
-          let alignXml = '      <alignment';
-          if (horizontal) alignXml += ` horizontal="${this.escapeAttr(horizontal)}"`;
-          if (verticalValue) alignXml += ` vertical="${this.escapeAttr(verticalValue)}"`;
-          if (wrapText) alignXml += ' wrapText="1"';
-          alignXml += '/>';
-          xml += `>\n${alignXml}\n    </xf>`;
-        } else {
-          xml += '/>';
-        }
-        return xml;
-      })
-      .join('\n');
+    return joinEntries(this.cellXfs);
   }
 
   generateNumFmtsXml(): string {
-    return Array.from(this.numFmts.entries())
-      .map(([code, id]) => `    <numFmt numFmtId="${id}" formatCode="${this.escapeAttr(code)}"/>`)
-      .join('\n');
+    return Array.from(
+      this.numFmts.keys(),
+      (code, index) =>
+        `    <numFmt numFmtId="${FIRST_CUSTOM_NUM_FMT_ID + index}" formatCode="${escapeAttr(code)}"/>`
+    ).join('\n');
   }
 
   getNumFmtsCount(): number {
@@ -352,67 +300,30 @@ export class StyleManager {
   }
 
   getDxfId(style: ConditionalFormatStyle): number {
-    const hash = JSON.stringify(style);
-    const existing = this.dxfMap.get(hash);
-    if (existing !== undefined) return existing;
-
-    const id = this.dxfs.length;
-    this.dxfs.push(style);
-    this.dxfMap.set(hash, id);
-    return id;
+    return intern(this.dxfs, dxfXml(style));
   }
 
   generateDxfsXml(): string {
-    return this.dxfs
-      .map(style => {
-        let fontXml = '';
-        if (style.bold || style.italic || style.color) {
-          fontXml = '<font>';
-          if (style.bold) fontXml += '<b/>';
-          if (style.italic) fontXml += '<i/>';
-          if (style.color) fontXml += `<color rgb="${this.colorAttr(style.color)}"/>`;
-          fontXml += '</font>';
-        }
-
-        let fillXml = '';
-        if (style.background) {
-          fillXml = `<fill><patternFill><bgColor rgb="${this.colorAttr(style.background)}"/></patternFill></fill>`;
-        }
-
-        return `    <dxf>${fontXml}${fillXml}</dxf>`;
-      })
-      .join('\n');
+    return joinEntries(this.dxfs);
   }
 
   getDxfsCount(): number {
-    return this.dxfs.length;
-  }
-
-  private escapeAttr(text: string): string {
-    return text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
-  }
-
-  private colorAttr(color: string): string {
-    return this.escapeAttr(normalizeColor(color));
+    return this.dxfs.size;
   }
 
   getFontsCount(): number {
-    return this.fonts.length;
+    return this.fonts.size;
   }
 
   getFillsCount(): number {
-    return this.fills.length;
+    return this.fills.size;
   }
 
   getBordersCount(): number {
-    return this.borders.length;
+    return this.borders.size;
   }
 
   getCellXfsCount(): number {
-    return this.cellXfs.length;
+    return this.cellXfs.size;
   }
 }

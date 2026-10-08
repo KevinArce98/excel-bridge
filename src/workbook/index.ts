@@ -3,10 +3,14 @@ import { ExcelWriter } from '../writer';
 import { parseRange, formatRange } from '../core/cell-ref';
 import { EXCEL_LIMITS } from '../core/date-utils';
 import { validateSheetName } from '../core/sheet-name';
+import { isExcelError } from '../core/cells';
+import { prepareLayout } from '../core/sheet-layout';
 import { HYPERLINK_STYLE, prepareHyperlink } from '../core/hyperlinks';
 import {
   AutoFilter,
   CellValue,
+  ErrorCell,
+  TextCell,
   CellValidation,
   CellStyle,
   ConditionalFormat,
@@ -27,8 +31,19 @@ interface WorkbookSheet {
   autoFilter?: AutoFilter;
   freezePane?: { row?: number; col?: number };
   columnWidths?: number[];
+  rowHeights?: Record<number, number>;
+  hiddenRows: Set<number>;
+  hiddenColumns: Set<number>;
   autoWidth?: boolean;
+  literals: Map<string, LiteralCell>;
 }
+
+type LiteralCell = TextCell | ErrorCell;
+
+const setMember = (members: Set<number>, index: number, present: boolean): void => {
+  if (present) members.add(index);
+  else members.delete(index);
+};
 
 const cellToValue = (cell: ParsedCell): CellValue => {
   if (cell.formula !== undefined) return `=${cell.formula}`;
@@ -36,18 +51,46 @@ const cellToValue = (cell: ParsedCell): CellValue => {
   return cell.value;
 };
 
-const placeRows = (rows: ParsedCell[][]): CellValue[][] => {
+const literalOf = (cell: ParsedCell): LiteralCell | undefined => {
+  if (cell.formula !== undefined) return undefined;
+  if (cell.type === 'error' && isExcelError(cell.value)) return { error: cell.value };
+  if (typeof cell.value === 'string' && cell.value.startsWith('=')) return { text: cell.value };
+  return undefined;
+};
+
+const loadedText = (literal: LiteralCell): string => literal.error ?? literal.text;
+
+const withLiterals = (sheet: WorkbookSheet): CellValue[][] => {
+  if (sheet.literals.size === 0) return sheet.data;
+  const data = sheet.data.slice();
+  sheet.literals.forEach((literal, key) => {
+    const [row, col] = key.split('-').map(Number);
+    if (data[row]?.[col] !== loadedText(literal)) return;
+    data[row] = data[row].slice();
+    data[row][col] = literal;
+  });
+  return data;
+};
+
+const placeRows = (
+  rows: ParsedCell[][]
+): { data: CellValue[][]; literals: Map<string, LiteralCell> } => {
   const data: CellValue[][] = [];
+  const literals = new Map<string, LiteralCell>();
   let next = 0;
 
   for (const row of rows) {
     const declared = row[0]?.rowIndex ?? -1;
     const index = declared >= next ? declared : next;
-    data[index] = row.map(cellToValue);
+    data[index] = row.map((cell, col) => {
+      const literal = literalOf(cell);
+      if (literal !== undefined) literals.set(`${index}-${col}`, literal);
+      return cellToValue(cell);
+    });
     next = index + 1;
   }
 
-  return data;
+  return { data, literals };
 };
 
 const canonicalHyperlink = (link: Hyperlink): Hyperlink => ({
@@ -111,21 +154,28 @@ export class Workbook {
       title: parsed.metadata.title,
       subject: parsed.metadata.subject,
     };
-    workbook.sheets = parsed.sheets.map(sheet => ({
-      name: sheet.name,
-      ...(sheet.state ? { state: sheet.state } : {}),
-      data: placeRows(sheet.data),
-      styles: sheet.styles ?? {},
-      validations: sheet.validations.map(validation => ({ ...validation })),
-      mergeCells: sheet.mergeCells ?? [],
-      conditionalFormats: sheet.conditionalFormats ?? [],
-      hyperlinks: loadHyperlinks(sheet.hyperlinks),
-      autoFilter: sheet.autoFilter
-        ? acceptOrDrop(sheet.autoFilter, canonicalAutoFilter)[0]
-        : undefined,
-      freezePane: sheet.freezePane,
-      columnWidths: sheet.columnWidths,
-    }));
+    workbook.sheets = parsed.sheets.map(sheet => {
+      const placed = placeRows(sheet.data);
+      return {
+        name: sheet.name,
+        ...(sheet.state ? { state: sheet.state } : {}),
+        data: placed.data,
+        literals: placed.literals,
+        styles: sheet.styles ?? {},
+        validations: sheet.validations.map(validation => ({ ...validation })),
+        mergeCells: sheet.mergeCells ?? [],
+        conditionalFormats: sheet.conditionalFormats ?? [],
+        hyperlinks: loadHyperlinks(sheet.hyperlinks),
+        autoFilter: sheet.autoFilter
+          ? acceptOrDrop(sheet.autoFilter, canonicalAutoFilter)[0]
+          : undefined,
+        freezePane: sheet.freezePane,
+        columnWidths: sheet.columnWidths,
+        rowHeights: sheet.rowHeights,
+        hiddenRows: new Set(sheet.hiddenRows),
+        hiddenColumns: new Set(sheet.hiddenColumns),
+      };
+    });
     return workbook;
   }
 
@@ -162,6 +212,9 @@ export class Workbook {
       mergeCells: [],
       conditionalFormats: [],
       hyperlinks: [],
+      hiddenRows: new Set(),
+      hiddenColumns: new Set(),
+      literals: new Map(),
     });
   }
 
@@ -194,6 +247,7 @@ export class Workbook {
     const sheet = this.findSheet(sheetName);
     if (!sheet.data[row]) sheet.data[row] = [];
     sheet.data[row][col] = value;
+    sheet.literals.delete(`${row}-${col}`);
   }
 
   getCellStyle(sheetName: string, row: number, col: number): CellStyle | undefined {
@@ -229,6 +283,38 @@ export class Workbook {
     this.findSheet(sheetName).columnWidths = widths;
   }
 
+  setRowHeight(sheetName: string, row: number, height: number | null): void {
+    const sheet = this.findSheet(sheetName);
+    if (height === null) {
+      delete sheet.rowHeights?.[row];
+    } else {
+      prepareLayout({ rowHeights: { [row]: height } });
+      (sheet.rowHeights ??= {})[row] = height;
+    }
+  }
+
+  getRowHeight(sheetName: string, row: number): number | undefined {
+    return this.findSheet(sheetName).rowHeights?.[row];
+  }
+
+  setRowHidden(sheetName: string, row: number, hidden: boolean = true): void {
+    prepareLayout({ hiddenRows: [row] });
+    setMember(this.findSheet(sheetName).hiddenRows, row, hidden);
+  }
+
+  isRowHidden(sheetName: string, row: number): boolean {
+    return this.findSheet(sheetName).hiddenRows.has(row);
+  }
+
+  setColumnHidden(sheetName: string, col: number, hidden: boolean = true): void {
+    prepareLayout({ hiddenColumns: [col] });
+    setMember(this.findSheet(sheetName).hiddenColumns, col, hidden);
+  }
+
+  isColumnHidden(sheetName: string, col: number): boolean {
+    return this.findSheet(sheetName).hiddenColumns.has(col);
+  }
+
   setAutoWidth(sheetName: string, enabled: boolean): void {
     this.findSheet(sheetName).autoWidth = enabled;
   }
@@ -251,7 +337,14 @@ export class Workbook {
   }
 
   removeAutoFilter(sheetName: string): void {
-    delete this.findSheet(sheetName).autoFilter;
+    const sheet = this.findSheet(sheetName);
+    if (sheet.autoFilter) {
+      const { start, end } = parseRange(sheet.autoFilter.range);
+      sheet.hiddenRows.forEach(row => {
+        if (row > start.row && row <= end.row) sheet.hiddenRows.delete(row);
+      });
+    }
+    delete sheet.autoFilter;
   }
 
   setHyperlink(sheetName: string, hyperlink: Hyperlink): void {
@@ -296,7 +389,7 @@ export class Workbook {
 
   private toExcelData() {
     return this.sheets.map(sheet => ({
-      data: sheet.data,
+      data: withLiterals(sheet),
       validations: sheet.validations,
       styles: sheet.styles,
       mergeCells: sheet.mergeCells,
@@ -307,6 +400,9 @@ export class Workbook {
         state: sheet.state,
         freezePane: sheet.freezePane,
         columnWidths: sheet.columnWidths,
+        rowHeights: sheet.rowHeights,
+        hiddenRows: [...sheet.hiddenRows],
+        hiddenColumns: [...sheet.hiddenColumns],
         autoWidth: sheet.autoWidth,
         autoFilter: sheet.autoFilter,
       },

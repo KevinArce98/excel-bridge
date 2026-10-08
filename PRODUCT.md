@@ -20,7 +20,7 @@ Developers choosing an `.xlsx` read/write library for TypeScript/JavaScript that
 
 ## Positioning
 
-One tree-shakeable package: import a class and a bundler ships only that part. Two direct runtime dependencies (`fflate` for zip, `fast-xml-parser` for reading; the writer bundles no parser code), ESM **and** CJS, TypeScript-first, synchronous. One API spans browser and Node; reading and writing buffers is synchronous, while reading a `File` and streaming are async. Read **and** write — cell styles, formulas, dates, merged cells, freeze panes, conditional formatting, data validation, autofilters, hyperlinks, hidden sheets, multi-sheet — plus a streaming writer for very large exports and a `Workbook` load/edit/save API for files the library can model. The defensible claim is the combination, stated with its limits: SheetJS gates styling/conditional-formatting/streaming behind its Pro edition; ExcelJS carries a large CJS-first runtime; newer libraries such as hucre cover more features at 3x the writer size. It is not the smallest on every row and does not do images, charts, comments, tables, per-side borders or file-preserving edits.
+One tree-shakeable package: import a class and a bundler ships only that part. Two direct runtime dependencies (`fflate` for zip, `fast-xml-parser` for reading; the writer bundles no parser code), ESM **and** CJS, TypeScript-first, synchronous. One API spans browser and Node; reading and writing buffers is synchronous, while reading a `File` and streaming are async. Read **and** write — cell styles, formulas, dates, merged cells, freeze panes, conditional formatting, data validation, autofilters, hyperlinks, hidden sheets, multi-sheet — plus a streaming writer for very large exports and a `Workbook` load/edit/save API for files the library can model. The defensible claim is the combination, stated with its limits: SheetJS gates styling/conditional-formatting/streaming behind its Pro edition; ExcelJS carries a large CJS-first runtime; newer libraries such as hucre cover more features at 3x the writer size. It is not the smallest on every row and does not do images, charts, comments, tables, diagonal borders or file-preserving edits.
 
 ## Operating Context
 
@@ -28,26 +28,26 @@ Evaluation happens at a desk, in a browser, alongside npm, GitHub, and Bundlepho
 
 ## Capabilities and Constraints
 
-Confirmed capabilities (published 1.5.0):
+Confirmed capabilities (1.6.0, unreleased; the published package is 1.5.0):
 
 - `ExcelBridge.read` / `readFromFile` / `write` / `writeBuffer` entry points.
 - Classes: `Workbook` (load/edit/save), `ExcelReader`, `ExcelWriter`, `StyleManager`.
-- Cell styling: background, bold, italic, underline, color, fontSize, fontName, align, verticalAlign, wrapText, numberFormat, border.
-- Formulas (strings starting with `=`), `Date` → Excel serial conversion, merged cells, freeze panes, column widths / autoWidth.
+- Cell styling: background, bold, italic, underline, color, fontSize, fontName, align, verticalAlign, wrapText, numberFormat, and borders (all four sides, a line style, or per side; 13 line styles, RGB colours). `Date` cells take their style too.
+- Formulas (strings starting with `=`, or `{ formula, result? }` with a cached result), literal text that starts with `=` (`{ text }`), error values (`{ error }`), `Date` → Excel serial conversion, merged cells, freeze panes, column widths / autoWidth, row heights, hidden rows and hidden columns (writers, reader and `Workbook`).
 - Conditional formatting: `cellValue`, `expression`, `colorScale` — written and read back, and kept by a `Workbook` round trip.
 - Data validation builders: `list`, `wholeNumber`, `decimal`, `textLength`, `dateBetween`; the types `time` and `custom` are written from plain objects. Rules are read back in full and kept by a `Workbook` round trip.
 - AutoFilter (`options.autoFilter`) and hyperlinks (`hyperlinks` array, `hyperlink.url` / `email` / `internal` builders; `http`, `https`, `mailto` and in-workbook locations) — written by both writers, read back, and kept by a `Workbook` round trip.
 - Streaming writer: `createExcelWorkbookStream` / `streamToBuffer` for million-row exports from sync/async iterables.
 - Shared strings opt-in (ExcelWriter only); coordinate + date helper utilities; hidden and very hidden sheets (`state`).
-- Input checks that throw: sheet names (Excel's rules), hex colours, finite numbers and valid dates.
+- Input checks that throw: sheet names (Excel's rules), hex colours, border line styles, finite numbers, valid dates, error values, `{ formula: '' }`, row heights (above 0, at most 409.5) and row and column indexes.
 
 Constraints:
 
 - Inline strings by default (enable `sharedStrings: true` for smaller files with repeated text).
-- Formula cells are written without a cached value; Excel recalculates on open (`fullCalcOnLoad`).
+- Formula strings and `{ formula }` without `result` are written without a cached value; the workbook asks Excel to recalculate on open (`fullCalcOnLoad`). Pass `result` to store one.
 - Node engines `^20.19.0 || ^22.13.0 || >=24`; browsers need ES2022 + `File`/`Blob`; full Excel compatibility targets Excel 2016+.
 - The streaming writer does not support `autoWidth`, `validations`, `conditionalFormats`, `sharedStrings` or sheet `state`.
-- Strings starting with `=` are always written as formulas; date cells cannot be styled; there are no per-side borders, row heights or hidden rows/columns.
+- The `=` string shorthand stays a formula for all of 1.x (use `{ text }` for literal text); no diagonal borders, no sheet defaults (default row height and column width, outline levels); theme and indexed border colours read as black.
 - `Workbook` rebuilds the file from its model: images, charts, comments, tables, defined names, print setup, themes and macros of a loaded file are dropped.
 - The reader holds the whole file in memory, rejects out-of-grid references and caps empty padding cells at 5,000,000; it is not hardened for untrusted files beyond that. Known read gaps: 1904 dates, shared-formula followers, ISO date cells, prefixed namespaces, split panes.
 
