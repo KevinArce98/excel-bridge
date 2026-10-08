@@ -1,1 +1,1 @@
-export const rowIndexes = (rows: unknown[]): number[] => Object.keys(rows).map(Number);
+export const rowIndexes = (rows: object): number[] => Object.keys(rows).map(Number);

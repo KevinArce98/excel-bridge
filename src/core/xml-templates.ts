@@ -9,6 +9,8 @@ import {
 } from './date-utils';
 import { calculateColumnWidths, generateColsXml } from './column-width';
 import { rowIndexes } from './rows';
+import { prepareLayout } from './sheet-layout';
+import { isExcelError, splitCell } from './cells';
 import { indexToColumnLetter, parseRange, formatRange, quoteSheetName } from './cell-ref';
 import { PreparedHyperlink, prepareHyperlinks, withHyperlinkStyles } from './hyperlinks';
 import {
@@ -17,13 +19,15 @@ import {
   CellValidation,
   CellStyle,
   ConditionalFormat,
+  FormulaResult,
   Hyperlink,
+  SheetLayout,
   SheetState,
 } from './types';
 
 export type { CellValidation, CellStyle } from './types';
 
-export interface SheetGenerationOptions {
+export interface SheetGenerationOptions extends SheetLayout {
   freezePane?: { row?: number; col?: number };
   autoWidth?: boolean;
   columnWidths?: number[];
@@ -82,83 +86,98 @@ const generateConditionalFormattingXml = (
     .join('');
 };
 
+const valueCellXml = (
+  open: string,
+  formulaXml: string,
+  value: FormulaResult | null | undefined,
+  ref: string,
+  sharedStrings?: Map<string, number>
+): string => {
+  if (value === null || value === undefined) {
+    return formulaXml ? `${open}>${formulaXml}</c>` : `${open}/>`;
+  }
+
+  if (value instanceof Date && !isDate(value)) {
+    throw new Error(`Cell ${ref} holds an invalid Date`);
+  }
+
+  if (isDate(value)) {
+    return `${open}>${formulaXml}<v>${dateToExcelSerial(value)}</v></c>`;
+  }
+
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value)) {
+      throw new Error(`Cell ${ref} holds ${value}, which a worksheet cannot store`);
+    }
+    return `${open}>${formulaXml}<v>${value}</v></c>`;
+  }
+
+  if (typeof value === 'boolean') {
+    return `${open} t="b">${formulaXml}<v>${value ? 1 : 0}</v></c>`;
+  }
+
+  if (typeof value === 'object') {
+    if ('error' in value) {
+      if (!isExcelError(value.error)) {
+        throw new Error(`Cell ${ref} holds ${value.error}, which a worksheet cannot store`);
+      }
+      return `${open} t="e">${formulaXml}<v>${value.error}</v></c>`;
+    }
+    if ('formula' in value || 'text' in value) {
+      throw new Error(`Cell ${ref} needs a string formula or text`);
+    }
+  }
+
+  const stringValue = value.toString();
+  validateCellValue(stringValue);
+
+  if (formulaXml) {
+    return `${open} t="str">${formulaXml}<v>${escapeXml(stringValue)}</v></c>`;
+  }
+
+  const index = sharedStrings?.get(stringValue);
+  if (index !== undefined) {
+    return `${open} t="s"><v>${index}</v></c>`;
+  }
+
+  const space = stringValue !== stringValue.trim() ? ' xml:space="preserve"' : '';
+  return `${open} t="inlineStr"><is><t${space}>${escapeXml(stringValue)}</t></is></c>`;
+};
+
 export const generateRowXml = (
   row: CellValue[],
   rowIndex: number,
   styles: Record<string, CellStyle> = {},
   styleManager?: StyleManager,
-  sharedStrings?: Map<string, number>
+  sharedStrings?: Map<string, number>,
+  attributes: string = ''
 ): string => {
   validateRowIndex(rowIndex);
-  let rowXml = `\n    <row r="${rowIndex + 1}">`;
+  let rowXml = `\n    <row r="${rowIndex + 1}"${attributes}>`;
 
   row.forEach((cellValue, colIndex) => {
     validateColIndex(colIndex);
     const ref = `${indexToColumnLetter(colIndex)}${rowIndex + 1}`;
-    const styleKey = `${rowIndex}-${colIndex}`;
-    const cellStyle = styles[styleKey];
-
-    let cellXml = `<c r="${ref}"`;
-
-    if (cellStyle && styleManager) {
-      const styleId = styleManager.getStyleId(cellStyle);
-      cellXml += ` s="${styleId}"`;
-    }
-
-    if (cellValue === null || cellValue === undefined) {
-      rowXml += cellXml + '/>';
+    const cellStyle = styles[`${rowIndex}-${colIndex}`];
+    if (typeof cellValue === 'number' && Number.isFinite(cellValue) && !cellStyle) {
+      rowXml += `<c r="${ref}"><v>${cellValue}</v></c>`;
       return;
     }
-
-    if (typeof cellValue === 'string' && cellValue.startsWith('=')) {
-      const formula = escapeXml(cellValue.substring(1));
-      cellXml += `><f>${formula}</f></c>`;
-      rowXml += cellXml;
-      return;
+    const { formula, value } = splitCell(cellValue);
+    if (formula === '' && typeof cellValue === 'object') {
+      throw new Error(`Cell ${ref} needs a formula`);
     }
+    const styleId = isDate(value)
+      ? styleManager
+        ? styleManager.getDateStyleId(cellStyle)
+        : 0
+      : cellStyle
+        ? styleManager?.getStyleId(cellStyle)
+        : undefined;
+    const styleAttr = styleId === undefined ? '' : ` s="${styleId}"`;
+    const formulaXml = formula === undefined ? '' : `<f>${escapeXml(formula)}</f>`;
 
-    if (cellValue instanceof Date && !isDate(cellValue)) {
-      throw new Error(`Cell ${ref} holds an invalid Date`);
-    }
-
-    if (isDate(cellValue)) {
-      const serial = dateToExcelSerial(cellValue);
-      const dateStyleId = styleManager ? styleManager.getDateStyleId() : 0;
-      cellXml = `<c r="${ref}" s="${dateStyleId}"><v>${serial}</v></c>`;
-      rowXml += cellXml;
-      return;
-    }
-
-    if (typeof cellValue === 'number') {
-      if (!Number.isFinite(cellValue)) {
-        throw new Error(`Cell ${ref} holds ${cellValue}, which a worksheet cannot store`);
-      }
-      cellXml += `><v>${cellValue}</v></c>`;
-      rowXml += cellXml;
-      return;
-    }
-
-    if (typeof cellValue === 'boolean') {
-      cellXml += ` t="b"><v>${cellValue ? 1 : 0}</v></c>`;
-      rowXml += cellXml;
-      return;
-    }
-
-    const stringValue = cellValue.toString();
-    validateCellValue(stringValue);
-
-    if (sharedStrings) {
-      const index = sharedStrings.get(stringValue);
-      if (index !== undefined) {
-        cellXml += ` t="s"><v>${index}</v></c>`;
-        rowXml += cellXml;
-        return;
-      }
-    }
-
-    const space = stringValue !== stringValue.trim() ? ' xml:space="preserve"' : '';
-    cellXml += ` t="inlineStr"><is><t${space}>${escapeXml(stringValue)}</t></is></c>`;
-    rowXml += cellXml;
+    rowXml += valueCellXml(`<c r="${ref}"${styleAttr}`, formulaXml, value, ref, sharedStrings);
   });
 
   rowXml += `</row>`;
@@ -279,23 +298,31 @@ export const generatePreparedSheetXml = (
   const sheetStyles = withHyperlinkStyles(styles, links);
   const autoFilterXml = generateAutoFilterXml(options.autoFilter);
 
+  const layout = prepareLayout(options);
+  const populatedRows = rowIndexes(data);
+  const layoutOnlyRows = layout.rows.filter(rowIndex => !(rowIndex in data));
+  const rows =
+    layoutOnlyRows.length === 0
+      ? populatedRows
+      : populatedRows.concat(layoutOnlyRows).sort((a, b) => a - b);
+
   let rowsXml = '';
 
-  rowIndexes(data).forEach(rowIndex => {
+  rows.forEach(rowIndex => {
     rowsXml += generateRowXml(
-      data[rowIndex],
+      data[rowIndex] ?? [],
       rowIndex,
       sheetStyles,
       styleManager,
-      options.sharedStrings
+      options.sharedStrings,
+      layout.rowAttributes(rowIndex)
     );
   });
 
-  const colsXml = options.columnWidths
-    ? generateColsXml(options.columnWidths)
-    : options.autoWidth
-      ? generateColsXml(calculateColumnWidths(data))
-      : '';
+  const colsXml = generateColsXml(
+    options.columnWidths ?? (options.autoWidth ? calculateColumnWidths(data) : []),
+    layout
+  );
 
   return (
     generateWorksheetStart(generateSheetViewsXml(options.freezePane), colsXml, links) +
@@ -377,67 +404,20 @@ export const generateSharedStringsXml = (strings: string[]) => {
 </sst>`;
 };
 
-export const generateStylesXml = (styleManager?: StyleManager) => {
-  if (!styleManager) {
-    return `<?xml version="1.0"?>
-<styleSheet xmlns="${XML_NS.spreadsheetml}">
-  <fonts count="1">
-    <font>
-      <sz val="11"/>
-      <name val="Calibri"/>
-    </font>
-  </fonts>
-  <fills count="2">
-    <fill><patternFill patternType="none"/></fill>
-    <fill><patternFill patternType="gray125"/></fill>
-  </fills>
-  <borders count="1">
-    <border><left/><right/><top/><bottom/><diagonal/></border>
-  </borders>
-  <cellStyleXfs count="1">
-    <xf numFmtId="0" fontId="0" fillId="0" borderId="0"/>
-  </cellStyleXfs>
-  <cellXfs count="1">
-    <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
-  </cellXfs>
-  <cellStyles count="1">
-    <cellStyle name="Normal" xfId="0" builtinId="0"/>
-  </cellStyles>
-  <dxfs count="0"/>
-  <tableStyles count="0" defaultTableStyle="TableStyleMedium2" defaultPivotStyle="PivotStyleLight16"/>
-</styleSheet>`;
-  }
+const stylesSection = (tag: string, count: number, body: string): string =>
+  `  <${tag} count="${count}">\n${body}\n  </${tag}>\n`;
 
+export const generateStylesXml = (styleManager = new StyleManager()) => {
   const numFmtsCount = styleManager.getNumFmtsCount();
-  const numFmtsXml =
-    numFmtsCount > 0
-      ? `  <numFmts count="${numFmtsCount}">\n${styleManager.generateNumFmtsXml()}\n  </numFmts>\n`
-      : '';
-
   return `<?xml version="1.0"?>
 <styleSheet xmlns="${XML_NS.spreadsheetml}">
-${numFmtsXml}  <fonts count="${styleManager.getFontsCount()}">
-${styleManager.generateFontsXml()}
-  </fonts>
-  <fills count="${styleManager.getFillsCount()}">
-${styleManager.generateFillsXml()}
-  </fills>
-  <borders count="${styleManager.getBordersCount()}">
-${styleManager.generateBordersXml()}
-  </borders>
-  <cellStyleXfs count="1">
+${numFmtsCount > 0 ? stylesSection('numFmts', numFmtsCount, styleManager.generateNumFmtsXml()) : ''}${stylesSection('fonts', styleManager.getFontsCount(), styleManager.generateFontsXml())}${stylesSection('fills', styleManager.getFillsCount(), styleManager.generateFillsXml())}${stylesSection('borders', styleManager.getBordersCount(), styleManager.generateBordersXml())}  <cellStyleXfs count="1">
     <xf numFmtId="0" fontId="0" fillId="0" borderId="0"/>
   </cellStyleXfs>
-  <cellXfs count="${styleManager.getCellXfsCount()}">
-${styleManager.generateCellXfsXml()}
-  </cellXfs>
-  <cellStyles count="1">
+${stylesSection('cellXfs', styleManager.getCellXfsCount(), styleManager.generateCellXfsXml())}  <cellStyles count="1">
     <cellStyle name="Normal" xfId="0" builtinId="0"/>
   </cellStyles>
-  <dxfs count="${styleManager.getDxfsCount()}">
-${styleManager.generateDxfsXml()}
-  </dxfs>
-  <tableStyles count="0" defaultTableStyle="TableStyleMedium2" defaultPivotStyle="PivotStyleLight16"/>
+${stylesSection('dxfs', styleManager.getDxfsCount(), styleManager.generateDxfsXml())}  <tableStyles count="0" defaultTableStyle="TableStyleMedium2" defaultPivotStyle="PivotStyleLight16"/>
 </styleSheet>`;
 };
 

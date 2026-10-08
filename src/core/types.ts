@@ -1,4 +1,42 @@
-export type CellValue = string | number | boolean | Date | null | undefined;
+import type { EXCEL_ERRORS } from './cells';
+import type { CellBorder, ParsedBorder } from './borders';
+
+export type {
+  CellBorder,
+  BorderSide,
+  BorderSides,
+  BorderLine,
+  BorderLines,
+  BorderSideName,
+  BorderStyleName,
+  ParsedBorder,
+} from './borders';
+
+export type ExcelErrorValue = (typeof EXCEL_ERRORS)[number];
+
+export interface ErrorCell {
+  error: ExcelErrorValue;
+  formula?: never;
+  text?: never;
+}
+
+export interface TextCell {
+  text: string;
+  formula?: never;
+  error?: never;
+}
+
+export type FormulaResult = string | number | boolean | Date | ErrorCell;
+
+export interface FormulaCell {
+  formula: string;
+  result?: FormulaResult;
+  text?: never;
+  error?: never;
+}
+
+export type CellValue =
+  string | number | boolean | Date | null | undefined | FormulaCell | TextCell | ErrorCell;
 
 export type DataValidationType =
   'list' | 'whole' | 'decimal' | 'textLength' | 'date' | 'time' | 'custom';
@@ -90,9 +128,15 @@ export interface InternalHyperlink {
 
 export type Hyperlink = ExternalHyperlink | InternalHyperlink;
 
+export interface SheetLayout {
+  rowHeights?: Record<number, number>;
+  hiddenRows?: number[];
+  hiddenColumns?: number[];
+}
+
 export interface CellStyle {
   background?: string;
-  border?: boolean;
+  border?: CellBorder;
   bold?: boolean;
   italic?: boolean;
   underline?: boolean;
@@ -104,3 +148,5 @@ export interface CellStyle {
   wrapText?: boolean;
   numberFormat?: string;
 }
+
+export type ParsedCellStyle = Omit<CellStyle, 'border'> & { border?: ParsedBorder };

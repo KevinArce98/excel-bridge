@@ -1,5 +1,5 @@
 import { Zip, ZipDeflate, strToU8 } from 'fflate';
-import { StyleManager, normalizeColor } from '../core/style-manager';
+import { StyleManager } from '../core/style-manager';
 import {
   generateRowXml,
   generateContentTypesXml,
@@ -21,11 +21,12 @@ import {
 } from '../core/xml-templates';
 import { generateColsXml } from '../core/column-width';
 import { validateSheetNames } from '../core/sheet-name';
+import { prepareLayout } from '../core/sheet-layout';
 import { prepareHyperlinks, withHyperlinkStyles } from '../core/hyperlinks';
-import { AutoFilter, CellValue, CellStyle, Hyperlink } from '../core/types';
+import { AutoFilter, CellValue, CellStyle, Hyperlink, SheetLayout } from '../core/types';
 import type { ExcelWriterOptions } from './index';
 
-export interface StreamingSheetInput {
+export interface StreamingSheetInput extends SheetLayout {
   name?: string;
   rows: Iterable<CellValue[]> | AsyncIterable<CellValue[]>;
   styles?: Record<string, CellStyle>;
@@ -39,18 +40,22 @@ export interface StreamingSheetInput {
 const hasFrozenSplit = (freezePane?: { row?: number; col?: number }): boolean =>
   !!freezePane && ((freezePane.row ?? 0) > 0 || (freezePane.col ?? 0) > 0);
 
+const validateStyles = (sheets: StreamingSheetInput[]): void => {
+  const probe = new StyleManager();
+  sheets.forEach(sheet =>
+    Object.values(sheet.styles ?? {}).forEach(style => probe.getStyleId(style))
+  );
+};
+
 export async function* createExcelWorkbookStream(
   sheets: StreamingSheetInput[],
   options: ExcelWriterOptions = {}
 ): AsyncGenerator<Uint8Array, void, unknown> {
   const sheetNames = sheets.map((sheet, index) => sheet.name || `Sheet${index + 1}`);
   validateSheetNames(sheetNames);
-  sheets.forEach(sheet =>
-    Object.values(sheet.styles ?? {}).forEach(({ color, background }) =>
-      [color, background].forEach(value => value && normalizeColor(value))
-    )
-  );
+  validateStyles(sheets);
   const sheetLinks = sheets.map(sheet => prepareHyperlinks(sheet.hyperlinks));
+  const layouts = sheets.map(prepareLayout);
   const definedNames = filterDatabaseNames(
     sheetNames,
     sheets.map(sheet => sheet.autoFilter)
@@ -84,13 +89,14 @@ export async function* createExcelWorkbookStream(
   for (let sheetIndex = 0; sheetIndex < sheets.length; sheetIndex++) {
     const sheet = sheets[sheetIndex];
     const links = sheetLinks[sheetIndex];
+    const layout = layouts[sheetIndex];
     const styles = withHyperlinkStyles(sheet.styles, links);
     const entry = new ZipDeflate(`xl/worksheets/sheet${sheetIndex + 1}.xml`, { level: 6 });
     zip.add(entry);
 
     const worksheetStart = generateWorksheetStart(
       hasFrozenSplit(sheet.freezePane) ? generateSheetViewsXml(sheet.freezePane) : '',
-      sheet.columnWidths ? generateColsXml(sheet.columnWidths) : '',
+      generateColsXml(sheet.columnWidths ?? [], layout),
       links
     );
     entry.push(strToU8(worksheetStart), false);
@@ -98,10 +104,30 @@ export async function* createExcelWorkbookStream(
 
     let rowIndex = 0;
     for await (const row of sheet.rows) {
-      const rowXml = generateRowXml(row, rowIndex, styles, styleManager);
+      const rowXml = generateRowXml(
+        row,
+        rowIndex,
+        styles,
+        styleManager,
+        undefined,
+        layout.rowAttributes(rowIndex)
+      );
       entry.push(strToU8(rowXml), false);
       yield* drain();
       rowIndex++;
+    }
+
+    for (const layoutRow of layout.rows.filter(index => index >= rowIndex)) {
+      const rowXml = generateRowXml(
+        [],
+        layoutRow,
+        styles,
+        styleManager,
+        undefined,
+        layout.rowAttributes(layoutRow)
+      );
+      entry.push(strToU8(rowXml), false);
+      yield* drain();
     }
 
     const worksheetEnd = generateWorksheetEnd(

@@ -130,6 +130,11 @@ exports[`'exceljs-report.xlsx' > matches the recorded parse of the file 1`] = `
           "fontName": "Calibri",
           "fontSize": 11,
         },
+        "2-2": {
+          "fontName": "Calibri",
+          "fontSize": 11,
+          "numberFormat": "yyyy-mm-dd",
+        },
         "4-0": {
           "bold": true,
         },
@@ -282,6 +287,11 @@ exports[`'hucre-report.xlsx' > matches the recorded parse of the file 1`] = `
           "fontSize": 11,
           "numberFormat": "0.00",
         },
+        "2-2": {
+          "fontName": "Calibri",
+          "fontSize": 11,
+          "numberFormat": "yyyy-mm-dd",
+        },
         "4-0": {
           "bold": true,
         },
@@ -408,6 +418,11 @@ exports[`'sheetjs-report.xlsx' > matches the recorded parse of the file 1`] = `
         "2-1": {
           "fontName": "Calibri",
           "fontSize": 12,
+        },
+        "2-2": {
+          "fontName": "Calibri",
+          "fontSize": 12,
+          "numberFormat": "yyyy-mm-dd",
         },
       },
       "validations": [],

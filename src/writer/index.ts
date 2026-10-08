@@ -15,9 +15,9 @@ import {
   SheetGenerationOptions,
 } from '../core/xml-templates';
 import { StyleManager } from '../core/style-manager';
-import { isDate } from '../core/date-utils';
 import { validateSheetNames } from '../core/sheet-name';
 import { rowIndexes } from '../core/rows';
+import { splitCell } from '../core/cells';
 import { prepareHyperlinks, withHyperlinkStyles } from '../core/hyperlinks';
 import {
   AutoFilter,
@@ -26,6 +26,7 @@ import {
   CellStyle,
   ConditionalFormat,
   Hyperlink,
+  SheetLayout,
   SheetState,
 } from '../core/types';
 
@@ -37,14 +38,20 @@ export type {
   ConditionalFormat,
   DataValidationType,
   DataValidationOperator,
+  ErrorCell,
+  ExcelErrorValue,
+  FormulaCell,
+  FormulaResult,
   Hyperlink,
+  SheetLayout,
   SheetState,
+  TextCell,
 } from '../core/types';
 export { dataValidation } from './validation';
 export { hyperlink } from './hyperlink';
 export type { HyperlinkOptions } from './hyperlink';
 
-export interface SheetOptions {
+export interface SheetOptions extends SheetLayout {
   name?: string;
   state?: SheetState;
   freezePane?: { row?: number; col?: number };
@@ -99,6 +106,14 @@ export class ExcelWriter {
     const styleManager = new StyleManager();
     const sheetLinks = data.map(sheetData => prepareHyperlinks(sheetData.hyperlinks));
 
+    const sheetNames = data.map((sheet, index) => sheet.options?.name || `Sheet${index + 1}`);
+    validateSheetNames(sheetNames);
+    const sheetStates = data.map(sheet => sheet.options?.state ?? 'visible');
+
+    if (!sheetStates.includes('visible')) {
+      throw new Error('At least one sheet must be visible');
+    }
+
     data.forEach((sheetData, index) => {
       const styles = withHyperlinkStyles(sheetData.styles, sheetLinks[index]);
       if (styles) {
@@ -108,35 +123,16 @@ export class ExcelWriter {
       }
     });
 
-    const containsDates = data.some(sheetData =>
-      rowIndexes(sheetData.data).some(index => sheetData.data[index].some(cell => isDate(cell)))
-    );
-
-    if (containsDates) {
-      styleManager.getDateStyleId();
-    }
-
-    const sheetNames = data.map((sheet, index) => sheet.options?.name || `Sheet${index + 1}`);
-    validateSheetNames(sheetNames);
-    const sheetStates = data.map(sheet => sheet.options?.state ?? 'visible');
-
-    if (!sheetStates.includes('visible')) {
-      throw new Error('At least one sheet must be visible');
-    }
-
     const worksheetEntries: Array<{ path: string; xml: string; relsPath: string; rels: string }> =
       [];
 
     data.forEach((sheetData, index) => {
       const sheetIndex = index + 1;
       const sheetOptions: SheetGenerationOptions = {
-        freezePane: sheetData.options?.freezePane,
-        autoWidth: sheetData.options?.autoWidth,
-        columnWidths: sheetData.options?.columnWidths,
+        ...sheetData.options,
         mergeCells: sheetData.mergeCells,
         conditionalFormats: sheetData.conditionalFormats,
         sharedStrings: hasSharedStrings ? shared!.map : undefined,
-        autoFilter: sheetData.options?.autoFilter,
       };
 
       const sheetXml = generatePreparedSheetXml(
@@ -203,9 +199,10 @@ export class ExcelWriter {
     data.forEach(sheetData => {
       rowIndexes(sheetData.data).forEach(index => {
         sheetData.data[index].forEach(cell => {
-          if (typeof cell === 'string' && !cell.startsWith('=') && !map.has(cell)) {
-            map.set(cell, list.length);
-            list.push(cell);
+          const { formula, value } = splitCell(cell);
+          if (formula === undefined && typeof value === 'string' && !map.has(value)) {
+            map.set(value, list.length);
+            list.push(value);
           }
         });
       });
