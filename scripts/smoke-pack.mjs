@@ -64,12 +64,13 @@ const workDir = mkdtempSync(join(tmpdir(), 'excel-bridge-smoke-'));
 const failures = [];
 
 try {
-  const [{ filename }] = JSON.parse(
+  const packed = JSON.parse(
     execFileSync('npm', ['pack', '--json', '--pack-destination', workDir], {
       cwd: root,
       encoding: 'utf8',
     })
   );
+  const [{ filename }] = Array.isArray(packed) ? packed : Object.values(packed);
 
   const appDir = join(workDir, 'app');
   mkdirSync(appDir);
