@@ -8,7 +8,7 @@ order: 1
 
 # Getting started
 
-Write a styled spreadsheet and read it back, in the browser or Node.js, from one small package. Import a class and your bundler ships only that part: the writer adds 12.8 KB min+gzip.
+Write a styled spreadsheet and read it back, in the browser or Node.js, from one small package. Import a class and your bundler ships only that part: the writer adds 12.9 KB min+gzip.
 
 ## Install
 

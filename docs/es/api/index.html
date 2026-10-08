@@ -63,7 +63,7 @@
 <tr><td data-label="Export"><code>ExcelReader</code></td><td data-label="Firma"><code>new ExcelReader(options?)</code></td><td data-label="Notas"><code>parseFromBuffer(bytes): ParsedWorkbook</code>, <code>parseFromFile(file): Promise&lt;ParsedWorkbook&gt;</code>.</td></tr>
 <tr><td data-label="Export"><code>parseExcel</code></td><td data-label="Firma"><code>(bytes, options?) =&gt; ParsedWorkbook</code></td><td data-label="Notas">Lo mismo que <code>parseFromBuffer</code>, como función.</td></tr>
 <tr><td data-label="Export"><code>sheetToObjects</code></td><td data-label="Firma"><code>(sheet, options?) =&gt; Row[]</code></td><td data-label="Notas">Una hoja como objetos con tipo. Consulta <a href="../guide/objects/">Filas como objetos</a>.</td></tr>
-<tr><td data-label="Export"><code>isExcelError</code></td><td data-label="Firma"><code>(value) =&gt; value is ExcelErrorValue</code></td><td data-label="Notas">Verdadero para los siete valores de error clásicos.</td></tr>
+<tr><td data-label="Export"><code>isExcelErrorValue</code></td><td data-label="Firma"><code>(value) =&gt; value is ExcelErrorValue</code></td><td data-label="Notas">Verdadero para los siete valores de error clásicos.</td></tr>
 </tbody></table></div>
 <p><code>ExcelReaderOptions</code> es <code>{ maxCells?, maxPartBytes?, maxTotalBytes?, maxSheets? }</code>. Consulta <a href="../guide/errors/">Maneja errores y límites</a>.</p>
 <h2 id="editar">Editar<a class="anchor" href="#editar" aria-label="Editar">#</a></h2>

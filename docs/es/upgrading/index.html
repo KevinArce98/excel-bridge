@@ -74,13 +74,13 @@
     ],
   },
 }</code></pre></figure>
-<p>Si las fórmulas te llegan como cadenas desde un archivo de configuración, una base de datos o una API, conviértelas al recibirlas. Esto vuelve a activar la inyección de fórmulas para esos datos, así que hazlo solo con datos de confianza.</p>
+<p>Si las fórmulas te llegan como cadenas desde un archivo de configuración, una base de datos o una API, conviértelas al recibirlas. Esto vuelve a activar la inyección de fórmulas para esos datos, así que hazlo solo con datos de confianza. <code>{ formula }</code> ignora un <code>=</code> inicial, así que la cadena completa, con el <code>=</code>, da los mismos bytes que 1.x.</p>
 <figure class="code"><figcaption><span class="code-name">TS</span><button type="button" class="copy" data-copy="Copiar" data-copied="Copiado">Copiar</button></figcaption><pre tabindex="0"><code><span class="tk-k">import</span> <span class="tk-k">type</span> { <span class="tk-t">CellValue</span> } <span class="tk-k">from</span> <span class="tk-s">'excel-bridge'</span>;
 
 <span class="tk-k">const</span> asFormulas = (rows: <span class="tk-t">CellValue</span>[][]): <span class="tk-t">CellValue</span>[][] =&gt;
   rows.map(row =&gt;
     row.map(cell =&gt;
-      <span class="tk-k">typeof</span> cell === <span class="tk-s">'string'</span> &amp;&amp; cell.startsWith('=') ? { formula: cell.slice(<span class="tk-n">1</span>) } : cell
+      <span class="tk-k">typeof</span> cell === <span class="tk-s">'string'</span> &amp;&amp; cell.startsWith('=') ? { formula: cell } : cell
     )
   );</code></pre></figure>
 <p>La ventaja es que exportar datos de usuarios ya no puede crear una fórmula por accidente. Un texto como <code>=== Summary ===</code> ya no necesita un envoltorio.</p>
@@ -95,6 +95,8 @@
 <li><strong><code>ParsedCell</code> es una unión por <code>type</code>.</strong> <code>cell.value</code> ya no es <code>any</code>. Acota con <code>cell.type</code> y <code>value</code> tiene el tipo correcto. Una celda <code>'error'</code> tiene <code>ExcelErrorValue | string</code>. Una celda de fórmula tiene el tipo y el valor de su resultado guardado, y <code>formula</code> no existe o no está vacía.</li>
 <li><strong><code>ParsedSheet.data</code> se indexa por la posición de la fila.</strong> <code>data[4]</code> es la fila 5. Una fila que no está en el archivo es un hueco, <code>data.length</code> es la última fila más uno, y un elemento <code>&lt;row&gt;</code> vacío también es un hueco, así que un ciclo de ida y vuelta ya no agrega filas. Usa <code>forEach</code>, <code>Object.values</code> o <code>flat()</code>. Un <code>for...of</code> produce <code>undefined</code> en un hueco, usar spread en el arreglo convierte cada hueco en <code>undefined</code>, y <code>JSON.stringify</code> escribe <code>null</code> por cada uno: un archivo cuya única fila está en el índice 1,000,000 produce más de 5 millones de caracteres (5,000,090 con una celda numérica).</li>
 <li><strong>Las filas y las celdas sin atributo <code>r</code></strong> reciben la posición siguiente a la anterior, así que <code>rowIndex</code> nunca es <code>NaN</code>. Las filas duplicadas se fusionan, y gana la celda que aparece después.</li>
+<li><strong>Una validación de lista sin origen ya no se devuelve.</strong> Un <code>&lt;dataValidation type=&quot;list&quot;&gt;</code> sin <code>&lt;formula1&gt;</code> se leía como <code>{ type: 'list', options: '' }</code>.</li>
+<li><strong><code>cell.coordinate</code> sale de la posición de la celda.</strong> Se construye con la fila y la columna, no se copia del atributo <code>r</code> de la celda, así que una celda con <code>r=&quot;B7&quot;</code> dentro de la primera fila se lee como <code>B1</code>.</li>
 <li><strong>Un seguidor de fórmula compartida no tiene <code>formula</code>.</strong> Se lee como su valor guardado, que <code>Workbook</code> guarda como un valor simple.</li>
 <li><strong><code>CellStyle</code> reemplaza a <code>ParsedCellStyle</code>.</strong> Un estilo leído de un archivo se puede volver a escribir tal cual. <code>CellStyle</code> acepta un argumento de tipo opcional para el borde, con un valor predeterminado, así que los usos existentes siguen funcionando.</li>
 </ul>
@@ -121,23 +123,23 @@
 <tr><td data-label="Eliminado"><code>isDateNumFmtId</code>, <code>isDateFormatCode</code>, <code>validateRowIndex</code>, <code>validateColIndex</code>, <code>validateCellValue</code></td><td data-label="Usa en su lugar">Nada: son detalles internos del lector y del escritor.</td></tr>
 <tr><td data-label="Eliminado">Tipos <code>ParsedCellStyle</code>, <code>Font</code>, <code>Fill</code>, <code>Border</code>, <code>ExcelStyle</code>, <code>CellAlignment</code>, <code>ExcelFiles</code>, <code>SheetGenerationOptions</code>, <code>DefinedName</code></td><td data-label="Usa en su lugar"><code>CellStyle</code> para los estilos. Los demás no tienen reemplazo.</td></tr>
 </tbody></table></div>
-<p><code>parseExcel</code>, <code>createExcelFile</code>, <code>createExcelFileBuffer</code> y <code>ExcelBridge</code> se mantienen. <code>isExcelError</code> es nuevo.</p>
+<p><code>parseExcel</code>, <code>createExcelFile</code>, <code>createExcelFileBuffer</code> y <code>ExcelBridge</code> se mantienen. <code>isExcelErrorValue</code> es nuevo.</p>
 <h3 id="novedades">Novedades<a class="anchor" href="#novedades" aria-label="Novedades">#</a></h3>
 <ul>
 <li><code>sheetToObjects</code>, <code>objectsToSheet</code> y <code>objectsToStreamingSheet</code>: filas como objetos con tipo.</li>
 <li><code>downloadXlsx</code>, <code>toReadableStream</code>, <code>xlsxResponse</code> y <code>XLSX_CONTENT_TYPE</code>: enviar un archivo a un navegador o desde un servidor.</li>
-<li><code>ExcelBridgeError</code>, <code>isExcelBridgeError</code> y <code>isExcelError</code>.</li>
+<li><code>ExcelBridgeError</code>, <code>isExcelBridgeError</code> y <code>isExcelErrorValue</code>.</li>
 <li>Opciones del lector en <code>ExcelReader</code>, <code>parseExcel</code>, <code>ExcelBridge.read</code>, <code>ExcelBridge.readFromFile</code>, <code>Workbook.fromBuffer</code> y <code>Workbook.fromFile</code>.</li>
 </ul>
 <h3 id="tamano-y-velocidad">Tamaño y velocidad<a class="anchor" href="#tamano-y-velocidad" aria-label="Tamaño y velocidad">#</a></h3>
 <p>Tamaño del paquete, min+gzip, medido con la misma llamada de esbuild en ambas versiones:</p>
 <div class="table-scroll" role="region" tabindex="0" aria-label="Tamaño y velocidad"><table><thead><tr><th scope="col">Entrada</th><th scope="col" class="a-right">1.6.0</th><th scope="col" class="a-right">2.0</th></tr></thead><tbody>
 <tr><td data-label="Entrada"><code>createExcelWorkbookStream</code></td><td class="a-right" data-label="1.6.0">12.3 KB</td><td class="a-right" data-label="2.0">12.3 KB</td></tr>
-<tr><td data-label="Entrada"><code>ExcelWriter</code></td><td class="a-right" data-label="1.6.0">12.9 KB</td><td class="a-right" data-label="2.0">12.8 KB</td></tr>
+<tr><td data-label="Entrada"><code>ExcelWriter</code></td><td class="a-right" data-label="1.6.0">12.9 KB</td><td class="a-right" data-label="2.0">12.9 KB</td></tr>
 <tr><td data-label="Entrada"><code>ExcelReader</code></td><td class="a-right" data-label="1.6.0">28.8 KB</td><td class="a-right" data-label="2.0">9.5 KB</td></tr>
 <tr><td data-label="Entrada"><code>Workbook</code></td><td class="a-right" data-label="1.6.0">41.0 KB</td><td class="a-right" data-label="2.0">21.5 KB</td></tr>
-<tr><td data-label="Entrada"><code>ExcelBridge</code></td><td class="a-right" data-label="1.6.0">41.2 KB</td><td class="a-right" data-label="2.0">21.6 KB</td></tr>
-<tr><td data-label="Entrada">Todo</td><td class="a-right" data-label="1.6.0">43.7 KB</td><td class="a-right" data-label="2.0">25.1 KB</td></tr>
+<tr><td data-label="Entrada"><code>ExcelBridge</code></td><td class="a-right" data-label="1.6.0">41.2 KB</td><td class="a-right" data-label="2.0">21.7 KB</td></tr>
+<tr><td data-label="Entrada">Todo</td><td class="a-right" data-label="1.6.0">43.7 KB</td><td class="a-right" data-label="2.0">25.4 KB</td></tr>
 </tbody></table></div>
 <p>Leer un archivo de 50,000 × 10 tarda unos 0.27 s en lugar de 1.5 s, y el pico de memoria del proceso del benchmark baja de 859 a 451 MiB (Node 24.19, Apple M4). El lector es más rápido porque analiza el XML con su propio tokenizador, y el paquete ahora depende solo de <code>fflate</code>. La escritura es tan rápida como antes.</p>
 <h2 id="de-15-a-16">De 1.5 a 1.6<a class="anchor" href="#de-15-a-16" aria-label="De 1.5 a 1.6">#</a></h2>

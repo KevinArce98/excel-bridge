@@ -31,7 +31,7 @@ Todo viene de la raíz del paquete: `import { ExcelWriter } from 'excel-bridge'`
 | `ExcelReader` | `new ExcelReader(options?)` | `parseFromBuffer(bytes): ParsedWorkbook`, `parseFromFile(file): Promise<ParsedWorkbook>`. |
 | `parseExcel` | `(bytes, options?) => ParsedWorkbook` | Lo mismo que `parseFromBuffer`, como función. |
 | `sheetToObjects` | `(sheet, options?) => Row[]` | Una hoja como objetos con tipo. Consulta [Filas como objetos](../guide/objects/). |
-| `isExcelError` | `(value) => value is ExcelErrorValue` | Verdadero para los siete valores de error clásicos. |
+| `isExcelErrorValue` | `(value) => value is ExcelErrorValue` | Verdadero para los siete valores de error clásicos. |
 
 `ExcelReaderOptions` es `{ maxCells?, maxPartBytes?, maxTotalBytes?, maxSheets? }`. Consulta [Maneja errores y límites](../guide/errors/).
 

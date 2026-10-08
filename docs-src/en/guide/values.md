@@ -38,7 +38,7 @@ Because strings are always text, exporting user data cannot create a formula by 
 
 ## Formulas
 
-Write a formula with an object. Leave out the leading `=`.
+Write a formula with an object. Leave out the leading `=`; one leading `=` is accepted and ignored.
 
 ```ts title="formulas.ts"
 import { ExcelWriter } from 'excel-bridge';

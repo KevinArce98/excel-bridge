@@ -100,6 +100,7 @@ existing.setCellValue('<span class="tk-t">Sales</span>', <span class="tk-n">1</s
 <li>Las reglas de formato condicional distintas de <code>cellIs</code>, <code>expression</code> y <code>colorScale</code>.</li>
 <li>Los valores predeterminados de la hoja (<code>&lt;sheetFormatPr&gt;</code>: altura de fila y ancho de columna predeterminados, niveles de esquema). Un grupo de esquema contraído sigue oculto, pero pierde sus botones.</li>
 <li>Los seguidores de una fórmula compartida, que se leen sin su fórmula.</li>
+<li>Una fórmula almacenada cuyo texto empieza con <code>=</code>. Excel no escribe una, pero un archivo hecho por 1.x a partir de una cadena como <code>=== Summary ===</code> la tiene. <code>Workbook</code> la guarda sin ese primer <code>=</code>, y una fórmula que es solo <code>=</code> hace que <code>toBuffer</code> lance un error.</li>
 <li>Las fechas del sistema de fechas 1904, que se leen de forma incorrecta.</li>
 </ul>
 <p>Una columna guardada con ancho 0 sigue teniendo ancho 0 cuando la muestras con <code>setColumnHidden</code>. Define también su ancho.</p>

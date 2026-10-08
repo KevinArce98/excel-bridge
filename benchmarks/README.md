@@ -125,11 +125,11 @@ The excel-bridge rows were measured 2026-10-08 and the other rows 2026-10-07, wi
 | Package | Import | Min | Min+gzip |
 | --- | --- | ---: | ---: |
 | excel-bridge@2.0.0 (dist) | `{ createExcelWorkbookStream }` | 30.5 KB | 12.3 KB |
-| excel-bridge@2.0.0 (dist) | `{ ExcelWriter }` | 31.7 KB | 12.8 KB |
-| excel-bridge@2.0.0 (dist) | `{ ExcelReader }` | 22.5 KB | 9.5 KB |
-| excel-bridge@2.0.0 (dist) | `{ Workbook }` | 56.3 KB | 21.5 KB |
-| excel-bridge@2.0.0 (dist) | `{ ExcelBridge }` | 56.8 KB | 21.6 KB |
-| excel-bridge@2.0.0 (dist) | `* (everything)` | 66.1 KB | 25.1 KB |
+| excel-bridge@2.0.0 (dist) | `{ ExcelWriter }` | 31.8 KB | 12.9 KB |
+| excel-bridge@2.0.0 (dist) | `{ ExcelReader }` | 22.6 KB | 9.5 KB |
+| excel-bridge@2.0.0 (dist) | `{ Workbook }` | 56.5 KB | 21.5 KB |
+| excel-bridge@2.0.0 (dist) | `{ ExcelBridge }` | 56.9 KB | 21.7 KB |
+| excel-bridge@2.0.0 (dist) | `* (everything)` | 66.6 KB | 25.4 KB |
 | hucre@1.2.0 | `{ writeXlsx }` | 136.2 KB | 41.6 KB |
 | hucre@1.2.0 | `{ readXlsx }` | 136.6 KB | 41.1 KB |
 | hucre/xlsx@1.2.0 | `{ XlsxStreamWriter }` | 36.8 KB | 12.1 KB |

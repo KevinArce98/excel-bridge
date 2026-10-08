@@ -56,6 +56,7 @@
 <h2 id="before-you-read-a-file-you-did-not-make">Before you read a file you did not make<a class="anchor" href="#before-you-read-a-file-you-did-not-make" aria-label="Before you read a file you did not make">#</a></h2>
 <ul>
 <li><strong>The limits are a floor, not a guarantee.</strong> <code>maxPartBytes</code>, <code>maxTotalBytes</code> and <code>maxSheets</code> refuse large files before the sheets are inflated. <code>maxCells</code> is checked while a sheet is parsed, after its XML is inflated. A file under every default can still use a lot of memory: reading a 205 MiB sheet peaked at 2.1 to 2.5 GB of resident memory, about 10 to 12 times the sheet XML.</li>
+<li><strong>Set <code>maxSheets</code></strong> for public uploads. A file can list many sheets that point at one large part, which is inflated once but parsed once per sheet.</li>
 <li><strong>Cap the upload size</strong> before you parse, and set the limits to what your product needs.</li>
 <li><strong>Parse untrusted uploads in a worker or a separate process</strong> that can be restarted.</li>
 <li><strong>Check hyperlink schemes</strong> before you render a link read from a file. <code>ExcelReader</code> returns links as stored.</li>

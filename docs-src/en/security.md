@@ -20,6 +20,7 @@ Report vulnerabilities privately through [GitHub security advisories](https://gi
 ## Before you read a file you did not make
 
 - **The limits are a floor, not a guarantee.** `maxPartBytes`, `maxTotalBytes` and `maxSheets` refuse large files before the sheets are inflated. `maxCells` is checked while a sheet is parsed, after its XML is inflated. A file under every default can still use a lot of memory: reading a 205 MiB sheet peaked at 2.1 to 2.5 GB of resident memory, about 10 to 12 times the sheet XML.
+- **Set `maxSheets`** for public uploads. A file can list many sheets that point at one large part, which is inflated once but parsed once per sheet.
 - **Cap the upload size** before you parse, and set the limits to what your product needs.
 - **Parse untrusted uploads in a worker or a separate process** that can be restarted.
 - **Check hyperlink schemes** before you render a link read from a file. `ExcelReader` returns links as stored.

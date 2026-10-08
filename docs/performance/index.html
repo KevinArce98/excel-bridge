@@ -51,11 +51,11 @@
 <p>Bundlers keep the exports you import and drop the rest. This is what each entry point adds to a browser bundle:</p>
 <div class="table-scroll" role="region" tabindex="0" aria-label="Bundle size"><table><thead><tr><th scope="col">Import from <code>excel-bridge</code></th><th scope="col" class="a-right">min+gzip</th></tr></thead><tbody>
 <tr><td data-label="Import from `excel-bridge`"><code>createExcelWorkbookStream</code></td><td class="a-right" data-label="min+gzip">12.3 KB</td></tr>
-<tr><td data-label="Import from `excel-bridge`"><code>ExcelWriter</code></td><td class="a-right" data-label="min+gzip">12.8 KB</td></tr>
+<tr><td data-label="Import from `excel-bridge`"><code>ExcelWriter</code></td><td class="a-right" data-label="min+gzip">12.9 KB</td></tr>
 <tr><td data-label="Import from `excel-bridge`"><code>ExcelReader</code></td><td class="a-right" data-label="min+gzip">9.5 KB</td></tr>
 <tr><td data-label="Import from `excel-bridge`"><code>Workbook</code> (reader + writer)</td><td class="a-right" data-label="min+gzip">21.5 KB</td></tr>
-<tr><td data-label="Import from `excel-bridge`"><code>ExcelBridge</code> (convenience object)</td><td class="a-right" data-label="min+gzip">21.6 KB</td></tr>
-<tr><td data-label="Import from `excel-bridge`">Everything</td><td class="a-right" data-label="min+gzip">25.1 KB</td></tr>
+<tr><td data-label="Import from `excel-bridge`"><code>ExcelBridge</code> (convenience object)</td><td class="a-right" data-label="min+gzip">21.7 KB</td></tr>
+<tr><td data-label="Import from `excel-bridge`">Everything</td><td class="a-right" data-label="min+gzip">25.4 KB</td></tr>
 </tbody></table></div>
 <p>The same measurement for other libraries (2026-10-07):</p>
 <div class="table-scroll" role="region" tabindex="0" aria-label="Bundle size"><table><thead><tr><th scope="col">Library</th><th scope="col">Import</th><th scope="col" class="a-right">min+gzip</th></tr></thead><tbody>
@@ -69,8 +69,8 @@
 <tr><td data-label="Library">SheetJS (<code>xlsx</code> 0.18.5 on npm)</td><td data-label="Import"><code>utils</code> + <code>write</code></td><td class="a-right" data-label="min+gzip">95.8 KB</td></tr>
 <tr><td data-label="Library">ExcelJS 4.4.0</td><td data-label="Import">default browser build, not tree-shakeable</td><td class="a-right" data-label="min+gzip">272.1 KB</td></tr>
 </tbody></table></div>
-<p><strong>excel-bridge is not the smallest on every row.</strong> <code>ExcelWriter</code> writes styles, borders, conditional formatting, data validation, autofilters and hyperlinks in 12.8 KB. Some libraries are smaller for one job, or give up a feature to get there: the <code>excelents</code> entry has no conditional formatting at 1.0.1, and reads and writes in less than the whole of excel-bridge. Compare what you get for the bytes, not the bytes alone.</p>
-<p>Tree-shaking uses the ESM build, which bundlers pick for <code>import</code>. <code>require('excel-bridge')</code> loads the whole CommonJS build. <code>ExcelBridge</code> is 21.6 KB against 12.8 KB for <code>ExcelWriter</code>, because bundlers keep an object whole: even one <code>ExcelBridge.write</code> call ships the reader too.</p>
+<p><strong>excel-bridge is not the smallest on every row.</strong> <code>ExcelWriter</code> writes styles, borders, conditional formatting, data validation, autofilters and hyperlinks in 12.9 KB. Some libraries are smaller for one job, or give up a feature to get there: the <code>excelents</code> entry has no conditional formatting at 1.0.1, and reads and writes in less than the whole of excel-bridge. Compare what you get for the bytes, not the bytes alone.</p>
+<p>Tree-shaking uses the ESM build, which bundlers pick for <code>import</code>. <code>require('excel-bridge')</code> loads the whole CommonJS build. <code>ExcelBridge</code> is 21.7 KB against 12.9 KB for <code>ExcelWriter</code>, because bundlers keep an object whole: even one <code>ExcelBridge.write</code> call ships the reader too.</p>
 <p><strong>How these numbers were measured</strong></p>
 <ul>
 <li><strong>Toolchain:</strong> esbuild 0.28.2 (<code>--bundle --minify --platform=browser --format=esm</code>). The excel-bridge rows were measured on 2026-10-08 and the other libraries on 2026-10-07.</li>
@@ -93,7 +93,7 @@
 <tr><td data-label="">First-class TypeScript types</td><td class="a-center" data-label="**excel-bridge**">✅</td><td class="a-center" data-label="ExcelJS">✅</td><td class="a-center" data-label="SheetJS (community `xlsx`)">✅</td></tr>
 <tr><td data-label="">ESM <strong>and</strong> CJS, tree-shakeable</td><td class="a-center" data-label="**excel-bridge**">✅</td><td class="a-center" data-label="ExcelJS">⚠️ CJS-first</td><td class="a-center" data-label="SheetJS (community `xlsx`)">✅</td></tr>
 <tr><td data-label="">Direct runtime dependencies ²</td><td class="a-center" data-label="**excel-bridge**">1</td><td class="a-center" data-label="ExcelJS">9</td><td class="a-center" data-label="SheetJS (community `xlsx`)">7</td></tr>
-<tr><td data-label="">Bundle size to write a file ¹</td><td class="a-center" data-label="**excel-bridge**"><strong>12.8 KB</strong></td><td class="a-center" data-label="ExcelJS">272.1 KB</td><td class="a-center" data-label="SheetJS (community `xlsx`)">95.8 KB</td></tr>
+<tr><td data-label="">Bundle size to write a file ¹</td><td class="a-center" data-label="**excel-bridge**"><strong>12.9 KB</strong></td><td class="a-center" data-label="ExcelJS">272.1 KB</td><td class="a-center" data-label="SheetJS (community `xlsx`)">95.8 KB</td></tr>
 </tbody></table></div>
 <p>¹ Minified and gzipped code that a browser bundle needs to write an <code>.xlsx</code>: <code>ExcelWriter</code>, ExcelJS&#39;s default browser build (not tree-shakeable) and SheetJS <code>utils</code> + <code>write</code> from npm <code>xlsx@0.18.5</code>, bundled with esbuild. Bundlephobia measures each whole package with its own toolchain, so its numbers differ: <a href="https://bundlephobia.com/package/excel-bridge" rel="noopener">excel-bridge</a>, <a href="https://bundlephobia.com/package/exceljs" rel="noopener">exceljs</a> and <a href="https://bundlephobia.com/package/xlsx" rel="noopener">xlsx</a>.</p>
 <p>² Declared in each <code>package.json</code> (<code>exceljs@4.4.0</code>, <code>xlsx@0.18.5</code> on npm), checked 2026-10-07. <code>xlsx@0.18.5</code> is the last version published to npm and has known security advisories.</p>

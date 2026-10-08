@@ -75,6 +75,7 @@ Las filas y las columnas empiezan en cero, y las hojas se identifican por nombre
 - Las reglas de formato condicional distintas de `cellIs`, `expression` y `colorScale`.
 - Los valores predeterminados de la hoja (`<sheetFormatPr>`: altura de fila y ancho de columna predeterminados, niveles de esquema). Un grupo de esquema contraído sigue oculto, pero pierde sus botones.
 - Los seguidores de una fórmula compartida, que se leen sin su fórmula.
+- Una fórmula almacenada cuyo texto empieza con `=`. Excel no escribe una, pero un archivo hecho por 1.x a partir de una cadena como `=== Summary ===` la tiene. `Workbook` la guarda sin ese primer `=`, y una fórmula que es solo `=` hace que `toBuffer` lance un error.
 - Las fechas del sistema de fechas 1904, que se leen de forma incorrecta.
 
 Una columna guardada con ancho 0 sigue teniendo ancho 0 cuando la muestras con `setColumnHidden`. Define también su ancho.

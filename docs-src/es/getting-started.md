@@ -8,7 +8,7 @@ order: 1
 
 # Primeros pasos
 
-Escribe una hoja de cálculo con estilos y léela de vuelta, en el navegador o en Node.js, con un solo paquete pequeño. Importa una clase y tu empaquetador incluye solo esa parte: el escritor suma 12.8 KB min+gzip.
+Escribe una hoja de cálculo con estilos y léela de vuelta, en el navegador o en Node.js, con un solo paquete pequeño. Importa una clase y tu empaquetador incluye solo esa parte: el escritor suma 12.9 KB min+gzip.
 
 ## Instalación
 

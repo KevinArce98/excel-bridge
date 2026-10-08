@@ -40,7 +40,7 @@ Find the strings with this ESLint rule:
 }
 ```
 
-If formulas reach you as strings from a config file, a database or an API, convert them at the boundary. This turns formula injection back on for that data, so do it only for data you trust.
+If formulas reach you as strings from a config file, a database or an API, convert them at the boundary. `{ formula }` ignores one leading `=`, so the whole string, `=` included, gives the same bytes as 1.x. This turns formula injection back on for that data, so do it only for data you trust.
 
 ```ts
 import type { CellValue } from 'excel-bridge';
@@ -48,7 +48,7 @@ import type { CellValue } from 'excel-bridge';
 const asFormulas = (rows: CellValue[][]): CellValue[][] =>
   rows.map(row =>
     row.map(cell =>
-      typeof cell === 'string' && cell.startsWith('=') ? { formula: cell.slice(1) } : cell
+      typeof cell === 'string' && cell.startsWith('=') ? { formula: cell } : cell
     )
   );
 ```
@@ -66,6 +66,8 @@ The benefit is that exporting user data can no longer create a formula by accide
 - **`ParsedCell` is a union on `type`.** `cell.value` is no longer `any`. Narrow on `cell.type` and `value` has the right type. An `'error'` cell has `ExcelErrorValue | string`. A formula cell has the type and value of its stored result, and `formula` is absent or non-empty.
 - **`ParsedSheet.data` is indexed by row index.** `data[4]` is row 5. A row that is not in the file is a hole, `data.length` is the last row plus one, and an empty `<row>` element is a hole too, so a round trip no longer adds rows. Use `forEach`, `Object.values` or `flat()`. A `for...of` yields `undefined` for a hole, spreading the array turns each hole into `undefined`, and `JSON.stringify` writes `null` for each one: a file whose only row is at index 1,000,000 produces over 5 million characters (5,000,090 for one numeric cell).
 - **Rows and cells without an `r` attribute** get the position after the previous one, so `rowIndex` is never `NaN`. Duplicate rows merge, and the later cell wins.
+- **A list validation without a source is no longer returned.** A `<dataValidation type="list">` with no `<formula1>` used to read as `{ type: 'list', options: '' }`.
+- **`cell.coordinate` comes from the cell's position.** It is built from the row and column, not copied from the cell's `r` attribute, so a cell with `r="B7"` inside the first row reads as `B1`.
 - **A shared-formula follower has no `formula`.** It reads as its stored value, which `Workbook` saves as a plain value.
 - **`ParsedCellStyle` is replaced by `CellStyle`.** A style read from a file can be written back as it is. `CellStyle` takes an optional type argument for the border, with a default, so existing uses keep working.
 
@@ -94,13 +96,13 @@ The benefit is that exporting user data can no longer create a formula by accide
 | `isDateNumFmtId`, `isDateFormatCode`, `validateRowIndex`, `validateColIndex`, `validateCellValue` | Nothing: reader and writer internals. |
 | Types `ParsedCellStyle`, `Font`, `Fill`, `Border`, `ExcelStyle`, `CellAlignment`, `ExcelFiles`, `SheetGenerationOptions`, `DefinedName` | `CellStyle` for styles. The others have no replacement. |
 
-`parseExcel`, `createExcelFile`, `createExcelFileBuffer` and `ExcelBridge` stay. `isExcelError` is new.
+`parseExcel`, `createExcelFile`, `createExcelFileBuffer` and `ExcelBridge` stay. `isExcelErrorValue` is new.
 
 ### New
 
 - `sheetToObjects`, `objectsToSheet` and `objectsToStreamingSheet`: rows as typed objects.
 - `downloadXlsx`, `toReadableStream`, `xlsxResponse` and `XLSX_CONTENT_TYPE`: send a file to a browser or from a server.
-- `ExcelBridgeError`, `isExcelBridgeError` and `isExcelError`.
+- `ExcelBridgeError`, `isExcelBridgeError` and `isExcelErrorValue`.
 - Reader options on `ExcelReader`, `parseExcel`, `ExcelBridge.read`, `ExcelBridge.readFromFile`, `Workbook.fromBuffer` and `Workbook.fromFile`.
 
 ### Size and speed
@@ -110,11 +112,11 @@ Bundle size, min+gzip, measured with the same esbuild call on both versions:
 | Entry | 1.6.0 | 2.0 |
 | --- | ---: | ---: |
 | `createExcelWorkbookStream` | 12.3 KB | 12.3 KB |
-| `ExcelWriter` | 12.9 KB | 12.8 KB |
+| `ExcelWriter` | 12.9 KB | 12.9 KB |
 | `ExcelReader` | 28.8 KB | 9.5 KB |
 | `Workbook` | 41.0 KB | 21.5 KB |
-| `ExcelBridge` | 41.2 KB | 21.6 KB |
-| Everything | 43.7 KB | 25.1 KB |
+| `ExcelBridge` | 41.2 KB | 21.7 KB |
+| Everything | 43.7 KB | 25.4 KB |
 
 Reading a 50,000 × 10 file takes about 0.27 s instead of 1.5 s, and the peak memory of the benchmark process drops from 859 to 451 MiB (Node 24.19, Apple M4). The reader is faster because it parses the XML with its own tokenizer, and the package now depends on `fflate` alone. Writing is as fast as before.
 

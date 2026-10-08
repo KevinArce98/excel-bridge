@@ -75,6 +75,8 @@ Rows and columns are zero-based, and sheets are addressed by name.
 - Conditional formatting rules other than `cellIs`, `expression` and `colorScale`.
 - Sheet defaults (`<sheetFormatPr>`: default row height and column width, outline levels). A collapsed outline group stays hidden but loses its buttons.
 - Shared-formula followers, which are read without their formula.
+- A stored formula whose text starts with `=`. Excel does not write one, but a file made by 1.x from a string such as `=== Summary ===` has one. `Workbook` saves it without that first `=`, and a formula that is only `=` makes `toBuffer` throw.
+- A stored formula whose text starts with `=`. Excel does not write one, but a file made by 1.x from a string such as `=== Summary ===` has one. `Workbook` saves it without that first `=`, and a formula that is only `=` makes `toBuffer` throw.
 - Dates in the 1904 date system, which are read incorrectly.
 
 A column stored with width 0 stays 0 wide when you unhide it with `setColumnHidden`. Set its width as well.

@@ -100,6 +100,8 @@ existing.setCellValue('<span class="tk-t">Sales</span>', <span class="tk-n">1</s
 <li>Conditional formatting rules other than <code>cellIs</code>, <code>expression</code> and <code>colorScale</code>.</li>
 <li>Sheet defaults (<code>&lt;sheetFormatPr&gt;</code>: default row height and column width, outline levels). A collapsed outline group stays hidden but loses its buttons.</li>
 <li>Shared-formula followers, which are read without their formula.</li>
+<li>A stored formula whose text starts with <code>=</code>. Excel does not write one, but a file made by 1.x from a string such as <code>=== Summary ===</code> has one. <code>Workbook</code> saves it without that first <code>=</code>, and a formula that is only <code>=</code> makes <code>toBuffer</code> throw.</li>
+<li>A stored formula whose text starts with <code>=</code>. Excel does not write one, but a file made by 1.x from a string such as <code>=== Summary ===</code> has one. <code>Workbook</code> saves it without that first <code>=</code>, and a formula that is only <code>=</code> makes <code>toBuffer</code> throw.</li>
 <li>Dates in the 1904 date system, which are read incorrectly.</li>
 </ul>
 <p>A column stored with width 0 stays 0 wide when you unhide it with <code>setColumnHidden</code>. Set its width as well.</p>

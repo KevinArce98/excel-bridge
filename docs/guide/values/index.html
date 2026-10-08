@@ -68,7 +68,7 @@
 ]);</code></pre></figure>
 <p>Because strings are always text, exporting user data cannot create a formula by accident. A name such as <code>=HYPERLINK(&quot;https://example.com&quot;)</code> is written as the text it is.</p>
 <h2 id="formulas">Formulas<a class="anchor" href="#formulas" aria-label="Formulas">#</a></h2>
-<p>Write a formula with an object. Leave out the leading <code>=</code>.</p>
+<p>Write a formula with an object. Leave out the leading <code>=</code>; one leading <code>=</code> is accepted and ignored.</p>
 <figure class="code"><figcaption><span class="code-name">formulas.ts</span><button type="button" class="copy" data-copy="Copy" data-copied="Copied">Copy</button></figcaption><pre tabindex="0"><code><span class="tk-k">import</span> { <span class="tk-t">ExcelWriter</span> } <span class="tk-k">from</span> <span class="tk-s">'excel-bridge'</span>;
 
 <span class="tk-k">const</span> bytes = <span class="tk-k">new</span> <span class="tk-t">ExcelWriter</span>().createWorkbookBuffer([

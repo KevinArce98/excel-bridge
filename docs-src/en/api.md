@@ -31,7 +31,7 @@ Everything comes from the package root: `import { ExcelWriter } from 'excel-brid
 | `ExcelReader` | `new ExcelReader(options?)` | `parseFromBuffer(bytes): ParsedWorkbook`, `parseFromFile(file): Promise<ParsedWorkbook>`. |
 | `parseExcel` | `(bytes, options?) => ParsedWorkbook` | The same as `parseFromBuffer`, as a function. |
 | `sheetToObjects` | `(sheet, options?) => Row[]` | A sheet as typed objects. See [Rows as objects](../guide/objects/). |
-| `isExcelError` | `(value) => value is ExcelErrorValue` | True for the seven classic error values. |
+| `isExcelErrorValue` | `(value) => value is ExcelErrorValue` | True for the seven classic error values. |
 
 `ExcelReaderOptions` is `{ maxCells?, maxPartBytes?, maxTotalBytes?, maxSheets? }`. See [Handle errors and limits](../guide/errors/).
 

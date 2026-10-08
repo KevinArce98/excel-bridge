@@ -75,13 +75,13 @@ what changed; this file says what to do about it.</p>
     ],
   },
 }</code></pre></figure>
-<p>If formulas reach you as strings from a config file, a database or an API, convert them at the boundary. This turns formula injection back on for that data, so do it only for data you trust.</p>
+<p>If formulas reach you as strings from a config file, a database or an API, convert them at the boundary. <code>{ formula }</code> ignores one leading <code>=</code>, so the whole string, <code>=</code> included, gives the same bytes as 1.x. This turns formula injection back on for that data, so do it only for data you trust.</p>
 <figure class="code"><figcaption><span class="code-name">TS</span><button type="button" class="copy" data-copy="Copy" data-copied="Copied">Copy</button></figcaption><pre tabindex="0"><code><span class="tk-k">import</span> <span class="tk-k">type</span> { <span class="tk-t">CellValue</span> } <span class="tk-k">from</span> <span class="tk-s">'excel-bridge'</span>;
 
 <span class="tk-k">const</span> asFormulas = (rows: <span class="tk-t">CellValue</span>[][]): <span class="tk-t">CellValue</span>[][] =&gt;
   rows.map(row =&gt;
     row.map(cell =&gt;
-      <span class="tk-k">typeof</span> cell === <span class="tk-s">'string'</span> &amp;&amp; cell.startsWith('=') ? { formula: cell.slice(<span class="tk-n">1</span>) } : cell
+      <span class="tk-k">typeof</span> cell === <span class="tk-s">'string'</span> &amp;&amp; cell.startsWith('=') ? { formula: cell } : cell
     )
   );</code></pre></figure>
 <p>The benefit is that exporting user data can no longer create a formula by accident. Text such as <code>=== Summary ===</code> needs no wrapper any more.</p>
@@ -96,6 +96,8 @@ what changed; this file says what to do about it.</p>
 <li><strong><code>ParsedCell</code> is a union on <code>type</code>.</strong> <code>cell.value</code> is no longer <code>any</code>. Narrow on <code>cell.type</code> and <code>value</code> has the right type. An <code>'error'</code> cell has <code>ExcelErrorValue | string</code>. A formula cell has the type and value of its stored result, and <code>formula</code> is absent or non-empty.</li>
 <li><strong><code>ParsedSheet.data</code> is indexed by row index.</strong> <code>data[4]</code> is row 5. A row that is not in the file is a hole, <code>data.length</code> is the last row plus one, and an empty <code>&lt;row&gt;</code> element is a hole too, so a round trip no longer adds rows. Use <code>forEach</code>, <code>Object.values</code> or <code>flat()</code>. A <code>for...of</code> yields <code>undefined</code> for a hole, spreading the array turns each hole into <code>undefined</code>, and <code>JSON.stringify</code> writes <code>null</code> for each one: a file whose only row is at index 1,000,000 produces over 5 million characters (5,000,090 for one numeric cell).</li>
 <li><strong>Rows and cells without an <code>r</code> attribute</strong> get the position after the previous one, so <code>rowIndex</code> is never <code>NaN</code>. Duplicate rows merge, and the later cell wins.</li>
+<li><strong>A list validation without a source is no longer returned.</strong> A <code>&lt;dataValidation type=&quot;list&quot;&gt;</code> with no <code>&lt;formula1&gt;</code> used to read as <code>{ type: 'list', options: '' }</code>.</li>
+<li><strong><code>cell.coordinate</code> comes from the cell&#39;s position.</strong> It is built from the row and column, not copied from the cell&#39;s <code>r</code> attribute, so a cell with <code>r=&quot;B7&quot;</code> inside the first row reads as <code>B1</code>.</li>
 <li><strong>A shared-formula follower has no <code>formula</code>.</strong> It reads as its stored value, which <code>Workbook</code> saves as a plain value.</li>
 <li><strong><code>ParsedCellStyle</code> is replaced by <code>CellStyle</code>.</strong> A style read from a file can be written back as it is. <code>CellStyle</code> takes an optional type argument for the border, with a default, so existing uses keep working.</li>
 </ul>
@@ -122,23 +124,23 @@ what changed; this file says what to do about it.</p>
 <tr><td data-label="Removed"><code>isDateNumFmtId</code>, <code>isDateFormatCode</code>, <code>validateRowIndex</code>, <code>validateColIndex</code>, <code>validateCellValue</code></td><td data-label="Use instead">Nothing: reader and writer internals.</td></tr>
 <tr><td data-label="Removed">Types <code>ParsedCellStyle</code>, <code>Font</code>, <code>Fill</code>, <code>Border</code>, <code>ExcelStyle</code>, <code>CellAlignment</code>, <code>ExcelFiles</code>, <code>SheetGenerationOptions</code>, <code>DefinedName</code></td><td data-label="Use instead"><code>CellStyle</code> for styles. The others have no replacement.</td></tr>
 </tbody></table></div>
-<p><code>parseExcel</code>, <code>createExcelFile</code>, <code>createExcelFileBuffer</code> and <code>ExcelBridge</code> stay. <code>isExcelError</code> is new.</p>
+<p><code>parseExcel</code>, <code>createExcelFile</code>, <code>createExcelFileBuffer</code> and <code>ExcelBridge</code> stay. <code>isExcelErrorValue</code> is new.</p>
 <h3 id="new">New<a class="anchor" href="#new" aria-label="New">#</a></h3>
 <ul>
 <li><code>sheetToObjects</code>, <code>objectsToSheet</code> and <code>objectsToStreamingSheet</code>: rows as typed objects.</li>
 <li><code>downloadXlsx</code>, <code>toReadableStream</code>, <code>xlsxResponse</code> and <code>XLSX_CONTENT_TYPE</code>: send a file to a browser or from a server.</li>
-<li><code>ExcelBridgeError</code>, <code>isExcelBridgeError</code> and <code>isExcelError</code>.</li>
+<li><code>ExcelBridgeError</code>, <code>isExcelBridgeError</code> and <code>isExcelErrorValue</code>.</li>
 <li>Reader options on <code>ExcelReader</code>, <code>parseExcel</code>, <code>ExcelBridge.read</code>, <code>ExcelBridge.readFromFile</code>, <code>Workbook.fromBuffer</code> and <code>Workbook.fromFile</code>.</li>
 </ul>
 <h3 id="size-and-speed">Size and speed<a class="anchor" href="#size-and-speed" aria-label="Size and speed">#</a></h3>
 <p>Bundle size, min+gzip, measured with the same esbuild call on both versions:</p>
 <div class="table-scroll" role="region" tabindex="0" aria-label="Size and speed"><table><thead><tr><th scope="col">Entry</th><th scope="col" class="a-right">1.6.0</th><th scope="col" class="a-right">2.0</th></tr></thead><tbody>
 <tr><td data-label="Entry"><code>createExcelWorkbookStream</code></td><td class="a-right" data-label="1.6.0">12.3 KB</td><td class="a-right" data-label="2.0">12.3 KB</td></tr>
-<tr><td data-label="Entry"><code>ExcelWriter</code></td><td class="a-right" data-label="1.6.0">12.9 KB</td><td class="a-right" data-label="2.0">12.8 KB</td></tr>
+<tr><td data-label="Entry"><code>ExcelWriter</code></td><td class="a-right" data-label="1.6.0">12.9 KB</td><td class="a-right" data-label="2.0">12.9 KB</td></tr>
 <tr><td data-label="Entry"><code>ExcelReader</code></td><td class="a-right" data-label="1.6.0">28.8 KB</td><td class="a-right" data-label="2.0">9.5 KB</td></tr>
 <tr><td data-label="Entry"><code>Workbook</code></td><td class="a-right" data-label="1.6.0">41.0 KB</td><td class="a-right" data-label="2.0">21.5 KB</td></tr>
-<tr><td data-label="Entry"><code>ExcelBridge</code></td><td class="a-right" data-label="1.6.0">41.2 KB</td><td class="a-right" data-label="2.0">21.6 KB</td></tr>
-<tr><td data-label="Entry">Everything</td><td class="a-right" data-label="1.6.0">43.7 KB</td><td class="a-right" data-label="2.0">25.1 KB</td></tr>
+<tr><td data-label="Entry"><code>ExcelBridge</code></td><td class="a-right" data-label="1.6.0">41.2 KB</td><td class="a-right" data-label="2.0">21.7 KB</td></tr>
+<tr><td data-label="Entry">Everything</td><td class="a-right" data-label="1.6.0">43.7 KB</td><td class="a-right" data-label="2.0">25.4 KB</td></tr>
 </tbody></table></div>
 <p>Reading a 50,000 × 10 file takes about 0.27 s instead of 1.5 s, and the peak memory of the benchmark process drops from 859 to 451 MiB (Node 24.19, Apple M4). The reader is faster because it parses the XML with its own tokenizer, and the package now depends on <code>fflate</code> alone. Writing is as fast as before.</p>
 <h2 id="from-15-to-16">From 1.5 to 1.6<a class="anchor" href="#from-15-to-16" aria-label="From 1.5 to 1.6">#</a></h2>

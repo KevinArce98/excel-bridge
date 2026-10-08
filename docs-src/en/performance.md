@@ -17,11 +17,11 @@ Bundlers keep the exports you import and drop the rest. This is what each entry 
 | Import from `excel-bridge` | min+gzip |
 | --- | ---: |
 | `createExcelWorkbookStream` | 12.3 KB |
-| `ExcelWriter` | 12.8 KB |
+| `ExcelWriter` | 12.9 KB |
 | `ExcelReader` | 9.5 KB |
 | `Workbook` (reader + writer) | 21.5 KB |
-| `ExcelBridge` (convenience object) | 21.6 KB |
-| Everything | 25.1 KB |
+| `ExcelBridge` (convenience object) | 21.7 KB |
+| Everything | 25.4 KB |
 
 The same measurement for other libraries (2026-10-07):
 
@@ -37,9 +37,9 @@ The same measurement for other libraries (2026-10-07):
 | SheetJS (`xlsx` 0.18.5 on npm) | `utils` + `write` | 95.8 KB |
 | ExcelJS 4.4.0 | default browser build, not tree-shakeable | 272.1 KB |
 
-**excel-bridge is not the smallest on every row.** `ExcelWriter` writes styles, borders, conditional formatting, data validation, autofilters and hyperlinks in 12.8 KB. Some libraries are smaller for one job, or give up a feature to get there: the `excelents` entry has no conditional formatting at 1.0.1, and reads and writes in less than the whole of excel-bridge. Compare what you get for the bytes, not the bytes alone.
+**excel-bridge is not the smallest on every row.** `ExcelWriter` writes styles, borders, conditional formatting, data validation, autofilters and hyperlinks in 12.9 KB. Some libraries are smaller for one job, or give up a feature to get there: the `excelents` entry has no conditional formatting at 1.0.1, and reads and writes in less than the whole of excel-bridge. Compare what you get for the bytes, not the bytes alone.
 
-Tree-shaking uses the ESM build, which bundlers pick for `import`. `require('excel-bridge')` loads the whole CommonJS build. `ExcelBridge` is 21.6 KB against 12.8 KB for `ExcelWriter`, because bundlers keep an object whole: even one `ExcelBridge.write` call ships the reader too.
+Tree-shaking uses the ESM build, which bundlers pick for `import`. `require('excel-bridge')` loads the whole CommonJS build. `ExcelBridge` is 21.7 KB against 12.9 KB for `ExcelWriter`, because bundlers keep an object whole: even one `ExcelBridge.write` call ships the reader too.
 
 **How these numbers were measured**
 
@@ -65,7 +65,7 @@ Tree-shaking uses the ESM build, which bundlers pick for `import`. `require('exc
 | First-class TypeScript types | ✅ | ✅ | ✅ |
 | ESM **and** CJS, tree-shakeable | ✅ | ⚠️ CJS-first | ✅ |
 | Direct runtime dependencies ² | 1 | 9 | 7 |
-| Bundle size to write a file ¹ | **12.8 KB** | 272.1 KB | 95.8 KB |
+| Bundle size to write a file ¹ | **12.9 KB** | 272.1 KB | 95.8 KB |
 
 ¹ Minified and gzipped code that a browser bundle needs to write an `.xlsx`: `ExcelWriter`, ExcelJS's default browser build (not tree-shakeable) and SheetJS `utils` + `write` from npm `xlsx@0.18.5`, bundled with esbuild. Bundlephobia measures each whole package with its own toolchain, so its numbers differ: [excel-bridge](https://bundlephobia.com/package/excel-bridge), [exceljs](https://bundlephobia.com/package/exceljs) and [xlsx](https://bundlephobia.com/package/xlsx).
 

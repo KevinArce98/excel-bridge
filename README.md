@@ -6,13 +6,13 @@
 
 **Read and write styled `.xlsx` files in the browser and Node.js, without shipping ExcelJS or SheetJS.**
 
-Import a class and your bundler ships only that part: the writer adds 12.8 KB min+gzip.
+Import a class and your bundler ships only that part: the writer adds 12.9 KB min+gzip.
 
 <br />
 
 [![Live demo](https://img.shields.io/badge/demo-live-22c55e?labelColor=1e293b)](https://kevinarce98.github.io/excel-bridge/)
 [![npm version](https://img.shields.io/npm/v/excel-bridge?logo=npm&label=npm&color=22c55e)](https://www.npmjs.com/package/excel-bridge)
-[![ExcelWriter size](https://img.shields.io/badge/ExcelWriter-12.8%20KB%20min%2Bgzip-22c55e?labelColor=1e293b)](https://kevinarce98.github.io/excel-bridge/performance/)
+[![ExcelWriter size](https://img.shields.io/badge/ExcelWriter-12.9%20KB%20min%2Bgzip-22c55e?labelColor=1e293b)](https://kevinarce98.github.io/excel-bridge/performance/)
 [![CI](https://img.shields.io/github/actions/workflow/status/KevinArce98/excel-bridge/ci.yml?branch=main&label=CI&logo=github)](https://github.com/KevinArce98/excel-bridge/actions)
 [![types](https://img.shields.io/npm/types/excel-bridge?color=22c55e)](https://www.npmjs.com/package/excel-bridge)
 [![license](https://img.shields.io/npm/l/excel-bridge?color=22c55e)](./LICENSE)
@@ -25,7 +25,7 @@ Import a class and your bundler ships only that part: the writer adds 12.8 KB mi
 
 ## Why excel-bridge
 
-- **Small and tree-shakeable.** `ExcelWriter` adds 12.8 KB and `ExcelReader` 9.5 KB min+gzip. Import only the class you need. ESM and CJS builds.
+- **Small and tree-shakeable.** `ExcelWriter` adds 12.9 KB and `ExcelReader` 9.5 KB min+gzip. Import only the class you need. ESM and CJS builds.
 - **Read and write.** Cell styles with per-side borders, formulas with stored results, dates, merged cells, freeze panes, row heights, conditional formatting, data validation, autofilters, hyperlinks, hidden sheets and multi-sheet workbooks.
 - **One API for the browser and Node.js.** `Blob` and `File` in the browser, `Uint8Array` in Node.js.
 - **TypeScript-first.** Typed cells, typed styles and typed errors.

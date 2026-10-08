@@ -68,7 +68,7 @@
 ]);</code></pre></figure>
 <p>Como las cadenas siempre son texto, exportar datos de usuarios no puede crear una fórmula por accidente. Un nombre como <code>=HYPERLINK(&quot;https://example.com&quot;)</code> se escribe como el texto que es.</p>
 <h2 id="formulas">Fórmulas<a class="anchor" href="#formulas" aria-label="Fórmulas">#</a></h2>
-<p>Escribe una fórmula con un objeto. Omite el <code>=</code> inicial.</p>
+<p>Escribe una fórmula con un objeto. Omite el <code>=</code> inicial; se acepta y se ignora un <code>=</code> inicial.</p>
 <figure class="code"><figcaption><span class="code-name">formulas.ts</span><button type="button" class="copy" data-copy="Copiar" data-copied="Copiado">Copiar</button></figcaption><pre tabindex="0"><code><span class="tk-k">import</span> { <span class="tk-t">ExcelWriter</span> } <span class="tk-k">from</span> <span class="tk-s">'excel-bridge'</span>;
 
 <span class="tk-k">const</span> bytes = <span class="tk-k">new</span> <span class="tk-t">ExcelWriter</span>().createWorkbookBuffer([

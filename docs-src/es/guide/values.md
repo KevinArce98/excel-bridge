@@ -38,7 +38,7 @@ Como las cadenas siempre son texto, exportar datos de usuarios no puede crear un
 
 ## Fórmulas
 
-Escribe una fórmula con un objeto. Omite el `=` inicial.
+Escribe una fórmula con un objeto. Omite el `=` inicial; se acepta y se ignora un `=` inicial.
 
 ```ts title="formulas.ts"
 import { ExcelWriter } from 'excel-bridge';
