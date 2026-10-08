@@ -28,7 +28,7 @@ Evaluation happens at a desk, in a browser, alongside npm, GitHub, and Bundlepho
 
 ## Capabilities and Constraints
 
-Confirmed capabilities (repository main; the published 1.4.0 has fewer):
+Confirmed capabilities (published 1.5.0):
 
 - `ExcelBridge.read` / `readFromFile` / `write` / `writeBuffer` entry points.
 - Classes: `Workbook` (load/edit/save), `ExcelReader`, `ExcelWriter`, `StyleManager`.
@@ -61,9 +61,9 @@ Constraints:
 
 ## Evidence on Hand
 
-- Real, published npm package `excel-bridge@1.4.0` (provenance-signed) — the demo loads it live from jsDelivr. The repository's main branch is ahead of it (reader limits, round-trip and writer validation fixes); the demo page keeps showing the 1.4.0 figures below until it moves to the next release.
+- Real, published npm package `excel-bridge@1.5.0` (provenance-signed). The demo loads it live from jsDelivr and shows the figures below; move the version pin and the figures together on each release.
 - Real benchmark (README, `benchmarks/`): writing 50,000 rows × 10 columns, median of 5 runs, Node 24.19, Apple M4 — excel-bridge **560 ms / 2.41 MiB**, hucre 390 ms / 2.79 MiB, exceljs 1490 ms / 2.82 MiB, xlsx (SheetJS) 510 ms / 18.23 MiB uncompressed (570 ms / 6.26 MiB with `compression: true`). Reproducible via `pnpm run bench`. Never claim "fastest".
-- Real bundle-size measurements (README "Bundle size", `benchmarks/size.mjs`): esbuild browser ESM bundles, min+gzip. Published 1.4.0 (measured 2026-09-24, esbuild 0.27.3): `ExcelWriter` **12.0 KB**, `ExcelReader` 27.6 KB, full import 41.5 KB. Repository main (measured 2026-10-07, esbuild 0.28.2): `ExcelWriter` **12.5 KB**, `ExcelReader` 28.2 KB, full import 42.5 KB. Others (2026-10-07): hucre 1.2.0 `writeXlsx` 41.6 KB and `XlsxStreamWriter` 12.1 KB, excelents 1.0.1 12.2 KB (reader and writer, no conditional formatting), SheetJS `utils` + `write` 95.8 KB, ExcelJS 272.1 KB. Reproducible via `pnpm run size`; show them with their method footnote and never say "smallest" without the qualifier.
+- Real bundle-size measurements (README "Bundle size", `benchmarks/size.mjs`): esbuild browser ESM bundles, min+gzip. Published 1.5.0 (measured 2026-10-07, esbuild 0.28.2): `ExcelWriter` **12.5 KB**, `ExcelReader` 28.2 KB, full import 42.6 KB. Others (2026-10-07): hucre 1.2.0 `writeXlsx` 41.6 KB and `XlsxStreamWriter` 12.1 KB, excelents 1.0.1 12.2 KB (reader and writer, no conditional formatting), SheetJS `utils` + `write` 95.8 KB, ExcelJS 272.1 KB. Reproducible via `pnpm run size`; show them with their method footnote and never say "smallest" without the qualifier.
 - Real capability comparison table (README) vs ExcelJS and SheetJS community edition.
 - Real API surface (`src/index.ts`) and banner asset.
 - **No** testimonials, named customers, download counts, or endorsements exist — these must not be fabricated. Dynamic badges (npm version and downloads) are the only live third-party numbers and should be linked, not hardcoded. Download counts follow releases, so they say little about use.
