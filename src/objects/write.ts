@@ -50,8 +50,13 @@ const widthsOf = (columns: ColumnShape[]): number[] | undefined => {
 const headerOf = (columns: ColumnShape[]): CellValue[] =>
   columns.map(column => column.header ?? column.key);
 
+const valueAt = (row: object, key: string): CellValue =>
+  key in Object.prototype && !Object.prototype.hasOwnProperty.call(row, key)
+    ? undefined
+    : ((row as Record<string, unknown>)[key] as CellValue);
+
 const cellsOf = <Row extends object>(row: Row, columns: WriteColumn<Row>[]): CellValue[] =>
-  columns.map(column => row[column.key as keyof Row] as CellValue);
+  columns.map(column => valueAt(row, column.key));
 
 const headerStyles = (
   columns: ColumnShape[],

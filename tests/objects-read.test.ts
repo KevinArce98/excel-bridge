@@ -7,6 +7,16 @@ const sheetOf = (data: CellValue[][], extra: Partial<ExcelData> = {}): ParsedShe
   new ExcelReader().parseFromBuffer(new ExcelWriter().createWorkbookBuffer([{ data, ...extra }]))
     .sheets[0];
 
+describe('sheetToObjects with rows that are not arrays', () => {
+  it('skips null and undefined rows instead of throwing', () => {
+    const sheet = sheetOf([['id'], [1], [2]]);
+    const damaged = {
+      data: [sheet.data[0], null, undefined, sheet.data[1], sheet.data[2]],
+    } as unknown as ParsedSheet;
+    expect(sheetToObjects(damaged)).toEqual([{ id: 1 }, { id: 2 }]);
+  });
+});
+
 const failureOf = (action: () => unknown) => {
   try {
     action();

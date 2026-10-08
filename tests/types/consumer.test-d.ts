@@ -154,7 +154,7 @@ describe('removed exports', () => {
     expectTypeOf<typeof library>().toHaveProperty('Workbook');
     expectTypeOf<typeof library>().toHaveProperty('ExcelBridge');
     expectTypeOf<typeof library>().toHaveProperty('createExcelWorkbookStream');
-    expectTypeOf<typeof library>().toHaveProperty('isExcelError');
+    expectTypeOf<typeof library>().toHaveProperty('isExcelErrorValue');
   });
 });
 

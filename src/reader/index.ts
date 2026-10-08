@@ -3,7 +3,7 @@ import type { PartBudget } from '../core/zip-manager';
 import { ExcelBridgeError, invalidInput, limitExceeded } from '../core/errors';
 import { parseXml } from './xml';
 import type { XmlTree } from './xml';
-import type { ReaderLimitName } from '../core/errors';
+import type { ExcelBridgeErrorCode, ReaderLimitName } from '../core/errors';
 import {
   EXCEL_LIMITS,
   excelSerialToDate,
@@ -186,12 +186,14 @@ export const DEFAULT_READER_LIMITS: Required<ExcelReaderOptions> = {
   maxSheets: Infinity,
 };
 
-const resolveLimits = (options: ExcelReaderOptions = {}): Required<ExcelReaderOptions> => {
+const resolveLimits = (options?: ExcelReaderOptions | null): Required<ExcelReaderOptions> => {
   const limits = { ...DEFAULT_READER_LIMITS };
   (Object.keys(limits) as ReaderLimitName[]).forEach(name => {
-    const value = options[name];
+    const value = options?.[name];
     if (value === undefined) return;
-    if (!(value > 0)) throw invalidInput(`${name} must be a number above 0, or Infinity`);
+    if (!(typeof value === 'number' && value > 0)) {
+      throw invalidInput(`${name} must be a number above 0, or Infinity`);
+    }
     limits[name] = value;
   });
   return limits;
@@ -243,11 +245,14 @@ const parseOptionalPart = (xml?: string): XmlTree | undefined => {
   }
 };
 
+const failureCode = (error: unknown): ExcelBridgeErrorCode =>
+  error instanceof ExcelBridgeError && error.code !== 'INVALID_INPUT' ? error.code : 'INVALID_FILE';
+
 const parsePart = (path: string, xml: string): XmlTree => {
   try {
     return parseXml(xml);
   } catch (error) {
-    throw new ExcelBridgeError('INVALID_FILE', `${path}: ${(error as Error).message}`, {
+    throw new ExcelBridgeError(failureCode(error), `${path}: ${(error as Error).message}`, {
       cause: error,
     });
   }
@@ -346,9 +351,7 @@ export class ExcelReader {
       };
     } catch (error) {
       throw new ExcelBridgeError(
-        error instanceof ExcelBridgeError && error.code === 'LIMIT_EXCEEDED'
-          ? 'LIMIT_EXCEEDED'
-          : 'INVALID_FILE',
+        failureCode(error),
         `Failed to parse Excel file: ${error instanceof Error ? error.message : 'Unknown error'}`,
         {
           cause: error,

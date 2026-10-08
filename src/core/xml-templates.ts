@@ -11,7 +11,7 @@ import {
 import { calculateColumnWidths, generateColsXml } from './column-width';
 import { rowIndexes } from './rows';
 import { prepareLayout } from './sheet-layout';
-import { isExcelError, splitCell } from './cells';
+import { isExcelErrorValue, splitCell } from './cells';
 import { indexToColumnLetter, parseRange, formatRange, quoteSheetName } from './cell-ref';
 import { PreparedHyperlink, withHyperlinkStyles } from './hyperlinks';
 import {
@@ -76,10 +76,13 @@ const generateConditionalFormattingXml = (
       }
 
       const operator = escapeXmlAttr(cf.operator);
-      const formulasXml =
-        cf.operator === 'between' || cf.operator === 'notBetween'
-          ? `<formula>${cfFormulaValue(cf.value)}</formula><formula>${cfFormulaValue(cf.value2!)}</formula>`
-          : `<formula>${cfFormulaValue(cf.value)}</formula>`;
+      const needsRange = cf.operator === 'between' || cf.operator === 'notBetween';
+      if (needsRange && cf.value2 === undefined) {
+        throw invalidInput(`Conditional format at ${cf.range} needs value2`);
+      }
+      const formulasXml = needsRange
+        ? `<formula>${cfFormulaValue(cf.value)}</formula><formula>${cfFormulaValue(cf.value2 as number | string)}</formula>`
+        : `<formula>${cfFormulaValue(cf.value)}</formula>`;
       return `\n  <conditionalFormatting sqref="${sqref}">\n    <cfRule type="cellIs" dxfId="${dxfId}" priority="${priority}" operator="${operator}">${formulasXml}</cfRule>\n  </conditionalFormatting>`;
     })
     .join('');
@@ -117,7 +120,7 @@ const valueCellXml = (
 
   if (typeof value === 'object') {
     if ('error' in value) {
-      if (!isExcelError(value.error)) {
+      if (!isExcelErrorValue(value.error)) {
         throw invalidInput(`Cell ${ref} holds ${value.error}, which a worksheet cannot store`);
       }
       return `${open} t="e">${formulaXml}<v>${value.error}</v></c>`;
@@ -545,7 +548,7 @@ export const generateRootRelsXml = () => {
 
 const escapeXml = (text: string): string => {
   return text
-    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '')
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\uFFFE\uFFFF]/g, '')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');

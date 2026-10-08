@@ -21,7 +21,9 @@ export class ExcelBridgeError extends Error {
 }
 
 export const isExcelBridgeError = (error: unknown): error is ExcelBridgeError =>
-  error instanceof Error && error.name === 'ExcelBridgeError';
+  error instanceof Error &&
+  error.name === 'ExcelBridgeError' &&
+  typeof (error as { code?: unknown }).code === 'string';
 
 export const invalidInput = (message: string): ExcelBridgeError =>
   new ExcelBridgeError('INVALID_INPUT', message);

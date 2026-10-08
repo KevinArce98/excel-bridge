@@ -66,7 +66,7 @@ export type { StreamingSheetInput } from './writer/stream';
 
 export { dateToExcelSerial, excelSerialToDate, isDate, EXCEL_LIMITS } from './core/date-utils';
 
-export { isExcelError } from './core/cells';
+export { isExcelErrorValue } from './core/cells';
 
 export { calculateColumnWidths } from './core/column-width';
 

@@ -1,4 +1,4 @@
-import { isExcelError } from '../core/cells';
+import { isExcelErrorValue } from '../core/cells';
 import { ExcelBridgeError, invalidInput } from '../core/errors';
 import type { ErrorCell } from '../core/types';
 import type { ParsedSheet } from '../reader';
@@ -68,7 +68,7 @@ export function sheetToObjects<Row extends object = Record<string, ObjectCellVal
   sheet: Pick<ParsedSheet, 'data'>,
   { headerRow = 0, columns }: SheetToObjectsOptions<Row> = {}
 ): Row[] {
-  const rows = sheet.data.filter(row => row.length > 0);
+  const rows = sheet.data.filter(row => (row?.length ?? 0) > 0);
   const header = headerRow === null ? undefined : rows.find(row => rowNumber(row) === headerRow);
   const headers = header ? header.map(headerText) : undefined;
   const resolved = columns
@@ -86,7 +86,7 @@ export function sheetToObjects<Row extends object = Record<string, ObjectCellVal
       const value: ObjectCellValue =
         !cell || cell.type === 'empty'
           ? null
-          : cell.type === 'error' && isExcelError(cell.value)
+          : cell.type === 'error' && isExcelErrorValue(cell.value)
             ? { error: cell.value }
             : cell.value;
       if (value !== null && value !== '') filled = true;

@@ -1,12 +1,12 @@
 import { invalidInput } from '../core/errors';
-import { ExcelReader, ParsedCell, ParsedWorkbook } from '../reader';
-import type { ExcelReaderOptions } from '../reader';
+import { ExcelReader } from '../reader';
+import type { ExcelReaderOptions, ParsedCell, ParsedWorkbook } from '../reader';
 import { rowIndexes } from '../core/rows';
 import { ExcelWriter } from '../writer';
 import { parseRange, formatRange } from '../core/cell-ref';
 import { EXCEL_LIMITS } from '../core/date-utils';
 import { validateSheetName } from '../core/sheet-name';
-import { isExcelError } from '../core/cells';
+import { isExcelErrorValue } from '../core/cells';
 import { prepareLayout } from '../core/sheet-layout';
 import { HYPERLINK_STYLE, prepareHyperlink } from '../core/hyperlinks';
 import {
@@ -49,7 +49,7 @@ const resultOf = (cell: ParsedCell): FormulaResult | undefined => {
     case 'empty':
       return undefined;
     case 'error':
-      return isExcelError(cell.value) ? { error: cell.value } : undefined;
+      return isExcelErrorValue(cell.value) ? { error: cell.value } : undefined;
     default:
       return cell.value;
   }
@@ -60,7 +60,7 @@ const cellToValue = (cell: ParsedCell): CellValue => {
     const result = resultOf(cell);
     return result === undefined ? { formula: cell.formula } : { formula: cell.formula, result };
   }
-  if (cell.type === 'error' && isExcelError(cell.value)) return { error: cell.value };
+  if (cell.type === 'error' && isExcelErrorValue(cell.value)) return { error: cell.value };
   return cell.value;
 };
 

@@ -145,7 +145,7 @@ describe('parseXml namespaces', () => {
 describe('parseXml malformed input', () => {
   it.each([
     ['an unclosed element', '<a><b>1</b>', /<a> is not closed/],
-    ['a closing tag with no element', '</a>', /unexpected closing tag/],
+    ['a closing tag with no element', '</a>', /unexpected closing tag at position 0$/],
     ['a mismatched closing tag', '<a><b>1</c></a>', /unexpected closing tag, expected <\/b>/],
     ['a longer closing name', '<a></ab>', /unexpected closing tag/],
     ['a closing tag that is not terminated', '<a></a', /closing tag is not terminated/],
@@ -170,12 +170,33 @@ describe('parseXml malformed input', () => {
     ['a DOCTYPE', '<!DOCTYPE a><a/>', /DOCTYPE and other declarations are not supported/],
     ['an element named __proto__', '<a><__proto__>1</__proto__></a>', /reserved name/],
     ['an attribute named __proto__', '<a __proto__="1"/>', /reserved name/],
+    [
+      'an element named __proto__ behind the prefix of the root',
+      '<x:a><x:__proto__><b>1</b></x:__proto__></x:a>',
+      /reserved name/,
+    ],
+    [
+      'an empty element named __proto__ behind the prefix of the root',
+      '<x:a><x:__proto__/></x:a>',
+      /reserved name/,
+    ],
+    ['a root named __proto__ behind its own prefix', '<x:__proto__/>', /reserved name/],
   ])('throws for %s', (_label, xml, message) => {
     expect(() => parse(xml)).toThrow(message);
   });
 
   it('names the position of the error', () => {
     expect(() => parse('<a>\n<b>1</c></a>')).toThrow(/at position 8$/);
+  });
+
+  it('puts an unclosed element at the end of the input', () => {
+    expect(() => parse('<a><b>1</b>')).toThrow(/<a> is not closed at position 11$/);
+    expect(() => parse('<a>text')).toThrow(/<a> is not closed at position 7$/);
+    expect(() => parse('<a><b>')).toThrow(/<b> is not closed at position 6$/);
+  });
+
+  it('does not name an element when a closing tag has nothing to close', () => {
+    expect(() => parse('<a/></a>')).toThrow(/Malformed XML: unexpected closing tag at position 4$/);
   });
 
   it('does not expand entities declared in a DOCTYPE', () => {

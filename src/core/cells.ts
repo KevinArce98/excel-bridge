@@ -10,7 +10,7 @@ export const EXCEL_ERRORS = [
   '#N/A',
 ] as const;
 
-export const isExcelError = (value: unknown): value is ExcelErrorValue =>
+export const isExcelErrorValue = (value: unknown): value is ExcelErrorValue =>
   EXCEL_ERRORS.includes(value as ExcelErrorValue);
 
 export interface CellParts {

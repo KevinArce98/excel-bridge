@@ -10,6 +10,22 @@ const sheet = () => ({
   ] as (string | number)[][],
 });
 
+describe('Conditional formatting input', () => {
+  it.each(['between', 'notBetween'] as const)('rejects %s without value2', operator => {
+    const writer = new ExcelWriter();
+    expect(() =>
+      writer.createWorkbookBuffer([
+        {
+          ...sheet(),
+          conditionalFormats: [
+            { type: 'cellValue', range: 'B2:B3', operator, value: 1, style: { bold: true } },
+          ],
+        },
+      ])
+    ).toThrow(/Conditional format at B2:B3 needs value2/);
+  });
+});
+
 describe('Conditional formatting round-trip', () => {
   it('reads back a cellValue rule with its style', () => {
     const formats: ConditionalFormat[] = [
@@ -22,7 +38,9 @@ describe('Conditional formatting round-trip', () => {
       },
     ];
 
-    const buffer = new ExcelWriter().createWorkbookBuffer([{ ...sheet(), conditionalFormats: formats }]);
+    const buffer = new ExcelWriter().createWorkbookBuffer([
+      { ...sheet(), conditionalFormats: formats },
+    ]);
     const parsed = ExcelBridge.read(buffer);
 
     expect(parsed.sheets[0].conditionalFormats).toEqual(formats);
@@ -40,7 +58,9 @@ describe('Conditional formatting round-trip', () => {
       },
     ];
 
-    const buffer = new ExcelWriter().createWorkbookBuffer([{ ...sheet(), conditionalFormats: formats }]);
+    const buffer = new ExcelWriter().createWorkbookBuffer([
+      { ...sheet(), conditionalFormats: formats },
+    ]);
     const parsed = ExcelBridge.read(buffer);
 
     expect(parsed.sheets[0].conditionalFormats).toEqual(formats);
@@ -56,7 +76,9 @@ describe('Conditional formatting round-trip', () => {
       },
     ];
 
-    const buffer = new ExcelWriter().createWorkbookBuffer([{ ...sheet(), conditionalFormats: formats }]);
+    const buffer = new ExcelWriter().createWorkbookBuffer([
+      { ...sheet(), conditionalFormats: formats },
+    ]);
     const parsed = ExcelBridge.read(buffer);
 
     expect(parsed.sheets[0].conditionalFormats).toEqual(formats);
@@ -68,7 +90,9 @@ describe('Conditional formatting round-trip', () => {
       { type: 'colorScale', range: 'B2:B3', colors: ['#F8696B', '#FFEB84', '#63BE7B'] },
     ];
 
-    const buffer = new ExcelWriter().createWorkbookBuffer([{ ...sheet(), conditionalFormats: formats }]);
+    const buffer = new ExcelWriter().createWorkbookBuffer([
+      { ...sheet(), conditionalFormats: formats },
+    ]);
     const parsed = ExcelBridge.read(buffer);
 
     expect(parsed.sheets[0].conditionalFormats).toEqual(formats);
@@ -86,7 +110,9 @@ describe('Conditional formatting round-trip', () => {
       { type: 'colorScale', range: 'B2:B3', colors: ['#F8696B', '#FFEB84', '#63BE7B'] },
     ];
 
-    const original = new ExcelWriter().createWorkbookBuffer([{ ...sheet(), conditionalFormats: formats }]);
+    const original = new ExcelWriter().createWorkbookBuffer([
+      { ...sheet(), conditionalFormats: formats },
+    ]);
 
     const workbook = Workbook.fromBuffer(original);
     const resaved = workbook.toBuffer();

@@ -62,6 +62,14 @@ describe('ExcelBridgeError', () => {
     expect(isExcelBridgeError('ExcelBridgeError')).toBe(false);
     expect(isExcelBridgeError(null)).toBe(false);
   });
+
+  it('does not narrow an Error named ExcelBridgeError that has no string code', () => {
+    const withoutCode = Object.assign(new Error('x'), { name: 'ExcelBridgeError' });
+    const withNumericCode = Object.assign(new Error('x'), { name: 'ExcelBridgeError', code: 7 });
+    expect(isExcelBridgeError(withoutCode)).toBe(false);
+    expect(isExcelBridgeError(withNumericCode)).toBe(false);
+    expect(isExcelBridgeError(Object.assign(new Error('x'), { name: 'ExcelBridgeError', code: 'X' }))).toBe(true);
+  });
 });
 
 describe('codes of the errors the library throws', () => {

@@ -10,6 +10,37 @@ import {
 import type { WriteColumn } from '../src';
 import { cellAt, part } from './helpers/read';
 
+describe('objectsToSheet with keys that exist on every object', () => {
+  it.each(['constructor', 'toString', 'valueOf', 'hasOwnProperty', '__proto__'])(
+    'writes an empty cell for a missing %s',
+    key => {
+      const sheet = objectsToSheet(
+        [{ id: 1 } as Record<string, unknown>],
+        [{ key: 'id' }, { key }]
+      );
+      expect(sheet.data[1]).toEqual([1, undefined]);
+    }
+  );
+
+  it('still reads a property the row owns under one of those names', () => {
+    const sheet = objectsToSheet(
+      [{ toString: 'own' } as Record<string, unknown>],
+      [{ key: 'toString' }]
+    );
+    expect(sheet.data[1]).toEqual(['own']);
+  });
+
+  it('still reads a getter defined on the row class', () => {
+    class Line {
+      get total() {
+        return 42;
+      }
+    }
+    const sheet = objectsToSheet([new Line()], [{ key: 'total' }]);
+    expect(sheet.data[1]).toEqual([42]);
+  });
+});
+
 interface Order {
   id: number;
   customer: string;
@@ -55,7 +86,11 @@ describe('objectsToSheet', () => {
       [{ a: 1, extra: 'x' }, { b: 2 }],
       [{ key: 'a' }, { key: 'b' }]
     );
-    expect(data).toEqual([['a', 'b'], [1, undefined], [undefined, 2]]);
+    expect(data).toEqual([
+      ['a', 'b'],
+      [1, undefined],
+      [undefined, 2],
+    ]);
   });
 
   it('styles the header cells with headerStyle and the body cells with the column style', () => {
@@ -82,7 +117,11 @@ describe('objectsToSheet', () => {
   });
 
   it('turns the widths into columnWidths with holes for columns without one', () => {
-    const { options } = objectsToSheet<Order>(orders, [{ key: 'id' }, { key: 'customer', width: 24 }, { key: 'total', width: 12 }]);
+    const { options } = objectsToSheet<Order>(orders, [
+      { key: 'id' },
+      { key: 'customer', width: 24 },
+      { key: 'total', width: 12 },
+    ]);
     expect(options?.columnWidths).toHaveLength(3);
     expect(0 in options!.columnWidths!).toBe(false);
     expect(options?.columnWidths?.[1]).toBe(24);
@@ -104,7 +143,10 @@ describe('objectsToSheet', () => {
   });
 
   it('lets a column width replace options.columnWidths', () => {
-    const { options } = objectsToSheet<Order>(orders, [{ key: 'id', width: 5 }], { columnWidths: [30], autoWidth: true });
+    const { options } = objectsToSheet<Order>(orders, [{ key: 'id', width: 5 }], {
+      columnWidths: [30],
+      autoWidth: true,
+    });
     expect(options?.columnWidths).toEqual([5]);
   });
 
@@ -152,7 +194,10 @@ describe('objectsToStreamingSheet', () => {
   it('streams a header and the objects of an async iterable', async () => {
     const input = objectsToStreamingSheet<Order>(
       fromDatabase(),
-      [{ key: 'id', width: 6 }, { key: 'customer', header: 'Customer', width: 20 }],
+      [
+        { key: 'id', width: 6 },
+        { key: 'customer', header: 'Customer', width: 20 },
+      ],
       { name: 'Orders', freezePane: { row: 1 }, headerStyle: { bold: true } }
     );
     const bytes = await streamToBuffer(createExcelWorkbookStream([input]));
@@ -190,12 +235,12 @@ describe('objectsToStreamingSheet', () => {
   });
 
   it('rejects a column style, which a streaming sheet cannot apply to every row', () => {
-    expect(() => objectsToStreamingSheet<Order>(orders, [{ key: 'total', numberFormat: '0.00' } as never])).toThrow(
-      'Streaming column "total" cannot have a style'
-    );
-    expect(() => objectsToStreamingSheet<Order>(orders, [{ key: 'total', style: { bold: true } } as never])).toThrow(
-      expect.objectContaining({ code: 'INVALID_INPUT' })
-    );
+    expect(() =>
+      objectsToStreamingSheet<Order>(orders, [{ key: 'total', numberFormat: '0.00' } as never])
+    ).toThrow('Streaming column "total" cannot have a style');
+    expect(() =>
+      objectsToStreamingSheet<Order>(orders, [{ key: 'total', style: { bold: true } } as never])
+    ).toThrow(expect.objectContaining({ code: 'INVALID_INPUT' }));
   });
 
   it('does not start reading the source before the stream is consumed', () => {

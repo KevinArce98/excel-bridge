@@ -32,11 +32,19 @@ export async function xlsxResponse(
   headers.set('Content-Disposition', attachmentHeader(xlsxFilename(filename)));
 
   let payload: BodyInit;
-  if (body instanceof Blob || body instanceof Uint8Array || body instanceof ReadableStream) {
+  let iterator: AsyncIterator<Uint8Array> | undefined;
+  if (body instanceof Blob || ArrayBuffer.isView(body)) {
     payload = body as BodyInit;
-  } else {
-    const iterator = body[Symbol.asyncIterator]();
+  } else if (Symbol.asyncIterator in body && !(body instanceof ReadableStream)) {
+    iterator = body[Symbol.asyncIterator]();
     payload = readableFrom(iterator, await iterator.next());
+  } else {
+    payload = body as BodyInit;
   }
-  return new Response(payload, { ...init, headers });
+  try {
+    return new Response(payload, { ...init, headers });
+  } catch (error) {
+    await iterator?.return?.().catch(() => undefined);
+    throw error;
+  }
 }

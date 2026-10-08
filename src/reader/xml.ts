@@ -13,6 +13,38 @@ interface OpenElement {
 
 const MAX_DEPTH = 101;
 
+const enum CharCode {
+  BOM = 0xfeff,
+  TAB = 9,
+  LINE_FEED = 10,
+  CARRIAGE_RETURN = 13,
+  FIRST_NON_CONTROL = 32,
+  LAST_WHITESPACE = 32,
+  BANG = 33,
+  DOUBLE_QUOTE = 34,
+  SINGLE_QUOTE = 39,
+  HYPHEN = 45,
+  DOT = 46,
+  SLASH = 47,
+  DIGIT_ZERO = 48,
+  DIGIT_NINE = 57,
+  COLON = 58,
+  EQUALS = 61,
+  GT = 62,
+  QUESTION = 63,
+  UPPER_A = 65,
+  UPPER_Z = 90,
+  UNDERSCORE = 95,
+  LOWER_A = 97,
+  LOWER_Z = 122,
+  LAST_ASCII = 127,
+  LAST_BEFORE_SURROGATES = 0xd7ff,
+  FIRST_AFTER_SURROGATES = 0xe000,
+  NONCHARACTER_FFFE = 0xfffe,
+  NONCHARACTER_FFFF = 0xffff,
+  LAST_CODE_POINT = 0x10ffff,
+}
+
 const NAMED_REFERENCES: Record<string, string> = {
   lt: '<',
   gt: '>',
@@ -24,11 +56,14 @@ const NAMED_REFERENCES: Record<string, string> = {
 const REFERENCE = /&(?:#(\d+)|#x([\da-fA-F]+)|(lt|gt|amp|quot|apos));/g;
 
 const isXmlChar = (code: number): boolean =>
-  code === 9 ||
-  code === 10 ||
-  code === 13 ||
-  (code >= 32 && code <= 0xd7ff) ||
-  (code >= 0xe000 && code <= 0x10ffff && code !== 0xfffe && code !== 0xffff);
+  code === CharCode.TAB ||
+  code === CharCode.LINE_FEED ||
+  code === CharCode.CARRIAGE_RETURN ||
+  (code >= CharCode.FIRST_NON_CONTROL && code <= CharCode.LAST_BEFORE_SURROGATES) ||
+  (code >= CharCode.FIRST_AFTER_SURROGATES &&
+    code <= CharCode.LAST_CODE_POINT &&
+    code !== CharCode.NONCHARACTER_FFFE &&
+    code !== CharCode.NONCHARACTER_FFFF);
 
 const resolveReference = (
   reference: string,
@@ -50,14 +85,17 @@ const decodeText = (text: string): string => {
 };
 
 const isNameStart = (code: number): boolean =>
-  (code >= 97 && code <= 122) ||
-  (code >= 65 && code <= 90) ||
-  code === 95 ||
-  code === 58 ||
-  code > 127;
+  (code >= CharCode.LOWER_A && code <= CharCode.LOWER_Z) ||
+  (code >= CharCode.UPPER_A && code <= CharCode.UPPER_Z) ||
+  code === CharCode.UNDERSCORE ||
+  code === CharCode.COLON ||
+  code > CharCode.LAST_ASCII;
 
 const isNameChar = (code: number): boolean =>
-  isNameStart(code) || (code >= 48 && code <= 57) || code === 45 || code === 46;
+  isNameStart(code) ||
+  (code >= CharCode.DIGIT_ZERO && code <= CharCode.DIGIT_NINE) ||
+  code === CharCode.HYPHEN ||
+  code === CharCode.DOT;
 
 const finish = ({ attributes, children, text }: OpenElement): XmlValue => {
   if (!children) {
@@ -75,7 +113,7 @@ export const parseXml = (xml: string): XmlTree => {
   const stack: OpenElement[] = [{ name: '', attributes: null, children: null, text: '' }];
   let current = stack[0];
   let prefix = '';
-  let position = xml.charCodeAt(0) === 0xfeff ? 1 : 0;
+  let position = xml.charCodeAt(0) === CharCode.BOM ? 1 : 0;
 
   const fail = (message: string): never => {
     throw new ExcelBridgeError('INVALID_FILE', `Malformed XML: ${message} at position ${position}`);
@@ -89,12 +127,13 @@ export const parseXml = (xml: string): XmlTree => {
 
   const skipSpace = (from: number): number => {
     let end = from;
-    while (xml.charCodeAt(end) <= 32) end++;
+    while (xml.charCodeAt(end) <= CharCode.LAST_WHITESPACE) end++;
     return end;
   };
 
   const attach = (parent: OpenElement, name: string, value: XmlValue): void => {
     const key = prefix && name.startsWith(prefix) ? name.slice(prefix.length) : name;
+    if (key === '__proto__') fail('reserved name');
     const children = (parent.children ??= {});
     if (!Object.hasOwn(children, key)) {
       children[key] = value;
@@ -119,26 +158,23 @@ export const parseXml = (xml: string): XmlTree => {
 
     const marker = xml.charCodeAt(position + 1);
 
-    if (marker === 47) {
+    if (marker === CharCode.SLASH) {
       const end = xml.indexOf('>', position + 2);
       if (end < 0) fail('closing tag is not terminated');
+      if (stack.length === 1) fail('unexpected closing tag');
       const nameEnd = position + 2 + current.name.length;
-      if (
-        stack.length === 1 ||
-        !xml.startsWith(current.name, position + 2) ||
-        skipSpace(nameEnd) !== end
-      ) {
+      if (!xml.startsWith(current.name, position + 2) || skipSpace(nameEnd) !== end) {
         fail(`unexpected closing tag, expected </${current.name}>`);
       }
       const closed = stack.pop() as OpenElement;
       current = stack[stack.length - 1];
       attach(current, closed.name, finish(closed));
       position = end + 1;
-    } else if (marker === 63) {
+    } else if (marker === CharCode.QUESTION) {
       const end = xml.indexOf('?>', position + 2);
       if (end < 0) fail('processing instruction is not terminated');
       position = end + 2;
-    } else if (marker === 33) {
+    } else if (marker === CharCode.BANG) {
       if (xml.startsWith('<!--', position)) {
         const end = xml.indexOf('-->', position + 4);
         if (end < 0) fail('comment is not terminated');
@@ -165,12 +201,12 @@ export const parseXml = (xml: string): XmlTree => {
         cursor = skipSpace(cursor);
         position = cursor;
         const code = xml.charCodeAt(cursor);
-        if (code === 62) {
+        if (code === CharCode.GT) {
           cursor++;
           break;
         }
-        if (code === 47) {
-          if (xml.charCodeAt(cursor + 1) !== 62) fail('stray "/" in tag');
+        if (code === CharCode.SLASH) {
+          if (xml.charCodeAt(cursor + 1) !== CharCode.GT) fail('stray "/" in tag');
           selfClosing = true;
           cursor += 2;
           break;
@@ -182,11 +218,14 @@ export const parseXml = (xml: string): XmlTree => {
         const attributeName = xml.slice(cursor, nameEnd);
         if (attributeName === '__proto__') fail('reserved name');
         cursor = skipSpace(nameEnd);
-        if (xml.charCodeAt(cursor) !== 61) fail(`attribute ${attributeName} has no value`);
+        if (xml.charCodeAt(cursor) !== CharCode.EQUALS)
+          fail(`attribute ${attributeName} has no value`);
         cursor = skipSpace(cursor + 1);
         const quote = xml.charCodeAt(cursor);
-        if (quote !== 34 && quote !== 39) fail(`attribute ${attributeName} is not quoted`);
-        const valueEnd = xml.indexOf(quote === 34 ? '"' : "'", cursor + 1);
+        if (quote !== CharCode.DOUBLE_QUOTE && quote !== CharCode.SINGLE_QUOTE) {
+          fail(`attribute ${attributeName} is not quoted`);
+        }
+        const valueEnd = xml.indexOf(quote === CharCode.DOUBLE_QUOTE ? '"' : "'", cursor + 1);
         if (valueEnd < 0) fail(`attribute ${attributeName} is not terminated`);
         (attributes ??= {})[attributeName] = decodeText(xml.slice(cursor + 1, valueEnd));
         cursor = valueEnd + 1;
@@ -207,6 +246,9 @@ export const parseXml = (xml: string): XmlTree => {
     }
   }
 
-  if (stack.length > 1) fail(`<${current.name}> is not closed`);
+  if (stack.length > 1) {
+    position = length;
+    fail(`<${current.name}> is not closed`);
+  }
   return current.children ?? {};
 };

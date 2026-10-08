@@ -4,7 +4,7 @@ import {
   ExcelBridge,
   createExcelFile,
   createExcelFileBuffer,
-  isExcelError,
+  isExcelErrorValue,
   parseExcel,
 } from '../src';
 
@@ -29,7 +29,7 @@ const RUNTIME_EXPORTS = [
   'indexToCoordinate',
   'isDate',
   'isExcelBridgeError',
-  'isExcelError',
+  'isExcelErrorValue',
   'objectsToSheet',
   'objectsToStreamingSheet',
   'parseExcel',
@@ -106,25 +106,25 @@ describe('shortcuts that stay', () => {
   });
 });
 
-describe('isExcelError', () => {
+describe('isExcelErrorValue', () => {
   it.each(['#NULL!', '#DIV/0!', '#VALUE!', '#REF!', '#NAME?', '#NUM!', '#N/A'])(
     'accepts %s',
     code => {
-      expect(isExcelError(code)).toBe(true);
+      expect(isExcelErrorValue(code)).toBe(true);
     }
   );
 
   it.each(['#SPILL!', '#n/a', 'N/A', '', null, undefined, 4, { error: '#N/A' }])(
     'rejects %j',
     value => {
-      expect(isExcelError(value)).toBe(false);
+      expect(isExcelErrorValue(value)).toBe(false);
     }
   );
 
   it('takes the value of an error cell to an ErrorCell without a cast', () => {
     const cell = parseExcel(createExcelFileBuffer([[{ error: '#REF!' }]])).sheets[0].data[0][0];
     if (cell.type !== 'error') throw new Error('expected an error cell');
-    expect(isExcelError(cell.value) ? { error: cell.value } : undefined).toEqual({
+    expect(isExcelErrorValue(cell.value) ? { error: cell.value } : undefined).toEqual({
       error: '#REF!',
     });
   });

@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { runInNewContext } from 'node:vm';
 import {
   ExcelReader,
   ExcelWriter,
@@ -42,7 +43,13 @@ describe('downloadXlsx', () => {
   });
 
   const stubBrowser = () => {
-    const link = { href: '', download: '', style: { display: '' }, click: vi.fn(), remove: vi.fn() };
+    const link = {
+      href: '',
+      download: '',
+      style: { display: '' },
+      click: vi.fn(),
+      remove: vi.fn(),
+    };
     const body = { appendChild: vi.fn() };
     vi.stubGlobal('document', { createElement: vi.fn(() => link), body });
     const createObjectURL = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:fake');
@@ -165,13 +172,29 @@ describe('xlsxResponse', () => {
   });
 
   it.each([
-    ['Año 2024 (final)', `attachment; filename="A_o 2024 (final).xlsx"; filename*=UTF-8''A%C3%B1o%202024%20%28final%29.xlsx`],
+    [
+      'Año 2024 (final)',
+      `attachment; filename="A_o 2024 (final).xlsx"; filename*=UTF-8''A%C3%B1o%202024%20%28final%29.xlsx`,
+    ],
     ["it's", `attachment; filename="it's.xlsx"; filename*=UTF-8''it%27s.xlsx`],
-    ['a\r\nSet-Cookie: x=1', `attachment; filename="a_Set-Cookie_ x=1.xlsx"; filename*=UTF-8''a_Set-Cookie_%20x%3D1.xlsx`],
-    ['日本語', `attachment; filename="___.xlsx"; filename*=UTF-8''%E6%97%A5%E6%9C%AC%E8%AA%9E.xlsx`],
+    [
+      'a\r\nSet-Cookie: x=1',
+      `attachment; filename="a_Set-Cookie_ x=1.xlsx"; filename*=UTF-8''a_Set-Cookie_%20x%3D1.xlsx`,
+    ],
+    [
+      '日本語',
+      `attachment; filename="___.xlsx"; filename*=UTF-8''%E6%97%A5%E6%9C%AC%E8%AA%9E.xlsx`,
+    ],
     [undefined, `attachment; filename="workbook.xlsx"; filename*=UTF-8''workbook.xlsx`],
+    ['report.xlsx ', `attachment; filename="report.xlsx"; filename*=UTF-8''report.xlsx`],
+    ['report.xlsx\t', `attachment; filename="report.xlsx"; filename*=UTF-8''report.xlsx`],
+    ['a\uD83Db', `attachment; filename="a_b.xlsx"; filename*=UTF-8''a_b.xlsx`],
+    ['a\uDE00b', `attachment; filename="a_b.xlsx"; filename*=UTF-8''a_b.xlsx`],
+    ['a\u202Eb', `attachment; filename="a_b.xlsx"; filename*=UTF-8''a_b.xlsx`],
   ])('encodes the filename %j', async (filename, header) => {
-    expect((await xlsxResponse(new Uint8Array(1), filename)).headers.get('Content-Disposition')).toBe(header);
+    expect(
+      (await xlsxResponse(new Uint8Array(1), filename)).headers.get('Content-Disposition')
+    ).toBe(header);
   });
 
   it('keeps init and its other headers, and replaces the two it owns', async () => {
@@ -191,6 +214,40 @@ describe('xlsxResponse', () => {
     ['an async generator', () => chunksOf([1], [2, 3])],
   ])('sends %s as the body', async (_, make) => {
     expect(await bytesOf(await xlsxResponse(make()))).toEqual(new Uint8Array([1, 2, 3]));
+  });
+
+  it('sends a Uint8Array from another realm as bytes, not as an async iterable', async () => {
+    const foreign = runInNewContext('new Uint8Array([1, 2, 3])') as Uint8Array;
+    expect(foreign instanceof Uint8Array).toBe(false);
+    expect(await bytesOf(await xlsxResponse(foreign))).toEqual(new Uint8Array([1, 2, 3]));
+  });
+
+  it('closes an async iterable that was already started when the Response cannot be built', async () => {
+    let closed = false;
+    async function* chunks() {
+      try {
+        yield new Uint8Array([1]);
+        yield new Uint8Array([2]);
+      } finally {
+        closed = true;
+      }
+    }
+    await expect(xlsxResponse(chunks(), 'a', { status: 99 })).rejects.toThrow(RangeError);
+    expect(closed).toBe(true);
+  });
+
+  it('rethrows the construction error when closing the async iterable fails too', async () => {
+    const close = vi.fn(async () => {
+      throw new Error('close failed');
+    });
+    const iterable: AsyncIterable<Uint8Array> = {
+      [Symbol.asyncIterator]: () => ({
+        next: async () => ({ done: false, value: new Uint8Array([1]) }),
+        return: close,
+      }),
+    };
+    await expect(xlsxResponse(iterable, 'a', { status: 99 })).rejects.toThrow(RangeError);
+    expect(close).toHaveBeenCalledTimes(1);
   });
 
   it('streams a workbook that the reader can open', async () => {

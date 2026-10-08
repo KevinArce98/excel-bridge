@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { strFromU8, strToU8, unzipSync, zipSync } from 'fflate';
 import { ExcelBridge, ExcelWriter, dataValidation, hyperlink, isExcelBridgeError } from '../src';
+import type { ExcelBridgeError } from '../src';
 import { cellAt, fixture, readFirstSheet } from './helpers/read';
 import { REL_NS, SPREADSHEET_NS, buildXlsx } from './helpers/xlsx';
 
@@ -274,6 +275,25 @@ describe('malformed parts', () => {
     expect(cause).toMatchObject({ code: 'INVALID_FILE' });
     expect(cause.cause).toBeInstanceOf(Error);
     expect(cause.message).toMatch(/^xl\/styles\.xml: Malformed XML: .* at position \d+$/);
+  });
+
+  it('wraps a malformed part once with the path and once with the prefix, keeping the code', () => {
+    const bytes = broken('xl/styles.xml', xml => xml.slice(0, Math.floor(xml.length * 0.6)));
+    let thrown: unknown;
+    try {
+      ExcelBridge.read(bytes);
+    } catch (error) {
+      thrown = error;
+    }
+    const outer = thrown as ExcelBridgeError;
+    const part = outer.cause as ExcelBridgeError;
+    const parser = part.cause as ExcelBridgeError;
+    expect(outer.message).toMatch(/^Failed to parse Excel file: xl\/styles\.xml: Malformed XML: /);
+    expect(outer.message.match(/Failed to parse Excel file/g)).toHaveLength(1);
+    expect(part.message).toBe(`xl/styles.xml: ${parser.message}`);
+    expect(parser.message).toMatch(/^Malformed XML: /);
+    expect([outer.code, part.code, parser.code]).toEqual(['INVALID_FILE', 'INVALID_FILE', 'INVALID_FILE']);
+    expect(parser.cause).toBeUndefined();
   });
 
   it('rejects a part with a DOCTYPE', () => {

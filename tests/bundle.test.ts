@@ -34,7 +34,7 @@ describe('Tree-shaking', () => {
       const inputs = await bundledInputs(name);
 
       expect(inputs.length).toBeGreaterThan(0);
-      expect(inputs.filter(path => /src\/reader\/|fast-xml-parser/.test(path))).toEqual([]);
+      expect(inputs.filter(path => /src\/reader\//.test(path))).toEqual([]);
     }
   );
 
@@ -60,7 +60,7 @@ describe('Tree-shaking', () => {
     const inputs = await bundledInputs('sheetToObjects');
 
     expect(inputs.some(path => path.includes('src/objects/read'))).toBe(true);
-    expect(inputs.filter(path => /src\/(reader|writer)\/|fast-xml-parser|core\/xml-templates/.test(path))).toEqual([]);
+    expect(inputs.filter(path => /src\/(reader|writer)\/|core\/xml-templates/.test(path))).toEqual([]);
   });
 
   it.each(['objectsToSheet', 'objectsToStreamingSheet', 'downloadXlsx', 'xlsxResponse', 'toReadableStream'])(
@@ -69,7 +69,7 @@ describe('Tree-shaking', () => {
       const inputs = await bundledInputs(name);
 
       expect(inputs.length).toBeGreaterThan(0);
-      expect(inputs.filter(path => /src\/reader\/|fast-xml-parser/.test(path))).toEqual([]);
+      expect(inputs.filter(path => /src\/reader\//.test(path))).toEqual([]);
     }
   );
 
