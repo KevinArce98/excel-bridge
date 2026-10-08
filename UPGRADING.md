@@ -69,6 +69,8 @@ The benefit is that exporting user data can no longer create a formula by accide
 - **A list validation without a source is no longer returned.** A `<dataValidation type="list">` with no `<formula1>` used to read as `{ type: 'list', options: '' }`.
 - **`cell.coordinate` comes from the cell's position.** It is built from the row and column, not copied from the cell's `r` attribute, so a cell with `r="B7"` inside the first row reads as `B1`.
 - **A shared-formula follower has no `formula`.** It reads as its stored value, which `Workbook` saves as a plain value.
+- **Four misreads are fixed.** A workbook in the 1904 date system returns the right dates. An ISO 8601 `t="d"` cell returns a `Date` (a trailing `Z` is ignored). Text that is not `YYYY-MM-DD` or `YYYY-MM-DDTHH:MM[:SS[.fff]]`, such as a date with an offset or a space instead of `T`, reads as a string, which is what Excel shows. Escapes such as `_x000D_` are decoded in text. Only a `frozen` or `frozenSplit` pane becomes `freezePane`; a split pane is no longer read as a freeze pane of that many rows.
+- **Text that looks like an escape is written safely.** The writer writes the underscore of text such as `_x000D_` as `_x005F_`, so the text you write is the text you read. Other text is written as before.
 - **`ParsedCellStyle` is replaced by `CellStyle`.** A style read from a file can be written back as it is. `CellStyle` takes an optional type argument for the border, with a default, so existing uses keep working.
 
 ### Workbook
@@ -80,7 +82,7 @@ The benefit is that exporting user data can no longer create a formula by accide
 ### Errors and limits
 
 - **Everything the library raises on purpose is an `ExcelBridgeError`** with a `code` (`INVALID_INPUT`, `INVALID_FILE`, `LIMIT_EXCEEDED` or `UNSUPPORTED`). Messages are unchanged, apart from the cell budget one below. `error.name` is now `ExcelBridgeError`, so code that compared it with `'Error'` should use `isExcelBridgeError(error)` or `error instanceof Error`. A `parseFromBuffer` error keeps the `Failed to parse Excel file:` prefix and puts the original error on `cause`.
-- **`new ExcelReader()` has limits.** It refuses files above `maxCells: 5_000_000` (now every cell, not only padding), `maxPartBytes: 268_435_456` and `maxTotalBytes: 536_870_912`, with `LIMIT_EXCEEDED`. A part that declares a size over its limit is refused before it is inflated. Pass `Infinity` for each to remove the caps. The message `Workbook pads more than 5000000 empty cells to keep rows rectangular` is now `Workbook has at least N cells, counting the empty cells that pad rows, over the limit maxCells of 5000000`.
+- **`new ExcelReader()` has limits.** It refuses files above `maxCells: 5_000_000` (now every cell, not only padding), `maxPartBytes: 268_435_456`, `maxTotalBytes: 536_870_912` and `maxSheets: 1_000`, with `LIMIT_EXCEEDED`. A part that declares a size over its limit is refused before it is inflated. Pass `Infinity` for each to remove the caps. The message `Workbook pads more than 5000000 empty cells to keep rows rectangular` is now `Workbook has at least N cells, counting the empty cells that pad rows, over the limit maxCells of 5000000`.
 - **The XML reader is stricter.** A mismatched or unclosed tag, an unquoted attribute and a document that ends early now throw `INVALID_FILE`, where 1.x read what it could. A part with a `DOCTYPE` or in UTF-16 is rejected. A malformed `docProps` part is skipped, so its metadata is empty. A numeric character reference such as `&#233;` is decoded.
 - **Files with prefixed XML namespaces read correctly.** A sheet written as `<x:worksheet>` no longer reads as empty.
 - **`t="str"` cells with `xml:space="preserve"`**, as SheetJS writes them, read as their text instead of `[object Object]`.
@@ -111,12 +113,12 @@ Bundle size, min+gzip, measured with the same esbuild call on both versions:
 
 | Entry | 1.6.0 | 2.0 |
 | --- | ---: | ---: |
-| `createExcelWorkbookStream` | 12.3 KB | 12.3 KB |
+| `createExcelWorkbookStream` | 12.3 KB | 12.4 KB |
 | `ExcelWriter` | 12.9 KB | 12.9 KB |
-| `ExcelReader` | 28.8 KB | 9.5 KB |
-| `Workbook` | 41.0 KB | 21.5 KB |
-| `ExcelBridge` | 41.2 KB | 21.7 KB |
-| Everything | 43.7 KB | 25.4 KB |
+| `ExcelReader` | 28.8 KB | 9.9 KB |
+| `Workbook` | 41.0 KB | 22.0 KB |
+| `ExcelBridge` | 41.2 KB | 22.1 KB |
+| Everything | 43.7 KB | 25.8 KB |
 
 Reading a 50,000 × 10 file takes about 0.27 s instead of 1.5 s, and the peak memory of the benchmark process drops from 859 to 451 MiB (Node 24.19, Apple M4). The reader is faster because it parses the XML with its own tokenizer, and the package now depends on `fflate` alone. Writing is as fast as before.
 
@@ -228,7 +230,7 @@ reject, is worse than an error at the call.
 
 | Input | What to do |
 | --- | --- |
-| A sheet name over 31 characters, with `\ / ? * [ ] :`, a control character or an apostrophe at either end, or two names equal ignoring case | Shorten or rename it. |
+| A sheet name over 31 characters, with `\ / ? * [ ] :`, a control character or an apostrophe at either end, the name `History` (Excel reserves it), or two names equal ignoring case | Shorten or rename it. |
 | A workbook with no sheets, or with every sheet hidden | Add a sheet, or leave one visible. |
 | A colour that is not `#RGB`, `#RRGGBB` or `#AARRGGBB` (`red`, `rgb(…)`) | Convert it to hex. |
 | `NaN`, `Infinity` or an invalid `Date` in a cell | Replace it before writing, for example `Number.isFinite(value) ? value : null`. The error names the cell. |

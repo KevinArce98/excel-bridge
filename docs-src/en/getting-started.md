@@ -8,6 +8,11 @@ order: 1
 
 # Getting started
 
+<!-- channel:prerelease -->
+> [!NOTE]
+> **You are reading the docs of the 2.0 release candidate.** Install the pre-release with `npm install excel-bridge@next`. A plain `npm install excel-bridge` still installs the stable 1.x. What breaks and how to adapt: [Upgrading](../upgrading/).
+<!-- /channel:prerelease -->
+
 Write a styled spreadsheet and read it back, in the browser or Node.js, from one small package. Import a class and your bundler ships only that part: the writer adds 12.9 KB min+gzip.
 
 ## Install

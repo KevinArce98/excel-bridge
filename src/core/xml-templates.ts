@@ -134,7 +134,7 @@ const valueCellXml = (
   validateCellValue(stringValue);
 
   if (formulaXml) {
-    return `${open} t="str">${formulaXml}<v>${escapeXml(stringValue)}</v></c>`;
+    return `${open} t="str">${formulaXml}<v>${escapeCellText(stringValue)}</v></c>`;
   }
 
   const index = sharedStrings?.get(stringValue);
@@ -143,7 +143,7 @@ const valueCellXml = (
   }
 
   const space = stringValue !== stringValue.trim() ? ' xml:space="preserve"' : '';
-  return `${open} t="inlineStr"><is><t${space}>${escapeXml(stringValue)}</t></is></c>`;
+  return `${open} t="inlineStr"><is><t${space}>${escapeCellText(stringValue)}</t></is></c>`;
 };
 
 export const generateRowXml = (
@@ -380,7 +380,7 @@ export const generateSharedStringsXml = (strings: string[]) => {
   ${uniqueStrings
     .map(str => {
       const space = str !== str.trim() ? ' xml:space="preserve"' : '';
-      return `<si><t${space}>${escapeXml(str)}</t></si>`;
+      return `<si><t${space}>${escapeCellText(str)}</t></si>`;
     })
     .join('')}
 </sst>`;
@@ -546,6 +546,8 @@ export const generateRootRelsXml = () => {
 </Relationships>`;
 };
 
+const LITERAL_ESCAPE_PREFIX = /_(?=x[0-9A-Fa-f]{4}_)/g;
+
 const escapeXml = (text: string): string => {
   return text
     .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\uFFFE\uFFFF]/g, '')
@@ -555,3 +557,6 @@ const escapeXml = (text: string): string => {
 };
 
 const escapeXmlAttr = (text: string): string => escapeXml(text).replace(/"/g, '&quot;');
+
+const escapeCellText = (text: string): string =>
+  escapeXml(text).replace(LITERAL_ESCAPE_PREFIX, '_x005F_');

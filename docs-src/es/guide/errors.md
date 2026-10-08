@@ -67,7 +67,7 @@ const workbook = reader.parseFromBuffer(fs.readFileSync('data.xlsx'));
 | `maxCells` | Todas las celdas que el lector crea en el libro, incluidas las celdas vacías que rellenan las filas cortas. | 5,000,000 |
 | `maxPartBytes` | El tamaño sin comprimir declarado de cualquier parte del archivo. Una hoja de cálculo es una parte, así que este es el límite del XML de la hoja. | 256 MiB |
 | `maxTotalBytes` | La suma de los tamaños declarados de todas las partes que se descomprimen. | 512 MiB |
-| `maxSheets` | Las hojas enumeradas en el libro. | Sin límite |
+| `maxSheets` | Las hojas enumeradas en el libro. | 1,000 |
 
 Pasa `Infinity` para desactivar un límite. Los límites de tamaño se comprueban a partir del directorio del archivo antes de descomprimir nada, así que un archivo que declara 2 GiB para una parte se rechaza sin reservar memoria para ella.
 

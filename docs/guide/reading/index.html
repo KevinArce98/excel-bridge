@@ -84,10 +84,10 @@ workbook.sheets[<span class="tk-n">0</span>].data.forEach(row =&gt; {
   });
 });</code></pre></figure>
 <div class="table-scroll" role="region" tabindex="0" aria-label="Cells are typed by type"><table><thead><tr><th scope="col"><code>type</code></th><th scope="col"><code>value</code></th><th scope="col">Notes</th></tr></thead><tbody>
-<tr><td data-label="`type`"><code>'string'</code></td><td data-label="`value`"><code>string</code></td><td data-label="Notes"></td></tr>
+<tr><td data-label="`type`"><code>'string'</code></td><td data-label="`value`"><code>string</code></td><td data-label="Notes">Escapes such as <code>_x000D_</code> are decoded. A <code>t=&quot;d&quot;</code> cell that is not one of the ISO date forms below is read as its text.</td></tr>
 <tr><td data-label="`type`"><code>'number'</code></td><td data-label="`value`"><code>number</code></td><td data-label="Notes"></td></tr>
 <tr><td data-label="`type`"><code>'boolean'</code></td><td data-label="`value`"><code>boolean</code></td><td data-label="Notes"></td></tr>
-<tr><td data-label="`type`"><code>'date'</code></td><td data-label="`value`"><code>Date</code></td><td data-label="Notes">A cell whose number format is a date. Local wall-clock time.</td></tr>
+<tr><td data-label="`type`"><code>'date'</code></td><td data-label="`value`"><code>Date</code></td><td data-label="Notes">A cell whose number format is a date, or a <code>t=&quot;d&quot;</code> cell written as <code>YYYY-MM-DD</code> or <code>YYYY-MM-DDTHH:MM:SS</code> with an optional fraction and a trailing <code>Z</code>. Local wall-clock time: the <code>Z</code> is ignored. A date with an offset such as <code>+05:30</code>, or a space instead of <code>T</code>, is read as text, as Excel shows it. Both date systems (1900 and 1904) are read.</td></tr>
 <tr><td data-label="`type`"><code>'error'</code></td><td data-label="`value`"><code>string</code></td><td data-label="Notes">The error text, such as <code>#DIV/0!</code>.</td></tr>
 <tr><td data-label="`type`"><code>'empty'</code></td><td data-label="`value`"><code>null</code></td><td data-label="Notes">A cell with a style but no value, or padding for a gap between cells in a row.</td></tr>
 </tbody></table></div>

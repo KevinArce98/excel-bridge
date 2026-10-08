@@ -383,9 +383,9 @@ exports[`'sheetjs-report.xlsx' > matches the recorded parse of the file 1`] = `
             "rowIndex": 2,
             "type": "date",
             "value": [
-              1905,
-              7,
-              16,
+              2024,
+              2,
+              29,
             ],
           },
         ],

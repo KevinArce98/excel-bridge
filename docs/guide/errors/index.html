@@ -89,7 +89,7 @@
 <tr><td data-label="Option"><code>maxCells</code></td><td data-label="Counts">Every cell the reader creates in the workbook, including the empty cells that pad short rows.</td><td data-label="Default">5,000,000</td></tr>
 <tr><td data-label="Option"><code>maxPartBytes</code></td><td data-label="Counts">The declared uncompressed size of any one part of the file. A worksheet is a part, so this is the sheet XML limit.</td><td data-label="Default">256 MiB</td></tr>
 <tr><td data-label="Option"><code>maxTotalBytes</code></td><td data-label="Counts">The sum of the declared sizes of every part that is inflated.</td><td data-label="Default">512 MiB</td></tr>
-<tr><td data-label="Option"><code>maxSheets</code></td><td data-label="Counts">The sheets listed in the workbook.</td><td data-label="Default">No limit</td></tr>
+<tr><td data-label="Option"><code>maxSheets</code></td><td data-label="Counts">The sheets listed in the workbook.</td><td data-label="Default">1,000</td></tr>
 </tbody></table></div>
 <p>Pass <code>Infinity</code> to turn a limit off. The size limits are checked from the file&#39;s directory before anything is inflated, so a file that declares 2 GiB for one part is refused without allocating it.</p>
 <h2 id="files-you-did-not-make">Files you did not make<a class="anchor" href="#files-you-did-not-make" aria-label="Files you did not make">#</a></h2>

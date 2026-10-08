@@ -48,6 +48,7 @@
     "size:check": "node benchmarks/size.mjs --check",
     "check:package": "publint --strict && attw --pack .",
     "smoke:pack": "node scripts/smoke-pack.mjs",
+    "channel:check": "node scripts/check-channel.mjs",
     "docs:build": "node scripts/build-docs.mjs",
     "docs:check": "node scripts/build-docs.mjs --check",
     "docs:examples": "node scripts/check-docs-examples.mjs"

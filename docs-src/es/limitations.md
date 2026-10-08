@@ -42,13 +42,7 @@ excel-bridge escribe informes y los lee de vuelta. No lo cubre todo, y esta pág
 
 El lector no está reforzado para archivos no confiables más allá de sus [límites](../guide/errors/). Mantiene todo el archivo en memoria.
 
-Estos casos todavía no se leen correctamente:
-
-- el sistema de fechas 1904
-- una celda de fecha ISO-8601 `t="d"`, que se lee como un año cercano a 1905
-- secuencias de escape de caracteres como `_x000D_`, que se quedan en el texto
-- paneles divididos, cuyos twips se leen como un panel inmovilizado de esa cantidad de filas y columnas
-- un seguidor de fórmula compartida, que se lee como su valor en caché sin fórmula
+Un caso todavía no se lee correctamente: un seguidor de fórmula compartida se lee como su valor en caché, sin fórmula.
 
 ## Lo que no afirma
 

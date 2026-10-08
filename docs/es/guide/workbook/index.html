@@ -96,12 +96,11 @@ existing.setCellValue('<span class="tk-t">Sales</span>', <span class="tk-n">1</s
 <li>El texto de error distinto de los siete errores clásicos, que se guarda como texto.</li>
 <li>Los formatos integrados de fecha y hora que dependen de la configuración regional, que se vuelven a escribir como códigos explícitos en-US. La fecha corta integrada (id 14) sigue siendo la fecha corta.</li>
 <li>Los colores de tema e indexados, y los formatos de número integrados como <code>0%</code>. Solo se leen los colores RGB, los formatos de número personalizados y los formatos integrados de fecha y hora, y los colores de borde de tema o indexados pasan a ser negros.</li>
-<li>Los bordes diagonales, el texto enriquecido (se aplana) y los paneles divididos (pasan a ser paneles inmovilizados).</li>
+<li>Los bordes diagonales, el texto enriquecido (se aplana) y los paneles divididos (se descartan).</li>
 <li>Las reglas de formato condicional distintas de <code>cellIs</code>, <code>expression</code> y <code>colorScale</code>.</li>
 <li>Los valores predeterminados de la hoja (<code>&lt;sheetFormatPr&gt;</code>: altura de fila y ancho de columna predeterminados, niveles de esquema). Un grupo de esquema contraído sigue oculto, pero pierde sus botones.</li>
 <li>Los seguidores de una fórmula compartida, que se leen sin su fórmula.</li>
 <li>Una fórmula almacenada cuyo texto empieza con <code>=</code>. Excel no escribe una, pero un archivo hecho por 1.x a partir de una cadena como <code>=== Summary ===</code> la tiene. <code>Workbook</code> la guarda sin ese primer <code>=</code>, y una fórmula que es solo <code>=</code> hace que <code>toBuffer</code> lance un error.</li>
-<li>Las fechas del sistema de fechas 1904, que se leen de forma incorrecta.</li>
 </ul>
 <p>Una columna guardada con ancho 0 sigue teniendo ancho 0 cuando la muestras con <code>setColumnHidden</code>. Define también su ancho.</p>
 <aside class="callout callout-limit"><p class="callout-name">Límite</p><p>Si necesitas editar un archivo y conservar todo lo que no tocaste, como una plantilla con gráficos o macros, <code>Workbook</code> no es la herramienta adecuada: reconstruye el archivo a partir de su modelo. <code>openXlsx</code> y <code>saveXlsx</code> de hucre conservan las partes que no modelan.</p>

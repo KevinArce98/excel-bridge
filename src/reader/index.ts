@@ -9,6 +9,7 @@ import {
   excelSerialToDate,
   isDate,
   isDateNumFmtId,
+  parseIsoDate,
   validateColIndex,
   validateRowIndex,
 } from '../core/date-utils';
@@ -143,6 +144,7 @@ interface StyleSheetData {
   customFormats: Record<number, string>;
   cellXfs: DecodedXf[];
   dateStyles: Set<number>;
+  date1904: boolean;
   dxfs: ConditionalFormatStyle[];
 }
 
@@ -183,7 +185,7 @@ export const DEFAULT_READER_LIMITS: Required<ExcelReaderOptions> = {
   maxCells: 5_000_000,
   maxPartBytes: 268_435_456,
   maxTotalBytes: 536_870_912,
-  maxSheets: Infinity,
+  maxSheets: 1_000,
 };
 
 const resolveLimits = (options?: ExcelReaderOptions | null): Required<ExcelReaderOptions> => {
@@ -207,6 +209,13 @@ const withFormula = <T extends ParsedCell>(cell: T, formula: string): T => {
 };
 
 const isFlag = (value: unknown): boolean => value === '1' || value === 'true';
+
+const CHARACTER_ESCAPE = /_x([0-9A-Fa-f]{4})_/g;
+
+const decodeEscapes = (text: string): string =>
+  text.includes('_x')
+    ? text.replace(CHARACTER_ESCAPE, (_, code: string) => String.fromCharCode(parseInt(code, 16)))
+    : text;
 
 const BUILT_IN_DATE_FORMATS: Record<number, string> = {
   15: 'd-mmm-yy',
@@ -301,6 +310,7 @@ export class ExcelReader {
       const workbook = parsePart('xl/workbook.xml', files['xl/workbook.xml']);
       const sharedStrings = this.parseSharedStrings(files);
       const styleSheet = this.parseStyleSheet(files);
+      styleSheet.date1904 = isFlag(workbook.workbook?.workbookPr?.date1904);
       const relMap = this.parseWorkbookRels(files);
 
       const sheets: ParsedSheet[] = [];
@@ -411,15 +421,17 @@ export class ExcelReader {
 
   private extractStringItem(item: any): string {
     if (item == null) return '';
-    if (typeof item === 'string') return item;
+    if (typeof item === 'string') return decodeEscapes(item);
 
     if (item.t !== undefined) {
-      return this.extractText(item.t);
+      return decodeEscapes(this.extractText(item.t));
     }
     if (item.r !== undefined) {
-      return toArray(item.r)
-        .map((run: any) => this.extractText(run?.t))
-        .join('');
+      return decodeEscapes(
+        toArray(item.r)
+          .map((run: any) => this.extractText(run?.t))
+          .join('')
+      );
     }
     return '';
   }
@@ -440,6 +452,7 @@ export class ExcelReader {
       customFormats: {},
       cellXfs: [],
       dateStyles: new Set(),
+      date1904: false,
       dxfs: [],
     };
 
@@ -820,7 +833,7 @@ export class ExcelReader {
   private parseFreezePane(worksheet: any): { row?: number; col?: number } | undefined {
     const sheetViews = toArray(worksheet?.sheetViews?.sheetView);
     const pane = sheetViews[0]?.pane;
-    if (!pane) return undefined;
+    if (!pane || (pane.state !== 'frozen' && pane.state !== 'frozenSplit')) return undefined;
 
     const col = pane.xSplit !== undefined ? Number(pane.xSplit) : 0;
     const row = pane.ySplit !== undefined ? Number(pane.ySplit) : 0;
@@ -905,7 +918,13 @@ export class ExcelReader {
     }
     if (cell.t === 'str')
       return withFormula(
-        { coordinate, rowIndex, columnIndex, type: 'string', value: this.extractText(raw) },
+        {
+          coordinate,
+          rowIndex,
+          columnIndex,
+          type: 'string',
+          value: decodeEscapes(this.extractText(raw)),
+        },
         formula
       );
     if (cell.t === 'e')
@@ -913,6 +932,16 @@ export class ExcelReader {
         { coordinate, rowIndex, columnIndex, type: 'error', value: String(raw) },
         formula
       );
+
+    if (cell.t === 'd') {
+      const date = parseIsoDate(this.extractText(raw));
+      return withFormula(
+        date
+          ? { coordinate, rowIndex, columnIndex, type: 'date', value: date }
+          : { coordinate, rowIndex, columnIndex, type: 'string', value: this.extractText(raw) },
+        formula
+      );
+    }
 
     const num = parseFloat(raw);
     if (!Number.isFinite(num))
@@ -922,7 +951,7 @@ export class ExcelReader {
       );
 
     if (styleIndex !== undefined && styleSheet.dateStyles.has(styleIndex)) {
-      const date = excelSerialToDate(num);
+      const date = excelSerialToDate(num, styleSheet.date1904);
       if (isDate(date))
         return withFormula(
           { coordinate, rowIndex, columnIndex, type: 'date', value: date },

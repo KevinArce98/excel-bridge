@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, next]
   pull_request:
-    branches: [main]
+    branches: [main, next]
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -84,6 +84,9 @@ jobs:
 
       - name: Check bundle size against the docs
         run: pnpm run size:check
+
+      - name: Check the release channel markers
+        run: pnpm run channel:check
 
       - name: Check the generated docs are up to date
         run: pnpm run docs:check

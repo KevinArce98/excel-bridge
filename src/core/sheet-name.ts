@@ -2,11 +2,16 @@ import { invalidInput } from './errors';
 const VALID_SHEET_NAME =
   /^[^\\/?*[\]:\x00-\x1F']([^\\/?*[\]:\x00-\x1F]{0,29}[^\\/?*[\]:\x00-\x1F'])?$/;
 
+const RESERVED_SHEET_NAME = 'history';
+
 export const validateSheetName = (name: string): void => {
   if (!VALID_SHEET_NAME.test(name)) {
     throw invalidInput(
       `Invalid sheet name "${name}": use 1 to 31 characters, none of \\ / ? * [ ] : or control characters, and no apostrophe at either end`
     );
+  }
+  if (name.toLowerCase() === RESERVED_SHEET_NAME) {
+    throw invalidInput(`Invalid sheet name "${name}": Excel reserves the name "History"`);
   }
 };
 

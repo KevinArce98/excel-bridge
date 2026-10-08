@@ -42,13 +42,7 @@ excel-bridge writes reports and reads them back. It does not cover everything, a
 
 The reader is not hardened for untrusted files beyond its [limits](../guide/errors/). It holds the whole file in memory.
 
-These cases are not read correctly yet:
-
-- the 1904 date system
-- an ISO-8601 `t="d"` date cell, which is read as a year near 1905
-- character escapes such as `_x000D_`, which stay in the text
-- split panes, whose twips are read as a freeze pane of that many rows and columns
-- a shared-formula follower, which is read as its cached value without a formula
+One case is not read correctly yet: a shared-formula follower is read as its cached value, without a formula.
 
 ## What it does not claim
 

@@ -73,7 +73,7 @@
 };
 
 <span class="tk-k">const</span> bytes = <span class="tk-k">new</span> <span class="tk-t">ExcelWriter</span>({ creator: <span class="tk-s">'My App'</span> }).createWorkbookBuffer([sales, timeline]);</code></pre></figure>
-<p>A sheet name must be 1 to 31 characters, with none of <code>\ / ? * [ ] :</code> and no control characters, no apostrophe at either end, and unique when case is ignored. A workbook needs at least one sheet and at least one visible sheet. The writers throw otherwise.</p>
+<p>A sheet name must be 1 to 31 characters, with none of <code>\ / ? * [ ] :</code> and no control characters, no apostrophe at either end, not <code>History</code> (Excel reserves it) and unique when case is ignored. A workbook needs at least one sheet and at least one visible sheet. The writers throw otherwise.</p>
 <p>Hide a sheet with <code>state: 'hidden'</code> or <code>state: 'veryHidden'</code>.</p>
 <h2 id="merge-cells">Merge cells<a class="anchor" href="#merge-cells" aria-label="Merge cells">#</a></h2>
 <p>List ranges in <code>mergeCells</code>. Put the value in the top-left cell.</p>

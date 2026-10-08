@@ -71,12 +71,11 @@ Las filas y las columnas empiezan en cero, y las hojas se identifican por nombre
 - El texto de error distinto de los siete errores clásicos, que se guarda como texto.
 - Los formatos integrados de fecha y hora que dependen de la configuración regional, que se vuelven a escribir como códigos explícitos en-US. La fecha corta integrada (id 14) sigue siendo la fecha corta.
 - Los colores de tema e indexados, y los formatos de número integrados como `0%`. Solo se leen los colores RGB, los formatos de número personalizados y los formatos integrados de fecha y hora, y los colores de borde de tema o indexados pasan a ser negros.
-- Los bordes diagonales, el texto enriquecido (se aplana) y los paneles divididos (pasan a ser paneles inmovilizados).
+- Los bordes diagonales, el texto enriquecido (se aplana) y los paneles divididos (se descartan).
 - Las reglas de formato condicional distintas de `cellIs`, `expression` y `colorScale`.
 - Los valores predeterminados de la hoja (`<sheetFormatPr>`: altura de fila y ancho de columna predeterminados, niveles de esquema). Un grupo de esquema contraído sigue oculto, pero pierde sus botones.
 - Los seguidores de una fórmula compartida, que se leen sin su fórmula.
 - Una fórmula almacenada cuyo texto empieza con `=`. Excel no escribe una, pero un archivo hecho por 1.x a partir de una cadena como `=== Summary ===` la tiene. `Workbook` la guarda sin ese primer `=`, y una fórmula que es solo `=` hace que `toBuffer` lance un error.
-- Las fechas del sistema de fechas 1904, que se leen de forma incorrecta.
 
 Una columna guardada con ancho 0 sigue teniendo ancho 0 cuando la muestras con `setColumnHidden`. Define también su ancho.
 

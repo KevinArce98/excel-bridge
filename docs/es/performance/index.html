@@ -50,12 +50,12 @@
 <h2 id="tamano-del-paquete">Tamaño del paquete<a class="anchor" href="#tamano-del-paquete" aria-label="Tamaño del paquete">#</a></h2>
 <p>Los empaquetadores conservan las exportaciones que importas y descartan el resto. Esto es lo que suma cada punto de entrada a un paquete para navegador:</p>
 <div class="table-scroll" role="region" tabindex="0" aria-label="Tamaño del paquete"><table><thead><tr><th scope="col">Importar desde <code>excel-bridge</code></th><th scope="col" class="a-right">min+gzip</th></tr></thead><tbody>
-<tr><td data-label="Importar desde `excel-bridge`"><code>createExcelWorkbookStream</code></td><td class="a-right" data-label="min+gzip">12.3 KB</td></tr>
+<tr><td data-label="Importar desde `excel-bridge`"><code>createExcelWorkbookStream</code></td><td class="a-right" data-label="min+gzip">12.4 KB</td></tr>
 <tr><td data-label="Importar desde `excel-bridge`"><code>ExcelWriter</code></td><td class="a-right" data-label="min+gzip">12.9 KB</td></tr>
-<tr><td data-label="Importar desde `excel-bridge`"><code>ExcelReader</code></td><td class="a-right" data-label="min+gzip">9.5 KB</td></tr>
-<tr><td data-label="Importar desde `excel-bridge`"><code>Workbook</code> (lector + escritor)</td><td class="a-right" data-label="min+gzip">21.5 KB</td></tr>
-<tr><td data-label="Importar desde `excel-bridge`"><code>ExcelBridge</code> (objeto de conveniencia)</td><td class="a-right" data-label="min+gzip">21.7 KB</td></tr>
-<tr><td data-label="Importar desde `excel-bridge`">Todo</td><td class="a-right" data-label="min+gzip">25.4 KB</td></tr>
+<tr><td data-label="Importar desde `excel-bridge`"><code>ExcelReader</code></td><td class="a-right" data-label="min+gzip">9.9 KB</td></tr>
+<tr><td data-label="Importar desde `excel-bridge`"><code>Workbook</code> (lector + escritor)</td><td class="a-right" data-label="min+gzip">22.0 KB</td></tr>
+<tr><td data-label="Importar desde `excel-bridge`"><code>ExcelBridge</code> (objeto de conveniencia)</td><td class="a-right" data-label="min+gzip">22.1 KB</td></tr>
+<tr><td data-label="Importar desde `excel-bridge`">Todo</td><td class="a-right" data-label="min+gzip">25.8 KB</td></tr>
 </tbody></table></div>
 <p>La misma medición para otras bibliotecas (2026-10-07):</p>
 <div class="table-scroll" role="region" tabindex="0" aria-label="Tamaño del paquete"><table><thead><tr><th scope="col">Biblioteca</th><th scope="col">Importación</th><th scope="col" class="a-right">min+gzip</th></tr></thead><tbody>
@@ -70,7 +70,7 @@
 <tr><td data-label="Biblioteca">ExcelJS 4.4.0</td><td data-label="Importación">compilación de navegador predeterminada, no admite tree-shaking</td><td class="a-right" data-label="min+gzip">272.1 KB</td></tr>
 </tbody></table></div>
 <p><strong>excel-bridge no es el más pequeño en cada fila.</strong> <code>ExcelWriter</code> escribe estilos, bordes, formato condicional, validación de datos, autofiltros e hipervínculos en 12.9 KB. Algunas bibliotecas son más pequeñas para una sola tarea, o renuncian a una función para lograrlo: la entrada de <code>excelents</code> no tiene formato condicional en 1.0.1, y lee y escribe en menos espacio que todo excel-bridge. Compara lo que obtienes por los bytes, no solo los bytes.</p>
-<p>El tree-shaking usa la compilación ESM, que los empaquetadores eligen para <code>import</code>. <code>require('excel-bridge')</code> carga la compilación CommonJS completa. <code>ExcelBridge</code> pesa 21.7 KB frente a 12.9 KB de <code>ExcelWriter</code>, porque los empaquetadores conservan un objeto completo: incluso una sola llamada a <code>ExcelBridge.write</code> incluye también el lector.</p>
+<p>El tree-shaking usa la compilación ESM, que los empaquetadores eligen para <code>import</code>. <code>require('excel-bridge')</code> carga la compilación CommonJS completa. <code>ExcelBridge</code> pesa 22.1 KB frente a 12.9 KB de <code>ExcelWriter</code>, porque los empaquetadores conservan un objeto completo: incluso una sola llamada a <code>ExcelBridge.write</code> incluye también el lector.</p>
 <p><strong>Cómo se midieron estos números</strong></p>
 <ul>
 <li><strong>Herramientas:</strong> esbuild 0.28.2 (<code>--bundle --minify --platform=browser --format=esm</code>). Las filas de excel-bridge se midieron el 2026-10-08 y las de las demás bibliotecas el 2026-10-07.</li>

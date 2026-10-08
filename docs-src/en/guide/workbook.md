@@ -71,13 +71,11 @@ Rows and columns are zero-based, and sheets are addressed by name.
 - Error text other than the seven classic errors, which is saved as text.
 - Locale-dependent built-in date and time formats, which are written back as explicit en-US codes. The built-in short date (id 14) stays the short date.
 - Theme and indexed colours, and built-in number formats such as `0%`. Only RGB colours, custom number formats and the built-in date and time formats are read, and theme or indexed border colours become black.
-- Diagonal borders, rich text (flattened) and split panes (they become freeze panes).
+- Diagonal borders, rich text (flattened) and split panes (dropped).
 - Conditional formatting rules other than `cellIs`, `expression` and `colorScale`.
 - Sheet defaults (`<sheetFormatPr>`: default row height and column width, outline levels). A collapsed outline group stays hidden but loses its buttons.
 - Shared-formula followers, which are read without their formula.
 - A stored formula whose text starts with `=`. Excel does not write one, but a file made by 1.x from a string such as `=== Summary ===` has one. `Workbook` saves it without that first `=`, and a formula that is only `=` makes `toBuffer` throw.
-- A stored formula whose text starts with `=`. Excel does not write one, but a file made by 1.x from a string such as `=== Summary ===` has one. `Workbook` saves it without that first `=`, and a formula that is only `=` makes `toBuffer` throw.
-- Dates in the 1904 date system, which are read incorrectly.
 
 A column stored with width 0 stays 0 wide when you unhide it with `setColumnHidden`. Set its width as well.
 

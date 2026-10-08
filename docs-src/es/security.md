@@ -20,7 +20,7 @@ Reporta las vulnerabilidades en privado mediante los [avisos de seguridad de Git
 ## Antes de leer un archivo que no creaste tú
 
 - **Los límites son un mínimo, no una garantía.** `maxPartBytes`, `maxTotalBytes` y `maxSheets` rechazan los archivos grandes antes de descomprimir las hojas. `maxCells` se comprueba mientras se analiza una hoja, después de descomprimir su XML. Un archivo por debajo de todos los valores predeterminados aún puede usar mucha memoria: leer una hoja de 205 MiB llegó a entre 2.1 y 2.5 GB de memoria residente, unas 10 a 12 veces el XML de la hoja.
-- **Define `maxSheets`** para cargas públicas. Un archivo puede listar muchas hojas que apunten a una misma parte grande, que se descomprime una vez pero se analiza una vez por hoja.
+- **Baja `maxSheets`** para cargas públicas. Por defecto es 1,000. Un archivo puede listar muchas hojas que apunten a una misma parte grande, que se descomprime una vez pero se analiza una vez por hoja.
 - **Limita el tamaño de la carga** antes de analizar, y define los límites según lo que necesite tu producto.
 - **Analiza las cargas no confiables en un worker o en un proceso separado** que se pueda reiniciar.
 - **Comprueba los esquemas de hipervínculo** antes de mostrar un vínculo leído de un archivo. `ExcelReader` devuelve los vínculos tal como están guardados.

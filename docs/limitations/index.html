@@ -75,14 +75,7 @@
 </ul>
 <h2 id="reading">Reading<a class="anchor" href="#reading" aria-label="Reading">#</a></h2>
 <p>The reader is not hardened for untrusted files beyond its <a href="../guide/errors/">limits</a>. It holds the whole file in memory.</p>
-<p>These cases are not read correctly yet:</p>
-<ul>
-<li>the 1904 date system</li>
-<li>an ISO-8601 <code>t=&quot;d&quot;</code> date cell, which is read as a year near 1905</li>
-<li>character escapes such as <code>_x000D_</code>, which stay in the text</li>
-<li>split panes, whose twips are read as a freeze pane of that many rows and columns</li>
-<li>a shared-formula follower, which is read as its cached value without a formula</li>
-</ul>
+<p>One case is not read correctly yet: a shared-formula follower is read as its cached value, without a formula.</p>
 <h2 id="what-it-does-not-claim">What it does not claim<a class="anchor" href="#what-it-does-not-claim" aria-label="What it does not claim">#</a></h2>
 <ul>
 <li>It is not the smallest on every row of the comparison. See <a href="../performance/">Performance and size</a>.</li>

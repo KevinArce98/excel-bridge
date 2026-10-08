@@ -67,7 +67,7 @@ const workbook = reader.parseFromBuffer(fs.readFileSync('data.xlsx'));
 | `maxCells` | Every cell the reader creates in the workbook, including the empty cells that pad short rows. | 5,000,000 |
 | `maxPartBytes` | The declared uncompressed size of any one part of the file. A worksheet is a part, so this is the sheet XML limit. | 256 MiB |
 | `maxTotalBytes` | The sum of the declared sizes of every part that is inflated. | 512 MiB |
-| `maxSheets` | The sheets listed in the workbook. | No limit |
+| `maxSheets` | The sheets listed in the workbook. | 1,000 |
 
 Pass `Infinity` to turn a limit off. The size limits are checked from the file's directory before anything is inflated, so a file that declares 2 GiB for one part is refused without allocating it.
 

@@ -96,13 +96,11 @@ existing.setCellValue('<span class="tk-t">Sales</span>', <span class="tk-n">1</s
 <li>Error text other than the seven classic errors, which is saved as text.</li>
 <li>Locale-dependent built-in date and time formats, which are written back as explicit en-US codes. The built-in short date (id 14) stays the short date.</li>
 <li>Theme and indexed colours, and built-in number formats such as <code>0%</code>. Only RGB colours, custom number formats and the built-in date and time formats are read, and theme or indexed border colours become black.</li>
-<li>Diagonal borders, rich text (flattened) and split panes (they become freeze panes).</li>
+<li>Diagonal borders, rich text (flattened) and split panes (dropped).</li>
 <li>Conditional formatting rules other than <code>cellIs</code>, <code>expression</code> and <code>colorScale</code>.</li>
 <li>Sheet defaults (<code>&lt;sheetFormatPr&gt;</code>: default row height and column width, outline levels). A collapsed outline group stays hidden but loses its buttons.</li>
 <li>Shared-formula followers, which are read without their formula.</li>
 <li>A stored formula whose text starts with <code>=</code>. Excel does not write one, but a file made by 1.x from a string such as <code>=== Summary ===</code> has one. <code>Workbook</code> saves it without that first <code>=</code>, and a formula that is only <code>=</code> makes <code>toBuffer</code> throw.</li>
-<li>A stored formula whose text starts with <code>=</code>. Excel does not write one, but a file made by 1.x from a string such as <code>=== Summary ===</code> has one. <code>Workbook</code> saves it without that first <code>=</code>, and a formula that is only <code>=</code> makes <code>toBuffer</code> throw.</li>
-<li>Dates in the 1904 date system, which are read incorrectly.</li>
 </ul>
 <p>A column stored with width 0 stays 0 wide when you unhide it with <code>setColumnHidden</code>. Set its width as well.</p>
 <aside class="callout callout-limit"><p class="callout-name">Limit</p><p>If you need to edit a file and keep everything you did not touch, such as a template with charts or macros, <code>Workbook</code> is the wrong tool: it rebuilds the file from its model. hucre&#39;s <code>openXlsx</code> and <code>saveXlsx</code> keep the parts they do not model.</p>

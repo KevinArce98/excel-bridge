@@ -76,6 +76,8 @@ La ventaja es que exportar datos de usuarios ya no puede crear una fórmula por 
 - **Una validación de lista sin origen ya no se devuelve.** Un `<dataValidation type="list">` sin `<formula1>` se leía como `{ type: 'list', options: '' }`.
 - **`cell.coordinate` sale de la posición de la celda.** Se construye con la fila y la columna, no se copia del atributo `r` de la celda, así que una celda con `r="B7"` dentro de la primera fila se lee como `B1`.
 - **Un seguidor de fórmula compartida no tiene `formula`.** Se lee como su valor guardado, que `Workbook` guarda como un valor simple.
+- **Se corrigen cuatro lecturas erróneas.** Un libro en el sistema de fechas 1904 devuelve las fechas correctas. Una celda `t="d"` ISO 8601 devuelve una `Date` (se ignora una `Z` final). Un texto que no es `YYYY-MM-DD` ni `YYYY-MM-DDTHH:MM[:SS[.fff]]`, como una fecha con desfase o con un espacio en lugar de `T`, se lee como cadena, que es lo que muestra Excel. Los escapes como `_x000D_` se decodifican en el texto. Solo un panel `frozen` o `frozenSplit` pasa a ser `freezePane`; un panel dividido ya no se lee como un panel inmovilizado de esa cantidad de filas.
+- **El texto que parece un escape se escribe de forma segura.** El escritor escribe el guion bajo de un texto como `_x000D_` como `_x005F_`, así que el texto que escribes es el texto que lees. El resto del texto se escribe como antes.
 - **`CellStyle` reemplaza a `ParsedCellStyle`.** Un estilo leído de un archivo se puede volver a escribir tal cual. `CellStyle` acepta un argumento de tipo opcional para el borde, con un valor predeterminado, así que los usos existentes siguen funcionando.
 
 ### Workbook
@@ -87,7 +89,7 @@ La ventaja es que exportar datos de usuarios ya no puede crear una fórmula por 
 ### Errores y límites
 
 - **Todo lo que la biblioteca lanza a propósito es un `ExcelBridgeError`** con un `code` (`INVALID_INPUT`, `INVALID_FILE`, `LIMIT_EXCEEDED` o `UNSUPPORTED`). Los mensajes no cambian, salvo el del límite de celdas que aparece más abajo. `error.name` ahora es `ExcelBridgeError`, así que el código que lo comparaba con `'Error'` debe usar `isExcelBridgeError(error)` o `error instanceof Error`. Un error de `parseFromBuffer` conserva el prefijo `Failed to parse Excel file:` y deja el error original en `cause`.
-- **`new ExcelReader()` tiene límites.** Rechaza los archivos que superan `maxCells: 5_000_000` (ahora cuenta todas las celdas, no solo el relleno), `maxPartBytes: 268_435_456` y `maxTotalBytes: 536_870_912`, con `LIMIT_EXCEEDED`. Una parte que declara un tamaño mayor que su límite se rechaza antes de descomprimirla. Pasa `Infinity` en cada uno para quitar los topes. El mensaje `Workbook pads more than 5000000 empty cells to keep rows rectangular` ahora es `Workbook has at least N cells, counting the empty cells that pad rows, over the limit maxCells of 5000000`.
+- **`new ExcelReader()` tiene límites.** Rechaza los archivos que superan `maxCells: 5_000_000` (ahora cuenta todas las celdas, no solo el relleno), `maxPartBytes: 268_435_456`, `maxTotalBytes: 536_870_912` y `maxSheets: 1_000`, con `LIMIT_EXCEEDED`. Una parte que declara un tamaño mayor que su límite se rechaza antes de descomprimirla. Pasa `Infinity` en cada uno para quitar los topes. El mensaje `Workbook pads more than 5000000 empty cells to keep rows rectangular` ahora es `Workbook has at least N cells, counting the empty cells that pad rows, over the limit maxCells of 5000000`.
 - **El lector de XML es más estricto.** Una etiqueta que no coincide o que no se cierra, un atributo sin comillas y un documento que termina antes de tiempo ahora lanzan `INVALID_FILE`, donde 1.x leía lo que podía. Una parte con `DOCTYPE` o en UTF-16 se rechaza. Una parte `docProps` mal formada se omite, así que sus metadatos quedan vacíos. Una referencia numérica de carácter como `&#233;` se decodifica.
 - **Los archivos con espacios de nombres XML con prefijo se leen correctamente.** Una hoja escrita como `<x:worksheet>` ya no se lee como vacía.
 - **Las celdas `t="str"` con `xml:space="preserve"`**, como las escribe SheetJS, se leen como su texto en lugar de `[object Object]`.
@@ -118,12 +120,12 @@ Tamaño del paquete, min+gzip, medido con la misma llamada de esbuild en ambas v
 
 | Entrada | 1.6.0 | 2.0 |
 | --- | ---: | ---: |
-| `createExcelWorkbookStream` | 12.3 KB | 12.3 KB |
+| `createExcelWorkbookStream` | 12.3 KB | 12.4 KB |
 | `ExcelWriter` | 12.9 KB | 12.9 KB |
-| `ExcelReader` | 28.8 KB | 9.5 KB |
-| `Workbook` | 41.0 KB | 21.5 KB |
-| `ExcelBridge` | 41.2 KB | 21.7 KB |
-| Todo | 43.7 KB | 25.4 KB |
+| `ExcelReader` | 28.8 KB | 9.9 KB |
+| `Workbook` | 41.0 KB | 22.0 KB |
+| `ExcelBridge` | 41.2 KB | 22.1 KB |
+| Todo | 43.7 KB | 25.8 KB |
 
 Leer un archivo de 50,000 × 10 tarda unos 0.27 s en lugar de 1.5 s, y el pico de memoria del proceso del benchmark baja de 859 a 451 MiB (Node 24.19, Apple M4). El lector es más rápido porque analiza el XML con su propio tokenizador, y el paquete ahora depende solo de `fflate`. La escritura es tan rápida como antes.
 
@@ -188,7 +190,7 @@ Los escritores producían un archivo con estas entradas. Un archivo que Excel re
 
 | Entrada | Qué hacer |
 | --- | --- |
-| Un nombre de hoja de más de 31 caracteres, con `\ / ? * [ ] :`, un carácter de control o un apóstrofo en cualquiera de los extremos, o dos nombres iguales sin distinguir mayúsculas de minúsculas | Acórtalo o cámbiale el nombre. |
+| Un nombre de hoja de más de 31 caracteres, con `\ / ? * [ ] :`, un carácter de control o un apóstrofo en cualquiera de los extremos, el nombre `History` (Excel lo reserva), o dos nombres iguales sin distinguir mayúsculas de minúsculas | Acórtalo o cámbiale el nombre. |
 | Un libro sin hojas, o con todas las hojas ocultas | Agrega una hoja, o deja una visible. |
 | Un color que no es `#RGB`, `#RRGGBB` ni `#AARRGGBB` (`red`, `rgb(…)`) | Conviértelo a hexadecimal. |
 | `NaN`, `Infinity` o un `Date` no válido en una celda | Reemplázalo antes de escribir, por ejemplo `Number.isFinite(value) ? value : null`. El error nombra la celda. |

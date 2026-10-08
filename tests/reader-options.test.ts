@@ -73,7 +73,7 @@ describe('reader options', () => {
       maxCells: 5_000_000,
       maxPartBytes: 268_435_456,
       maxTotalBytes: 536_870_912,
-      maxSheets: Infinity,
+      maxSheets: 1_000,
     });
     const [sheet] = new ExcelReader().parseFromBuffer(buildXlsx(grid(2, 2))).sheets;
     expect(sheet.data).toHaveLength(2);
@@ -203,6 +203,19 @@ describe('maxSheets', () => {
     expect(failure.code).toBe('LIMIT_EXCEEDED');
     expect(failure.limit).toBe('maxSheets');
     expect(failure.message).toMatch(/Workbook has 3 sheets, over the limit maxSheets of 2$/);
+  });
+
+  it('stops at 1,000 sheets by default and lets Infinity remove the cap', () => {
+    expect(new ExcelReader().parseFromBuffer(severalSheets(1000)).sheets).toHaveLength(1000);
+
+    const bytes = severalSheets(1001);
+    const failure = failureOf(() => new ExcelReader().parseFromBuffer(bytes));
+    expect(failure.code).toBe('LIMIT_EXCEEDED');
+    expect(failure.limit).toBe('maxSheets');
+    expect(failure.message).toMatch(/Workbook has 1001 sheets, over the limit maxSheets of 1000$/);
+    expect(new ExcelReader({ maxSheets: Infinity }).parseFromBuffer(bytes).sheets).toHaveLength(
+      1001
+    );
   });
 
   it('allows exactly the limit', () => {

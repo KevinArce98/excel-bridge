@@ -89,7 +89,7 @@
 <tr><td data-label="Opción"><code>maxCells</code></td><td data-label="Qué cuenta">Todas las celdas que el lector crea en el libro, incluidas las celdas vacías que rellenan las filas cortas.</td><td data-label="Valor predeterminado">5,000,000</td></tr>
 <tr><td data-label="Opción"><code>maxPartBytes</code></td><td data-label="Qué cuenta">El tamaño sin comprimir declarado de cualquier parte del archivo. Una hoja de cálculo es una parte, así que este es el límite del XML de la hoja.</td><td data-label="Valor predeterminado">256 MiB</td></tr>
 <tr><td data-label="Opción"><code>maxTotalBytes</code></td><td data-label="Qué cuenta">La suma de los tamaños declarados de todas las partes que se descomprimen.</td><td data-label="Valor predeterminado">512 MiB</td></tr>
-<tr><td data-label="Opción"><code>maxSheets</code></td><td data-label="Qué cuenta">Las hojas enumeradas en el libro.</td><td data-label="Valor predeterminado">Sin límite</td></tr>
+<tr><td data-label="Opción"><code>maxSheets</code></td><td data-label="Qué cuenta">Las hojas enumeradas en el libro.</td><td data-label="Valor predeterminado">1,000</td></tr>
 </tbody></table></div>
 <p>Pasa <code>Infinity</code> para desactivar un límite. Los límites de tamaño se comprueban a partir del directorio del archivo antes de descomprimir nada, así que un archivo que declara 2 GiB para una parte se rechaza sin reservar memoria para ella.</p>
 <h2 id="archivos-que-no-creaste-tu">Archivos que no creaste tú<a class="anchor" href="#archivos-que-no-creaste-tu" aria-label="Archivos que no creaste tú">#</a></h2>

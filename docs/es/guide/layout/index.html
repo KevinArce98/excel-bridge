@@ -73,7 +73,7 @@
 };
 
 <span class="tk-k">const</span> bytes = <span class="tk-k">new</span> <span class="tk-t">ExcelWriter</span>({ creator: <span class="tk-s">'My App'</span> }).createWorkbookBuffer([sales, timeline]);</code></pre></figure>
-<p>El nombre de una hoja debe tener de 1 a 31 caracteres, sin ninguno de <code>\ / ? * [ ] :</code>, sin caracteres de control, sin apóstrofo en ninguno de los extremos y ser único sin distinguir mayúsculas de minúsculas. Un libro necesita al menos una hoja y al menos una hoja visible. De lo contrario, los escritores lanzan un error.</p>
+<p>El nombre de una hoja debe tener de 1 a 31 caracteres, sin ninguno de <code>\ / ? * [ ] :</code>, sin caracteres de control, sin apóstrofo en ninguno de los extremos, no ser <code>History</code> (Excel lo reserva) y ser único sin distinguir mayúsculas de minúsculas. Un libro necesita al menos una hoja y al menos una hoja visible. De lo contrario, los escritores lanzan un error.</p>
 <p>Oculta una hoja con <code>state: 'hidden'</code> o <code>state: 'veryHidden'</code>.</p>
 <h2 id="combinar-celdas">Combinar celdas<a class="anchor" href="#combinar-celdas" aria-label="Combinar celdas">#</a></h2>
 <p>Enumera los rangos en <code>mergeCells</code>. Pon el valor en la celda superior izquierda.</p>

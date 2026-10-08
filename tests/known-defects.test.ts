@@ -47,18 +47,34 @@ describe('date systems', () => {
     expect(calendarDay(dateOf(date))).toEqual([2009, 7, 6]);
   });
 
-  knownDefect(
-    'a date1904 workbook is read with the 1900 epoch (expected 2013-07-07) (R4)',
-    () => {
-      const bytes = buildXlsx(
-        serial,
-        {},
-        { styles: DATE_STYLES, workbookProperties: '<workbookPr date1904="1"/>' }
-      );
-      expect(calendarDay(dateOf(cellAt(readFirstSheet(bytes), 'A1')))).toEqual([2013, 7, 7]);
-    },
-    { message: /expected \[ 2009, 7, 6 \] to deeply equal \[ 2013, 7, 7 \]/ }
-  );
+  it.each(['1', 'true'])('reads the 1904 system when date1904 is %s', flag => {
+    const bytes = buildXlsx(
+      serial,
+      {},
+      { styles: DATE_STYLES, workbookProperties: `<workbookPr date1904="${flag}"/>` }
+    );
+    expect(calendarDay(dateOf(cellAt(readFirstSheet(bytes), 'A1')))).toEqual([2013, 7, 7]);
+  });
+
+  it.each(['0', 'false'])('reads the 1900 system when date1904 is %s', flag => {
+    const bytes = buildXlsx(
+      serial,
+      {},
+      { styles: DATE_STYLES, workbookProperties: `<workbookPr date1904="${flag}"/>` }
+    );
+    expect(calendarDay(dateOf(cellAt(readFirstSheet(bytes), 'A1')))).toEqual([2009, 7, 6]);
+  });
+
+  it('leaves a plain number alone in the 1904 system and writes the dates back in the 1900 system', () => {
+    const bytes = buildXlsx(
+      '<sheetData><row r="1"><c r="A1" s="1"><v>0</v></c><c r="B1"><v>40000</v></c></row></sheetData>',
+      {},
+      { styles: DATE_STYLES, workbookProperties: '<workbookPr date1904="1"/>' }
+    );
+    const saved = readFirstSheet(Workbook.fromBuffer(bytes).toBuffer());
+    expect(calendarDay(dateOf(cellAt(saved, 'A1')))).toEqual([1904, 1, 1]);
+    expect(cellAt(saved, 'B1')?.value).toBe(40000);
+  });
 });
 
 describe('cell values from other tools', () => {
@@ -72,13 +88,9 @@ describe('cell values from other tools', () => {
     expect(cellAt(sheet, 'D1')?.value).toBe('ok');
   });
 
-  knownDefect(
-    'the escape _x000D_ stays in the text (expected: a carriage return) (R6)',
-    () => {
-      expect(cellAt(sheet, 'C1')?.value).toBe('a\rb');
-    },
-    { message: /expected 'a_x000D_b' to be/ }
-  );
+  it('decodes the escape _x000D_ to a carriage return', () => {
+    expect(cellAt(sheet, 'C1')?.value).toBe('a\rb');
+  });
 });
 
 describe('formulas from other tools', () => {
@@ -126,13 +138,14 @@ describe('sheet views', () => {
     });
   });
 
-  knownDefect(
-    'a split pane is read as a freeze pane of 1800 rows (expected: no freeze pane) (R13)',
-    () => {
-      expect(
-        paneSheet('<pane xSplit="2400" ySplit="1800" state="split"/>').freezePane
-      ).toBeUndefined();
-    },
-    { message: /expected \{ row: 1800, col: 2400 \} to be undefined/ }
-  );
+  it('reads a frozenSplit pane as a freeze pane', () => {
+    expect(paneSheet('<pane ySplit="2" state="frozenSplit"/>').freezePane).toEqual({ row: 2 });
+  });
+
+  it.each([
+    '<pane xSplit="2400" ySplit="1800" state="split"/>',
+    '<pane xSplit="2400" ySplit="1800"/>',
+  ])('does not read %s as a freeze pane, because its numbers are twips', pane => {
+    expect(paneSheet(pane).freezePane).toBeUndefined();
+  });
 });

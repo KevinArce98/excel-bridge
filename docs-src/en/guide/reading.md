@@ -57,10 +57,10 @@ workbook.sheets[0].data.forEach(row => {
 
 | `type` | `value` | Notes |
 | --- | --- | --- |
-| `'string'` | `string` | |
+| `'string'` | `string` | Escapes such as `_x000D_` are decoded. A `t="d"` cell that is not one of the ISO date forms below is read as its text. |
 | `'number'` | `number` | |
 | `'boolean'` | `boolean` | |
-| `'date'` | `Date` | A cell whose number format is a date. Local wall-clock time. |
+| `'date'` | `Date` | A cell whose number format is a date, or a `t="d"` cell written as `YYYY-MM-DD` or `YYYY-MM-DDTHH:MM:SS` with an optional fraction and a trailing `Z`. Local wall-clock time: the `Z` is ignored. A date with an offset such as `+05:30`, or a space instead of `T`, is read as text, as Excel shows it. Both date systems (1900 and 1904) are read. |
 | `'error'` | `string` | The error text, such as `#DIV/0!`. |
 | `'empty'` | `null` | A cell with a style but no value, or padding for a gap between cells in a row. |
 

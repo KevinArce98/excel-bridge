@@ -16,12 +16,12 @@ Bundlers keep the exports you import and drop the rest. This is what each entry 
 
 | Import from `excel-bridge` | min+gzip |
 | --- | ---: |
-| `createExcelWorkbookStream` | 12.3 KB |
+| `createExcelWorkbookStream` | 12.4 KB |
 | `ExcelWriter` | 12.9 KB |
-| `ExcelReader` | 9.5 KB |
-| `Workbook` (reader + writer) | 21.5 KB |
-| `ExcelBridge` (convenience object) | 21.7 KB |
-| Everything | 25.4 KB |
+| `ExcelReader` | 9.9 KB |
+| `Workbook` (reader + writer) | 22.0 KB |
+| `ExcelBridge` (convenience object) | 22.1 KB |
+| Everything | 25.8 KB |
 
 The same measurement for other libraries (2026-10-07):
 
@@ -39,7 +39,7 @@ The same measurement for other libraries (2026-10-07):
 
 **excel-bridge is not the smallest on every row.** `ExcelWriter` writes styles, borders, conditional formatting, data validation, autofilters and hyperlinks in 12.9 KB. Some libraries are smaller for one job, or give up a feature to get there: the `excelents` entry has no conditional formatting at 1.0.1, and reads and writes in less than the whole of excel-bridge. Compare what you get for the bytes, not the bytes alone.
 
-Tree-shaking uses the ESM build, which bundlers pick for `import`. `require('excel-bridge')` loads the whole CommonJS build. `ExcelBridge` is 21.7 KB against 12.9 KB for `ExcelWriter`, because bundlers keep an object whole: even one `ExcelBridge.write` call ships the reader too.
+Tree-shaking uses the ESM build, which bundlers pick for `import`. `require('excel-bridge')` loads the whole CommonJS build. `ExcelBridge` is 22.1 KB against 12.9 KB for `ExcelWriter`, because bundlers keep an object whole: even one `ExcelBridge.write` call ships the reader too.
 
 **How these numbers were measured**
 

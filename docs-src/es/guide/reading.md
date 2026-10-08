@@ -57,10 +57,10 @@ workbook.sheets[0].data.forEach(row => {
 
 | `type` | `value` | Notas |
 | --- | --- | --- |
-| `'string'` | `string` | |
+| `'string'` | `string` | Los escapes como `_x000D_` se decodifican. Una celda `t="d"` que no es una de las formas de fecha ISO de abajo se lee como su texto. |
 | `'number'` | `number` | |
 | `'boolean'` | `boolean` | |
-| `'date'` | `Date` | Una celda cuyo formato de número es de fecha. Hora local de reloj. |
+| `'date'` | `Date` | Una celda cuyo formato de número es de fecha, o una celda `t="d"` escrita como `YYYY-MM-DD` o `YYYY-MM-DDTHH:MM:SS` con fracción opcional y una `Z` final. Hora local de reloj: se ignora la `Z`. Una fecha con desfase como `+05:30`, o con un espacio en lugar de `T`, se lee como texto, igual que la muestra Excel. Se leen los dos sistemas de fechas (1900 y 1904). |
 | `'error'` | `string` | El texto del error, como `#DIV/0!`. |
 | `'empty'` | `null` | Una celda con estilo pero sin valor, o relleno de un hueco entre celdas de una fila. |
 

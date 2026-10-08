@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { strFromU8, unzipSync } from 'fflate';
 import { ExcelBridge, Workbook } from '../src';
-import { knownDefect } from './helpers/known-defect';
 import { calendarDay, cellAt, dateOf, fixture, normalise, part } from './helpers/read';
 
 const REPORTS = [
@@ -136,14 +135,10 @@ describe('sheetjs-report.xlsx stores its date as ISO text', () => {
     );
   });
 
-  knownDefect(
-    'an ISO-8601 date cell is read as year 1905 (expected 2024-02-29) (R7)',
-    () => {
-      const cell = cellAt(ExcelBridge.read(bytes).sheets[0], 'C3');
-      expect(calendarDay(dateOf(cell))).toEqual([2024, 2, 29]);
-    },
-    { message: /expected \[ 1905, 7, 16 \] to deeply equal \[ 2024, 2, 29 \]/ }
-  );
+  it('reads the cell as the date 2024-02-29', () => {
+    const cell = cellAt(ExcelBridge.read(bytes).sheets[0], 'C3');
+    expect(calendarDay(dateOf(cell))).toEqual([2024, 2, 29]);
+  });
 });
 
 describe('exceljs-text.xlsx', () => {

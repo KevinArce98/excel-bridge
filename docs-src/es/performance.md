@@ -16,12 +16,12 @@ Los empaquetadores conservan las exportaciones que importas y descartan el resto
 
 | Importar desde `excel-bridge` | min+gzip |
 | --- | ---: |
-| `createExcelWorkbookStream` | 12.3 KB |
+| `createExcelWorkbookStream` | 12.4 KB |
 | `ExcelWriter` | 12.9 KB |
-| `ExcelReader` | 9.5 KB |
-| `Workbook` (lector + escritor) | 21.5 KB |
-| `ExcelBridge` (objeto de conveniencia) | 21.7 KB |
-| Todo | 25.4 KB |
+| `ExcelReader` | 9.9 KB |
+| `Workbook` (lector + escritor) | 22.0 KB |
+| `ExcelBridge` (objeto de conveniencia) | 22.1 KB |
+| Todo | 25.8 KB |
 
 La misma medición para otras bibliotecas (2026-10-07):
 
@@ -39,7 +39,7 @@ La misma medición para otras bibliotecas (2026-10-07):
 
 **excel-bridge no es el más pequeño en cada fila.** `ExcelWriter` escribe estilos, bordes, formato condicional, validación de datos, autofiltros e hipervínculos en 12.9 KB. Algunas bibliotecas son más pequeñas para una sola tarea, o renuncian a una función para lograrlo: la entrada de `excelents` no tiene formato condicional en 1.0.1, y lee y escribe en menos espacio que todo excel-bridge. Compara lo que obtienes por los bytes, no solo los bytes.
 
-El tree-shaking usa la compilación ESM, que los empaquetadores eligen para `import`. `require('excel-bridge')` carga la compilación CommonJS completa. `ExcelBridge` pesa 21.7 KB frente a 12.9 KB de `ExcelWriter`, porque los empaquetadores conservan un objeto completo: incluso una sola llamada a `ExcelBridge.write` incluye también el lector.
+El tree-shaking usa la compilación ESM, que los empaquetadores eligen para `import`. `require('excel-bridge')` carga la compilación CommonJS completa. `ExcelBridge` pesa 22.1 KB frente a 12.9 KB de `ExcelWriter`, porque los empaquetadores conservan un objeto completo: incluso una sola llamada a `ExcelBridge.write` incluye también el lector.
 
 **Cómo se midieron estos números**
 

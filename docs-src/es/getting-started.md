@@ -8,6 +8,11 @@ order: 1
 
 # Primeros pasos
 
+<!-- channel:prerelease -->
+> [!NOTE]
+> **Estás leyendo la documentación del release candidate de 2.0.** Instala la versión previa con `npm install excel-bridge@next`. Un `npm install excel-bridge` normal sigue instalando la 1.x estable. Qué se rompe y cómo adaptarte: [Actualización](../upgrading/).
+<!-- /channel:prerelease -->
+
 Escribe una hoja de cálculo con estilos y léela de vuelta, en el navegador o en Node.js, con un solo paquete pequeño. Importa una clase y tu empaquetador incluye solo esa parte: el escritor suma 12.9 KB min+gzip.
 
 ## Instalación

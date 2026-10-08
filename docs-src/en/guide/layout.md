@@ -41,7 +41,7 @@ const timeline: ExcelData = {
 const bytes = new ExcelWriter({ creator: 'My App' }).createWorkbookBuffer([sales, timeline]);
 ```
 
-A sheet name must be 1 to 31 characters, with none of `\ / ? * [ ] :` and no control characters, no apostrophe at either end, and unique when case is ignored. A workbook needs at least one sheet and at least one visible sheet. The writers throw otherwise.
+A sheet name must be 1 to 31 characters, with none of `\ / ? * [ ] :` and no control characters, no apostrophe at either end, not `History` (Excel reserves it) and unique when case is ignored. A workbook needs at least one sheet and at least one visible sheet. The writers throw otherwise.
 
 Hide a sheet with `state: 'hidden'` or `state: 'veryHidden'`.
 

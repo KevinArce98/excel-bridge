@@ -75,14 +75,7 @@
 </ul>
 <h2 id="lectura">Lectura<a class="anchor" href="#lectura" aria-label="Lectura">#</a></h2>
 <p>El lector no está reforzado para archivos no confiables más allá de sus <a href="../guide/errors/">límites</a>. Mantiene todo el archivo en memoria.</p>
-<p>Estos casos todavía no se leen correctamente:</p>
-<ul>
-<li>el sistema de fechas 1904</li>
-<li>una celda de fecha ISO-8601 <code>t=&quot;d&quot;</code>, que se lee como un año cercano a 1905</li>
-<li>secuencias de escape de caracteres como <code>_x000D_</code>, que se quedan en el texto</li>
-<li>paneles divididos, cuyos twips se leen como un panel inmovilizado de esa cantidad de filas y columnas</li>
-<li>un seguidor de fórmula compartida, que se lee como su valor en caché sin fórmula</li>
-</ul>
+<p>Un caso todavía no se lee correctamente: un seguidor de fórmula compartida se lee como su valor en caché, sin fórmula.</p>
 <h2 id="lo-que-no-afirma">Lo que no afirma<a class="anchor" href="#lo-que-no-afirma" aria-label="Lo que no afirma">#</a></h2>
 <ul>
 <li>No es el más pequeño en cada fila de la comparación. Consulta <a href="../performance/">Rendimiento y tamaño</a>.</li>

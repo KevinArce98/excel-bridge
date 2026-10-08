@@ -21,11 +21,19 @@ Import a class and your bundler ships only that part: the writer adds 12.9 KB mi
 
 </div>
 
+<!-- channel:prerelease -->
+> **This is the 2.0 release candidate.** Install it with `npm install excel-bridge@next`. A plain `npm install excel-bridge` still installs the stable 1.x.
+>
+> 2.0 has breaking changes: [what changes and how to adapt](https://github.com/KevinArce98/excel-bridge/blob/next/UPGRADING.md). The documentation website moves to 2.0 when 2.0.0 is released. Until then, read the pages in [docs-src](https://github.com/KevinArce98/excel-bridge/tree/next/docs-src/en).
+>
+> Found a problem? [Open an issue](https://github.com/KevinArce98/excel-bridge/issues/new).
+<!-- /channel:prerelease -->
+
 ---
 
 ## Why excel-bridge
 
-- **Small and tree-shakeable.** `ExcelWriter` adds 12.9 KB and `ExcelReader` 9.5 KB min+gzip. Import only the class you need. ESM and CJS builds.
+- **Small and tree-shakeable.** `ExcelWriter` adds 12.9 KB and `ExcelReader` 9.9 KB min+gzip. Import only the class you need. ESM and CJS builds.
 - **Read and write.** Cell styles with per-side borders, formulas with stored results, dates, merged cells, freeze panes, row heights, conditional formatting, data validation, autofilters, hyperlinks, hidden sheets and multi-sheet workbooks.
 - **One API for the browser and Node.js.** `Blob` and `File` in the browser, `Uint8Array` in Node.js.
 - **TypeScript-first.** Typed cells, typed styles and typed errors.

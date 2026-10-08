@@ -41,7 +41,7 @@ const timeline: ExcelData = {
 const bytes = new ExcelWriter({ creator: 'My App' }).createWorkbookBuffer([sales, timeline]);
 ```
 
-El nombre de una hoja debe tener de 1 a 31 caracteres, sin ninguno de `\ / ? * [ ] :`, sin caracteres de control, sin apóstrofo en ninguno de los extremos y ser único sin distinguir mayúsculas de minúsculas. Un libro necesita al menos una hoja y al menos una hoja visible. De lo contrario, los escritores lanzan un error.
+El nombre de una hoja debe tener de 1 a 31 caracteres, sin ninguno de `\ / ? * [ ] :`, sin caracteres de control, sin apóstrofo en ninguno de los extremos, no ser `History` (Excel lo reserva) y ser único sin distinguir mayúsculas de minúsculas. Un libro necesita al menos una hoja y al menos una hoja visible. De lo contrario, los escritores lanzan un error.
 
 Oculta una hoja con `state: 'hidden'` o `state: 'veryHidden'`.
 
