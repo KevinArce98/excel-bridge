@@ -129,11 +129,17 @@ const checkReadme = async () => {
 
   const mentions = [
     [/ExcelWriter-([\d.]+)%20KB/, ['ExcelWriter'], 'the README size badge'],
-    [/`ExcelWriter` alone is ([\d.]+) KB/, ['ExcelWriter'], 'the README highlights'],
+    [/the writer adds ([\d.]+) KB min\+gzip/, ['ExcelWriter'], 'the README tagline'],
+    [/`ExcelWriter` adds ([\d.]+) KB min\+gzip/, ['ExcelWriter'], 'the README highlights'],
     [
-      /> ([\d.]+) KB min\+gzip, against ([\d.]+) KB for `ExcelWriter`/,
+      /`ExcelBridge` is ([\d.]+) KB min\+gzip, against ([\d.]+) KB for `ExcelWriter`/,
       ['ExcelBridge', 'ExcelWriter'],
       'the README note on the ExcelBridge object',
+    ],
+    [
+      /hyperlinks\s+in\s+([\d.]+) KB/,
+      ['ExcelWriter'],
+      'the README paragraph on what ExcelWriter covers',
     ],
     [
       /\| Bundle size to write a file ¹ \| \*\*([\d.]+) KB\*\*/,
