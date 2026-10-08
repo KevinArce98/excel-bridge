@@ -1,3 +1,36 @@
+# [2.0.0-rc.1](https://github.com/KevinArce98/excel-bridge/compare/v1.6.0...v2.0.0-rc.1) (2026-10-08)
+
+
+### Bug Fixes
+
+* tighten the 2.0 code after the review ([bfa4f12](https://github.com/KevinArce98/excel-bridge/commit/bfa4f12daf6340344f66ba8aaabb337fad5cc474))
+
+
+### Features
+
+* add typed errors, reader limits, rows as objects and delivery helpers ([437c2df](https://github.com/KevinArce98/excel-bridge/commit/437c2df6cb90cf6b7b7fdf14f7525d93fd1da7ab))
+* **reader:** fix four misreads, reserve History, cap sheets and add the next channel ([e33edd5](https://github.com/KevinArce98/excel-bridge/commit/e33edd588ace25868ac6869b6a241e31fd767cd6))
+* **reader:** replace fast-xml-parser with a small XML tokenizer ([e8d2f97](https://github.com/KevinArce98/excel-bridge/commit/e8d2f97f0380299ebef358ad6975e3577889656e))
+* treat strings as text, type parsed cells and slim the public API ([baba1f2](https://github.com/KevinArce98/excel-bridge/commit/baba1f2163d1463d355f71049c21d12db1ed6e1f))
+
+
+### BREAKING CHANGES
+
+* **reader:** `new ExcelReader()` refuses a workbook with more than 1,000
+sheets with LIMIT_EXCEEDED; pass `maxSheets: Infinity` to read it. A sheet named
+`History`, in any case, is rejected with INVALID_INPUT.
+* **reader:** the reader is stricter. A mismatched or unclosed tag, an
+unquoted attribute and a document that ends early throw INVALID_FILE where
+1.x read what it could, a part with a DOCTYPE or in UTF-16 is rejected, and a
+malformed docProps part is skipped. See UPGRADING.md.
+* strings starting with `=` are written as text. Replace
+`'=SUM(A1:A3)'` with `{ formula: 'SUM(A1:A3)' }`; `{ formula }` writes the
+same bytes in 1.6. `ParsedSheet.data` is indexed by row index and has holes
+for rows without cells, `ParsedCell` and `CellStyle` change shape, the
+low-level exports and `CellValidation.options` are removed, and
+`Workbook.getCellValue` returns objects for loaded formulas and errors. See
+UPGRADING.md.
+
 # [1.6.0](https://github.com/KevinArce98/excel-bridge/compare/v1.5.0...v1.6.0) (2026-10-08)
 
 
