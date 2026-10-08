@@ -2,10 +2,10 @@
 
 Two scripts, both run against the local `dist/` build:
 
-- [Write speed](#write-speed) — `bench.mjs` compares write time and output size against `exceljs`
-  and `xlsx` (SheetJS).
+- [Write speed](#write-speed) — `bench.mjs` compares write time and output size against `exceljs`,
+  `xlsx` (SheetJS) and `hucre`.
 - [Bundle size](#bundle-size) — `size.mjs` measures what each import adds to a browser bundle, next
-  to `hucre`, `xlsx` and `exceljs`.
+  to `hucre`, `@mitresthen/excelents`, `read-excel-file`, `write-excel-file`, `xlsx` and `exceljs`.
 
 Competitors are **optional** — both scripts skip any that aren't installed, so they are not part
 of this package's dependencies.
@@ -18,12 +18,15 @@ of this package's dependencies.
 pnpm run bench
 ```
 
-To include the comparison against ExcelJS and SheetJS:
+To include the comparison against ExcelJS, SheetJS and hucre, install them where the script can
+import them (this edits your local `package.json`, so do not commit it):
 
 ```bash
-pnpm add -D exceljs xlsx
+pnpm add -D exceljs xlsx hucre
 pnpm run bench
 ```
+
+Each library is timed `RUNS` times (default `5`) and the median is reported. hucre declares Node >=24 in its `engines`.
 
 Tune the dataset size with the `ROWS` env var (default `50000`):
 
@@ -33,24 +36,27 @@ ROWS=200000 pnpm run bench
 
 ### Reference results
 
-Writing **50,000 rows × 10 columns** (mixed strings and numbers), median of 3 runs
-on an Apple Silicon laptop, Node 22. Numbers vary by machine — run it yourself for
-your own hardware.
+Writing **50,000 rows × 10 columns** (mixed strings and numbers), median of 5 runs, three
+invocations on an Apple M4, Node 24.19 (2026-10-07). Numbers vary by machine and by about 10%
+between runs — run it yourself for your own hardware.
 
 | Library | Write time | Output size |
 | --- | ---: | ---: |
-| **excel-bridge** (write) | **662 ms** | **2.41 MB** |
-| **excel-bridge** (stream) | **641 ms** | 2.48 MB |
-| exceljs (write) | 1667 ms | 2.82 MB |
-| xlsx / SheetJS (write) | 578 ms | 18.23 MB |
+| **excel-bridge** (write) | **560 ms** | **2.41 MiB** |
+| excel-bridge (stream) | 590 ms | 2.48 MiB |
+| hucre (write) | 390 ms | 2.79 MiB |
+| xlsx / SheetJS (write, no compression) | 510 ms | 18.23 MiB |
+| xlsx / SheetJS (write, `compression: true`) | 570 ms | 6.26 MiB |
+| exceljs (write) | 1490 ms | 2.82 MiB |
 
 Takeaways for this workload:
 
-- **~2.5× faster than ExcelJS** with a smaller file.
-- **Comparable speed to SheetJS but ~7.5× smaller output** at each library's
-  default settings.
-- The streaming writer matches the in-memory writer's speed while keeping memory
-  flat — the win grows as row counts rise.
+- **~2.7× faster than ExcelJS** with a smaller file.
+- hucre is faster (about 390 ms). SheetJS is on par: 510 ms with its default output, which is
+  ~7.5× larger because it does not compress, and 570 ms with `compression: true`, ~2.6× larger.
+- The streaming writer is not faster than the in-memory writer; it keeps memory lower (roughly
+  250 MB against 375 MB peak resident memory for 50,000 rows, collecting the stream with
+  `streamToBuffer`), and the gap grows with row count.
 
 > Every library was driven with its documented defaults; no per-library tuning was
 > applied. Treat these as directional, not absolute.
@@ -68,29 +74,46 @@ what the import costs a browser app.
 pnpm run size
 ```
 
-To include the comparison against hucre, SheetJS and ExcelJS:
+To include the other libraries, install them in a scratch directory (not in this repository) and
+point the script at it:
 
 ```bash
-pnpm add -D hucre xlsx exceljs
-pnpm run size
+mkdir /tmp/competitors && cd /tmp/competitors && npm init -y
+npm install hucre@1.2.0 xlsx@0.18.5 exceljs@4.4.0 @mitresthen/excelents@1.0.1 \
+  read-excel-file@9.3.10 write-excel-file@4.1.1 --ignore-scripts
+cd - && COMPETITORS_DIR=/tmp/competitors pnpm run size
 ```
 
 The script prints a Markdown table, ready to paste into the main README.
 
+To check the main README against the build without printing the table:
+
+```bash
+pnpm run build && pnpm run size:check
+```
+
+It measures only the excel-bridge entries and exits with an error when one differs by more than 100
+bytes from the figure in the README bundle size table. CI runs it on every push and pull request.
+
 ### Reference results
 
-Measured 2026-09-24 with esbuild 0.27.3 and Node 22; 1 KB = 1,000 bytes.
+Measured 2026-10-07 with esbuild 0.28.2 and Node 22; 1 KB = 1,000 bytes. The excel-bridge rows come from this repository's build with the dependency versions in `pnpm-lock.yaml`; the version in the first column is the one in `package.json` when the table was generated.
 
 | Package | Import | Min | Min+gzip |
 | --- | --- | ---: | ---: |
-| excel-bridge@1.4.0 (dist) | `{ createExcelWorkbookStream }` | 30.1 KB | 11.4 KB |
-| excel-bridge@1.4.0 (dist) | `{ ExcelWriter }` | 31.8 KB | 12.0 KB |
-| excel-bridge@1.4.0 (dist) | `{ ExcelReader }` | 79.1 KB | 27.6 KB |
-| excel-bridge@1.4.0 (dist) | `{ Workbook }` | 112.6 KB | 38.9 KB |
-| excel-bridge@1.4.0 (dist) | `{ ExcelBridge }` | 113.0 KB | 39.0 KB |
-| excel-bridge@1.4.0 (dist) | `* (everything)` | 120.2 KB | 41.5 KB |
-| hucre@1.1.0 | `{ writeXlsx }` | | ~40 KB |
-| hucre@1.1.0 | `{ readXlsx }` | | ~40 KB |
+| excel-bridge@1.4.0 (dist) | `{ createExcelWorkbookStream }` | 31.2 KB | 11.9 KB |
+| excel-bridge@1.4.0 (dist) | `{ ExcelWriter }` | 32.9 KB | 12.5 KB |
+| excel-bridge@1.4.0 (dist) | `{ ExcelReader }` | 80.7 KB | 28.2 KB |
+| excel-bridge@1.4.0 (dist) | `{ Workbook }` | 115.4 KB | 39.9 KB |
+| excel-bridge@1.4.0 (dist) | `{ ExcelBridge }` | 115.8 KB | 40.1 KB |
+| excel-bridge@1.4.0 (dist) | `* (everything)` | 123.1 KB | 42.6 KB |
+| hucre@1.2.0 | `{ writeXlsx }` | 136.2 KB | 41.6 KB |
+| hucre@1.2.0 | `{ readXlsx }` | 136.6 KB | 41.1 KB |
+| hucre/xlsx@1.2.0 | `{ XlsxStreamWriter }` | 36.8 KB | 12.1 KB |
+| hucre/xlsx@1.2.0 | `{ streamXlsxRows }` | 51.8 KB | 17.4 KB |
+| @mitresthen/excelents@1.0.1 | `* (everything)` | 37.9 KB | 12.2 KB |
+| read-excel-file/browser@9.3.10 | `{ default }` | 53.6 KB | 16.7 KB |
+| write-excel-file/universal@4.1.1 | `{ default }` | 72.0 KB | 19.8 KB |
 | xlsx@0.18.5 | `{ utils, write }` | 287.4 KB | 95.8 KB |
 | exceljs@4.4.0 | `{ default }` | 947.0 KB | 272.1 KB |
 
@@ -98,8 +121,10 @@ Notes:
 
 - `ExcelBridge` is a single object, and bundlers keep an object whole: any `ExcelBridge.*` call
   ships the reader and the writer, about as much as `Workbook`.
-- The hucre figures were measured separately with the same esbuild flags and the `gzip` CLI, so
-  they are rounded; run the script with `hucre` installed for exact numbers.
+- hucre's own README quotes 34 KB for `readXlsx` and 68 KB for read plus write, measured with
+  rolldown; those figures did not reproduce here with esbuild.
+- `@mitresthen/excelents` is measured as a whole entry (reader and writer) and has no conditional
+  formatting at 1.0.1, so it is not a like-for-like row for `ExcelWriter`.
 - `exceljs` resolves to its prebuilt browser bundle (`dist/exceljs.min.js`), which can't be
   tree-shaken.
 - `xlsx@0.18.5` is the SheetJS package on npm. Newer Community Edition builds ship from the SheetJS

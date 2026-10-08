@@ -1,18 +1,29 @@
 import { XMLParser } from 'fast-xml-parser';
-import { extractExcelFiles, validateExcelStructure } from '../core/zip-manager';
-import { excelSerialToDate, isDateNumFmtId } from '../core/date-utils';
+import { extractParts, validateExcelStructure } from '../core/zip-manager';
+import {
+  EXCEL_LIMITS,
+  excelSerialToDate,
+  isDate,
+  isDateNumFmtId,
+  validateColIndex,
+  validateRowIndex,
+} from '../core/date-utils';
 import type {
   AutoFilter,
   CellStyle,
+  CellValidation,
   ConditionalFormat,
   ConditionalFormatStyle,
   ConditionalFormatOperator,
+  DataValidationOperator,
+  DataValidationType,
   Hyperlink,
+  SheetState,
 } from '../core/types';
 
 export interface ParsedCell {
   value: any;
-  type: 'string' | 'number' | 'boolean' | 'date' | 'empty';
+  type: 'string' | 'number' | 'boolean' | 'date' | 'error' | 'empty';
   coordinate: string;
   rowIndex: number;
   columnIndex: number;
@@ -22,10 +33,8 @@ export interface ParsedCell {
 export interface ParsedSheet {
   name: string;
   data: ParsedCell[][];
-  validations: Array<{
-    range: string;
-    options: string;
-  }>;
+  validations: CellValidation[];
+  state?: Exclude<SheetState, 'visible'>;
   styles?: Record<string, CellStyle>;
   mergeCells?: string[];
   freezePane?: { row?: number; col?: number };
@@ -89,28 +98,65 @@ interface StyleSheetData {
   dxfs: ConditionalFormatStyle[];
 }
 
+const VALIDATION_TYPES = new Set([
+  'list',
+  'whole',
+  'decimal',
+  'textLength',
+  'date',
+  'time',
+  'custom',
+]);
+
+const VALIDATION_OPERATORS = new Set([
+  'between',
+  'notBetween',
+  'equal',
+  'notEqual',
+  'greaterThan',
+  'lessThan',
+  'greaterThanOrEqual',
+  'lessThanOrEqual',
+]);
+
 const toArray = <T>(value: T | T[] | undefined): T[] => {
   if (value === undefined || value === null) return [];
   return Array.isArray(value) ? value : [value];
 };
 
-const RAW_ATTRIBUTE_PATHS = [
-  'workbook.sheets.sheet',
-  'worksheet.hyperlinks.hyperlink',
-  'Relationships.Relationship',
-];
+export const MAX_PLACEHOLDER_CELLS = 5_000_000;
 
-const RAW_TEXT_PATHS = [
-  'worksheet.sheetData.row.c.v',
-  'worksheet.sheetData.row.c.f',
-  'worksheet.sheetData.row.c.is.t',
-  'worksheet.sheetData.row.c.is.r.t',
-  'sst.si.t',
-  'sst.si.r.t',
-];
+const STRUCTURAL_PARTS = new Set([
+  '[Content_Types].xml',
+  '_rels/.rels',
+  'xl/workbook.xml',
+  'xl/_rels/workbook.xml.rels',
+  'xl/sharedStrings.xml',
+  'xl/styles.xml',
+  'docProps/app.xml',
+  'docProps/core.xml',
+]);
 
 const relsPathFor = (partPath: string): string =>
   partPath.replace(/[^/]+$/, name => `_rels/${name}.rels`);
+
+const loadSheetParts = (
+  buffer: Uint8Array,
+  files: Record<string, string>,
+  sheetPaths: Array<string | undefined>
+): void => {
+  const wanted = new Set<string>();
+  for (const path of sheetPaths) {
+    if (path) {
+      wanted.add(path);
+      wanted.add(relsPathFor(path));
+    }
+  }
+  Object.assign(
+    files,
+    extractParts(buffer, path => wanted.has(path))
+  );
+};
 
 export class ExcelReader {
   private parser: XMLParser;
@@ -120,13 +166,9 @@ export class ExcelReader {
       ignoreAttributes: false,
       attributeNamePrefix: '',
       textNodeName: '#text',
-      parseAttributeValue: true,
-      parseTagValue: true,
+      parseAttributeValue: false,
+      parseTagValue: false,
       trimValues: false,
-      attributeValueProcessor: (_name, value, jPath) =>
-        RAW_ATTRIBUTE_PATHS.includes(String(jPath)) ? null : value,
-      tagValueProcessor: (_name, value, jPath) =>
-        RAW_TEXT_PATHS.includes(String(jPath)) ? null : value,
     });
   }
 
@@ -137,9 +179,9 @@ export class ExcelReader {
 
   parseFromBuffer(buffer: Uint8Array): ParsedWorkbook {
     try {
-      const files = extractExcelFiles(buffer);
+      const files = extractParts(buffer, path => STRUCTURAL_PARTS.has(path));
 
-      if (!validateExcelStructure(files)) {
+      if (!files['xl/workbook.xml']) {
         throw new Error('Invalid Excel file structure');
       }
 
@@ -150,19 +192,35 @@ export class ExcelReader {
 
       const sheets: ParsedSheet[] = [];
       const sheetElements = toArray(workbook.workbook?.sheets?.sheet);
+      const sheetPaths = sheetElements.map((sheetElement, index) =>
+        this.resolveSheetPath(sheetElement, relMap, index)
+      );
+      loadSheetParts(buffer, files, sheetPaths);
+
+      if (!validateExcelStructure(files)) {
+        throw new Error('Invalid Excel file structure');
+      }
+
+      const cellBudget = { placeholders: 0 };
 
       sheetElements.forEach((sheetElement, index) => {
         const sheetName = sheetElement.name ?? `Sheet${index + 1}`;
-        const sheetPath = this.resolveSheetPath(sheetElement, relMap, index);
+        const sheetPath = sheetPaths[index];
 
         if (sheetPath && files[sheetPath]) {
           const sheetData = this.parseSheet(
             files[sheetPath],
             sharedStrings,
             styleSheet,
+            cellBudget,
             files[relsPathFor(sheetPath)]
           );
-          sheets.push({ name: String(sheetName), ...sheetData });
+          const state = sheetElement.state;
+          sheets.push({
+            name: String(sheetName),
+            ...(state === 'hidden' || state === 'veryHidden' ? { state } : {}),
+            ...sheetData,
+          });
         }
       });
 
@@ -234,7 +292,7 @@ export class ExcelReader {
 
   private extractStringItem(item: any): string {
     if (item == null) return '';
-    if (typeof item === 'string' || typeof item === 'number') return String(item);
+    if (typeof item === 'string') return item;
 
     if (item.t !== undefined) {
       return this.extractText(item.t);
@@ -317,7 +375,7 @@ export class ExcelReader {
             ? {
                 horizontal: alignment.horizontal,
                 vertical: alignment.vertical === 'center' ? 'middle' : alignment.vertical,
-                wrapText: alignment.wrapText === 1 || alignment.wrapText === '1',
+                wrapText: alignment.wrapText === '1' || alignment.wrapText === 'true',
               }
             : undefined,
         };
@@ -401,6 +459,7 @@ export class ExcelReader {
     sheetXml: string,
     sharedStrings: string[],
     styleSheet: StyleSheetData,
+    cellBudget: { placeholders: number },
     relsXml?: string
   ): Omit<ParsedSheet, 'name'> {
     const parsed = this.parser.parse(sheetXml);
@@ -409,23 +468,25 @@ export class ExcelReader {
     const rows = toArray(worksheet?.sheetData?.row);
     const validations = toArray(worksheet?.dataValidations?.dataValidation);
 
-    const parsedValidations = validations.map((validation: any) => ({
-      range: validation.sqref,
-      options: this.extractText(validation.formula1).replace(/"/g, '') || '',
-    }));
+    const parsedValidations = validations
+      .map((validation: any) => this.parseValidation(validation))
+      .filter((validation): validation is CellValidation => validation !== undefined);
 
     const data: ParsedCell[][] = [];
     const styles: Record<string, CellStyle> = {};
 
     for (const rowElement of rows) {
       const rowIndex = parseInt(rowElement.r, 10) - 1;
+      if (rowIndex >= EXCEL_LIMITS.MAX_ROWS) validateRowIndex(rowIndex);
       const cells = toArray(rowElement.c);
 
       const rowData: ParsedCell[] = [];
       let maxCol = -1;
+      let filled = 0;
 
       for (const cell of cells) {
         const parsedCell = this.parseCell(cell, rowIndex, sharedStrings, styleSheet);
+        if (parsedCell.columnIndex >= 0 && !rowData[parsedCell.columnIndex]) filled++;
         rowData[parsedCell.columnIndex] = parsedCell;
         maxCol = Math.max(maxCol, parsedCell.columnIndex);
 
@@ -434,6 +495,13 @@ export class ExcelReader {
         if (decodedStyle) {
           styles[`${rowIndex}-${parsedCell.columnIndex}`] = decodedStyle;
         }
+      }
+
+      cellBudget.placeholders += maxCol + 1 - filled;
+      if (cellBudget.placeholders > MAX_PLACEHOLDER_CELLS) {
+        throw new Error(
+          `Workbook pads more than ${MAX_PLACEHOLDER_CELLS} empty cells to keep rows rectangular`
+        );
       }
 
       for (let c = 0; c <= maxCol; c++) {
@@ -471,6 +539,37 @@ export class ExcelReader {
       ...(conditionalFormats.length > 0 ? { conditionalFormats } : {}),
       ...(autoFilterRef !== undefined ? { autoFilter: { range: String(autoFilterRef) } } : {}),
       ...(hyperlinks.length > 0 ? { hyperlinks } : {}),
+    };
+  }
+
+  private parseValidation(validation: any): CellValidation | undefined {
+    const type = validation?.type;
+    if (!VALIDATION_TYPES.has(type) || validation.sqref === undefined) return undefined;
+
+    const formula1 =
+      validation.formula1 !== undefined ? this.extractText(validation.formula1) : undefined;
+    const formula2 =
+      validation.formula2 !== undefined ? this.extractText(validation.formula2) : undefined;
+    const base = {
+      range: String(validation.sqref),
+      type: type as DataValidationType,
+      allowBlank: validation.allowBlank === '1' || validation.allowBlank === 'true',
+    };
+
+    if (type === 'list') {
+      const literal = /^"([\s\S]*)"$/.exec(formula1 ?? '');
+      if (literal) return { ...base, options: literal[1].replace(/""/g, '"') };
+      return { ...base, options: formula1 ?? '', ...(formula1 !== undefined ? { formula1 } : {}) };
+    }
+
+    return {
+      ...base,
+      options: formula1 ?? '',
+      ...(VALIDATION_OPERATORS.has(validation.operator)
+        ? { operator: validation.operator as DataValidationOperator }
+        : {}),
+      ...(formula1 !== undefined ? { formula1 } : {}),
+      ...(formula2 !== undefined ? { formula2 } : {}),
     };
   }
 
@@ -567,7 +666,6 @@ export class ExcelReader {
 
   private parseCfValue(raw: any): number | string {
     const value = raw && typeof raw === 'object' && raw['#text'] !== undefined ? raw['#text'] : raw;
-    if (typeof value === 'number') return value;
     const text = String(value ?? '');
     if (text.startsWith('"') && text.endsWith('"')) return text.slice(1, -1);
     const num = Number(text);
@@ -592,8 +690,8 @@ export class ExcelReader {
 
     const widths: number[] = [];
     cols.forEach((col: any) => {
-      const min = Number(col.min) - 1;
-      const max = Number(col.max) - 1;
+      const min = Math.max(Number(col.min) - 1, 0);
+      const max = Math.min(Number(col.max) - 1, EXCEL_LIMITS.MAX_COLS - 1);
       const width = Number(col.width);
       for (let c = min; c <= max; c++) {
         widths[c] = width;
@@ -611,6 +709,7 @@ export class ExcelReader {
   ): ParsedCell {
     const coordinate = String(cell.r ?? '');
     const columnIndex = this.columnLetterToIndex(coordinate.replace(/\d+/g, ''));
+    if (columnIndex >= EXCEL_LIMITS.MAX_COLS) validateColIndex(columnIndex);
     const styleIndex = cell.s !== undefined ? Number(cell.s) : undefined;
 
     let value: any = null;
@@ -628,7 +727,7 @@ export class ExcelReader {
       const raw = cell.v;
 
       if (cell.t === 'b') {
-        value = raw === '1' || raw === 1 || raw === true;
+        value = raw === '1';
         type = 'boolean';
       } else if (cell.t === 's') {
         value = sharedStrings[parseInt(raw, 10)] ?? '';
@@ -636,10 +735,20 @@ export class ExcelReader {
       } else if (cell.t === 'str') {
         value = String(raw);
         type = 'string';
+      } else if (cell.t === 'e') {
+        value = String(raw);
+        type = 'error';
       } else {
-        const num = typeof raw === 'number' ? raw : parseFloat(raw);
-        if (styleIndex !== undefined && styleSheet.dateStyles.has(styleIndex) && !isNaN(num)) {
-          value = excelSerialToDate(num);
+        const num = parseFloat(raw);
+        const date =
+          styleIndex !== undefined && styleSheet.dateStyles.has(styleIndex) && Number.isFinite(num)
+            ? excelSerialToDate(num)
+            : undefined;
+        if (!Number.isFinite(num)) {
+          value = '#NUM!';
+          type = 'error';
+        } else if (date && isDate(date)) {
+          value = date;
           type = 'date';
         } else {
           value = num;

@@ -2,6 +2,7 @@ import { ExcelReader, ParsedCell, ParsedWorkbook } from '../reader';
 import { ExcelWriter } from '../writer';
 import { parseRange, formatRange } from '../core/cell-ref';
 import { EXCEL_LIMITS } from '../core/date-utils';
+import { validateSheetName } from '../core/sheet-name';
 import { HYPERLINK_STYLE, prepareHyperlink } from '../core/hyperlinks';
 import {
   AutoFilter,
@@ -10,11 +11,13 @@ import {
   CellStyle,
   ConditionalFormat,
   Hyperlink,
+  SheetState,
 } from '../core/types';
 import type { ExcelWriterOptions } from '../writer';
 
 interface WorkbookSheet {
   name: string;
+  state?: SheetState;
   data: CellValue[][];
   styles: Record<string, CellStyle>;
   validations: CellValidation[];
@@ -26,6 +29,26 @@ interface WorkbookSheet {
   columnWidths?: number[];
   autoWidth?: boolean;
 }
+
+const cellToValue = (cell: ParsedCell): CellValue => {
+  if (cell.formula !== undefined) return `=${cell.formula}`;
+  if (cell.type === 'empty') return null;
+  return cell.value;
+};
+
+const placeRows = (rows: ParsedCell[][]): CellValue[][] => {
+  const data: CellValue[][] = [];
+  let next = 0;
+
+  for (const row of rows) {
+    const declared = row[0]?.rowIndex ?? -1;
+    const index = declared >= next ? declared : next;
+    data[index] = row.map(cellToValue);
+    next = index + 1;
+  }
+
+  return data;
+};
 
 const canonicalHyperlink = (link: Hyperlink): Hyperlink => ({
   ...link,
@@ -90,9 +113,10 @@ export class Workbook {
     };
     workbook.sheets = parsed.sheets.map(sheet => ({
       name: sheet.name,
-      data: sheet.data.map(row => row.map(Workbook.cellToValue)),
+      ...(sheet.state ? { state: sheet.state } : {}),
+      data: placeRows(sheet.data),
       styles: sheet.styles ?? {},
-      validations: sheet.validations.map(v => ({ range: v.range, options: v.options })),
+      validations: sheet.validations.map(validation => ({ ...validation })),
       mergeCells: sheet.mergeCells ?? [],
       conditionalFormats: sheet.conditionalFormats ?? [],
       hyperlinks: loadHyperlinks(sheet.hyperlinks),
@@ -103,12 +127,6 @@ export class Workbook {
       columnWidths: sheet.columnWidths,
     }));
     return workbook;
-  }
-
-  private static cellToValue(cell: ParsedCell): CellValue {
-    if (cell.formula !== undefined) return `=${cell.formula}`;
-    if (cell.type === 'empty') return null;
-    return cell.value;
   }
 
   getSheetNames(): string[] {
@@ -132,7 +150,8 @@ export class Workbook {
   }
 
   addSheet(name: string, data: CellValue[][] = []): void {
-    if (this.sheets.some(s => s.name === name)) {
+    validateSheetName(name);
+    if (this.sheets.some(s => s.name.toLowerCase() === name.toLowerCase())) {
       throw new Error(`Sheet "${name}" already exists`);
     }
     this.sheets.push({
@@ -144,6 +163,15 @@ export class Workbook {
       conditionalFormats: [],
       hyperlinks: [],
     });
+  }
+
+  renameSheet(from: string, to: string): void {
+    const sheet = this.findSheet(from);
+    validateSheetName(to);
+    if (this.sheets.some(s => s !== sheet && s.name.toLowerCase() === to.toLowerCase())) {
+      throw new Error(`Sheet "${to}" already exists`);
+    }
+    sheet.name = to;
   }
 
   removeSheet(name: string): void {
@@ -174,6 +202,19 @@ export class Workbook {
 
   setCellStyle(sheetName: string, row: number, col: number, style: CellStyle): void {
     this.findSheet(sheetName).styles[`${row}-${col}`] = style;
+  }
+
+  getSheetState(sheetName: string): SheetState {
+    return this.findSheet(sheetName).state ?? 'visible';
+  }
+
+  setSheetState(sheetName: string, state: SheetState): void {
+    const sheet = this.findSheet(sheetName);
+    if (state === 'visible') {
+      delete sheet.state;
+    } else {
+      sheet.state = state;
+    }
   }
 
   setMergeCells(sheetName: string, ranges: string[]): void {
@@ -263,6 +304,7 @@ export class Workbook {
       hyperlinks: sheet.hyperlinks,
       options: {
         name: sheet.name,
+        state: sheet.state,
         freezePane: sheet.freezePane,
         columnWidths: sheet.columnWidths,
         autoWidth: sheet.autoWidth,

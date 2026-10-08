@@ -1,5 +1,5 @@
-import { Zip, ZipDeflate, ZipPassThrough, strToU8 } from 'fflate';
-import { StyleManager } from '../core/style-manager';
+import { Zip, ZipDeflate, strToU8 } from 'fflate';
+import { StyleManager, normalizeColor } from '../core/style-manager';
 import {
   generateRowXml,
   generateContentTypesXml,
@@ -20,6 +20,7 @@ import {
   filterDatabaseNames,
 } from '../core/xml-templates';
 import { generateColsXml } from '../core/column-width';
+import { validateSheetNames } from '../core/sheet-name';
 import { prepareHyperlinks, withHyperlinkStyles } from '../core/hyperlinks';
 import { AutoFilter, CellValue, CellStyle, Hyperlink } from '../core/types';
 import type { ExcelWriterOptions } from './index';
@@ -43,6 +44,12 @@ export async function* createExcelWorkbookStream(
   options: ExcelWriterOptions = {}
 ): AsyncGenerator<Uint8Array, void, unknown> {
   const sheetNames = sheets.map((sheet, index) => sheet.name || `Sheet${index + 1}`);
+  validateSheetNames(sheetNames);
+  sheets.forEach(sheet =>
+    Object.values(sheet.styles ?? {}).forEach(({ color, background }) =>
+      [color, background].forEach(value => value && normalizeColor(value))
+    )
+  );
   const sheetLinks = sheets.map(sheet => prepareHyperlinks(sheet.hyperlinks));
   const definedNames = filterDatabaseNames(
     sheetNames,
@@ -63,7 +70,7 @@ export async function* createExcelWorkbookStream(
   }
 
   const addStaticEntry = (path: string, content: string): void => {
-    const entry = new ZipPassThrough(path);
+    const entry = new ZipDeflate(path, { level: 6 });
     zip.add(entry);
     entry.push(strToU8(content), true);
   };

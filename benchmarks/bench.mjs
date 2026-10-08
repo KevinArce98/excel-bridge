@@ -32,7 +32,9 @@ const median = (xs) => {
   return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
 };
 
-const time = async (fn, runs = 3) => {
+const RUNS = Number(process.env.RUNS ?? 5);
+
+const time = async (fn, runs = RUNS) => {
   let bytes = 0;
   const times = [];
   for (let i = 0; i < runs; i++) {
@@ -45,7 +47,7 @@ const time = async (fn, runs = 3) => {
 };
 
 const fmtMs = (ms) => `${ms.toFixed(0).padStart(6)} ms`;
-const fmtMB = (b) => `${(b / 1024 / 1024).toFixed(2).padStart(6)} MB`;
+const fmtMB = (b) => `${(b / 1024 / 1024).toFixed(2).padStart(6)} MiB`;
 
 const load = async (name, spec) => {
   try {
@@ -96,22 +98,35 @@ const main = async () => {
   const xlsx = await load('xlsx (SheetJS)', 'xlsx');
   if (xlsx) {
     const XLSX = xlsx.default ?? xlsx;
+    for (const [label, compression] of [
+      ['xlsx / SheetJS (write)', false],
+      ['xlsx / SheetJS (compressed)', true],
+    ]) {
+      results.push([
+        label,
+        await time(() => {
+          const ws = XLSX.utils.aoa_to_sheet(data);
+          const wb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+          return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx', compression });
+        }),
+      ]);
+    }
+  }
+
+  const hucre = await load('hucre', 'hucre');
+  if (hucre) {
     results.push([
-      'xlsx / SheetJS (write)',
-      await time(() => {
-        const ws = XLSX.utils.aoa_to_sheet(data);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
-        return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
-      }),
+      'hucre (write)',
+      await time(() => hucre.writeXlsx({ sheets: [{ name: 'Sheet1', rows: data }] })),
     ]);
   }
 
   const label = 'Library';
-  console.log(`\n${label.padEnd(24)} ${'Time'.padStart(9)}   ${'Output'.padStart(9)}`);
-  console.log('-'.repeat(48));
+  console.log(`\n${label.padEnd(28)} ${'Time'.padStart(9)}   ${'Output'.padStart(11)}`);
+  console.log('-'.repeat(52));
   for (const [name, { ms, bytes }] of results) {
-    console.log(`${name.padEnd(24)} ${fmtMs(ms)}   ${fmtMB(bytes)}`);
+    console.log(`${name.padEnd(28)} ${fmtMs(ms)}   ${fmtMB(bytes)}`);
   }
 
   console.log('\nBundle (dist, shipped to consumers):');

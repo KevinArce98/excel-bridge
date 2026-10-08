@@ -1,0 +1,524 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`'exceljs-report.xlsx' > matches the recorded parse of the file 1`] = `
+{
+  "metadata": {
+    "creator": "excel-bridge fixtures",
+    "subject": undefined,
+    "title": undefined,
+  },
+  "sheets": [
+    {
+      "columnWidths": [
+        14,
+        12,
+        12,
+      ],
+      "data": [
+        [
+          {
+            "columnIndex": 0,
+            "coordinate": "A1",
+            "rowIndex": 0,
+            "type": "string",
+            "value": "Region",
+          },
+          {
+            "columnIndex": 1,
+            "coordinate": "B1",
+            "rowIndex": 0,
+            "type": "string",
+            "value": "Revenue",
+          },
+          {
+            "columnIndex": 2,
+            "coordinate": "C1",
+            "rowIndex": 0,
+            "type": "string",
+            "value": "Date",
+          },
+        ],
+        [
+          {
+            "columnIndex": 0,
+            "coordinate": "A3",
+            "rowIndex": 2,
+            "type": "string",
+            "value": "North",
+          },
+          {
+            "columnIndex": 1,
+            "coordinate": "B3",
+            "rowIndex": 2,
+            "type": "number",
+            "value": 1200.5,
+          },
+          {
+            "columnIndex": 2,
+            "coordinate": "C3",
+            "rowIndex": 2,
+            "type": "date",
+            "value": [
+              2024,
+              2,
+              29,
+            ],
+          },
+        ],
+        [
+          {
+            "columnIndex": 0,
+            "coordinate": "A5",
+            "rowIndex": 4,
+            "type": "string",
+            "value": "Total",
+          },
+          {
+            "columnIndex": 1,
+            "coordinate": "B5",
+            "formula": "SUM(B1:B4)",
+            "rowIndex": 4,
+            "type": "number",
+            "value": 1200.5,
+          },
+        ],
+        [
+          {
+            "columnIndex": 0,
+            "coordinate": "A7",
+            "rowIndex": 6,
+            "type": "string",
+            "value": "Footnote",
+          },
+          {
+            "columnIndex": 1,
+            "coordinate": "B7",
+            "rowIndex": 6,
+            "type": "empty",
+            "value": null,
+          },
+          {
+            "columnIndex": 2,
+            "coordinate": "C7",
+            "rowIndex": 6,
+            "type": "empty",
+            "value": null,
+          },
+        ],
+      ],
+      "freezePane": {
+        "row": 1,
+      },
+      "mergeCells": [
+        "A7:C7",
+      ],
+      "name": "Report",
+      "styles": {
+        "0-0": {
+          "background": "#FFFF00",
+          "bold": true,
+        },
+        "0-1": {
+          "background": "#FFFF00",
+          "bold": true,
+        },
+        "0-2": {
+          "background": "#FFFF00",
+          "bold": true,
+        },
+        "2-1": {
+          "fontName": "Calibri",
+          "fontSize": 11,
+        },
+        "4-0": {
+          "bold": true,
+        },
+      },
+      "validations": [
+        {
+          "allowBlank": true,
+          "formula1": "1",
+          "formula2": "10000",
+          "options": "1",
+          "range": "B3",
+          "type": "whole",
+        },
+      ],
+    },
+    {
+      "data": [
+        [
+          {
+            "columnIndex": 0,
+            "coordinate": "A1",
+            "rowIndex": 0,
+            "type": "string",
+            "value": "secret",
+          },
+        ],
+      ],
+      "name": "Hidden",
+      "state": "hidden",
+      "validations": [],
+    },
+  ],
+}
+`;
+
+exports[`'hucre-report.xlsx' > matches the recorded parse of the file 1`] = `
+{
+  "metadata": {
+    "creator": undefined,
+    "subject": undefined,
+    "title": undefined,
+  },
+  "sheets": [
+    {
+      "columnWidths": [
+        14,
+        12,
+        12,
+      ],
+      "data": [
+        [
+          {
+            "columnIndex": 0,
+            "coordinate": "A1",
+            "rowIndex": 0,
+            "type": "string",
+            "value": "Region",
+          },
+          {
+            "columnIndex": 1,
+            "coordinate": "B1",
+            "rowIndex": 0,
+            "type": "string",
+            "value": "Revenue",
+          },
+          {
+            "columnIndex": 2,
+            "coordinate": "C1",
+            "rowIndex": 0,
+            "type": "string",
+            "value": "Date",
+          },
+        ],
+        [
+          {
+            "columnIndex": 0,
+            "coordinate": "A3",
+            "rowIndex": 2,
+            "type": "string",
+            "value": "North",
+          },
+          {
+            "columnIndex": 1,
+            "coordinate": "B3",
+            "rowIndex": 2,
+            "type": "number",
+            "value": 1200.5,
+          },
+          {
+            "columnIndex": 2,
+            "coordinate": "C3",
+            "rowIndex": 2,
+            "type": "date",
+            "value": [
+              2024,
+              2,
+              29,
+            ],
+          },
+        ],
+        [
+          {
+            "columnIndex": 0,
+            "coordinate": "A5",
+            "rowIndex": 4,
+            "type": "string",
+            "value": "Total",
+          },
+          {
+            "columnIndex": 1,
+            "coordinate": "B5",
+            "formula": "SUM(B1:B4)",
+            "rowIndex": 4,
+            "type": "empty",
+            "value": null,
+          },
+        ],
+        [
+          {
+            "columnIndex": 0,
+            "coordinate": "A7",
+            "rowIndex": 6,
+            "type": "string",
+            "value": "Footnote",
+          },
+        ],
+      ],
+      "freezePane": {
+        "row": 1,
+      },
+      "mergeCells": [
+        "A7:C7",
+      ],
+      "name": "Report",
+      "styles": {
+        "0-0": {
+          "background": "#FFFF00",
+          "bold": true,
+        },
+        "0-1": {
+          "background": "#FFFF00",
+          "bold": true,
+        },
+        "0-2": {
+          "background": "#FFFF00",
+          "bold": true,
+        },
+        "2-1": {
+          "fontName": "Calibri",
+          "fontSize": 11,
+          "numberFormat": "0.00",
+        },
+        "4-0": {
+          "bold": true,
+        },
+      },
+      "validations": [],
+    },
+    {
+      "data": [
+        [
+          {
+            "columnIndex": 0,
+            "coordinate": "A1",
+            "rowIndex": 0,
+            "type": "string",
+            "value": "secret",
+          },
+        ],
+      ],
+      "name": "Hidden",
+      "state": "hidden",
+      "validations": [],
+    },
+  ],
+}
+`;
+
+exports[`'sheetjs-report.xlsx' > matches the recorded parse of the file 1`] = `
+{
+  "metadata": {
+    "creator": undefined,
+    "subject": undefined,
+    "title": undefined,
+  },
+  "sheets": [
+    {
+      "columnWidths": [
+        14.83203125,
+        12.83203125,
+        12.83203125,
+      ],
+      "data": [
+        [
+          {
+            "columnIndex": 0,
+            "coordinate": "A1",
+            "rowIndex": 0,
+            "type": "string",
+            "value": "Region",
+          },
+          {
+            "columnIndex": 1,
+            "coordinate": "B1",
+            "rowIndex": 0,
+            "type": "string",
+            "value": "Revenue",
+          },
+          {
+            "columnIndex": 2,
+            "coordinate": "C1",
+            "rowIndex": 0,
+            "type": "string",
+            "value": "Date",
+          },
+        ],
+        [
+          {
+            "columnIndex": 0,
+            "coordinate": "A3",
+            "rowIndex": 2,
+            "type": "string",
+            "value": "North",
+          },
+          {
+            "columnIndex": 1,
+            "coordinate": "B3",
+            "rowIndex": 2,
+            "type": "number",
+            "value": 1200.5,
+          },
+          {
+            "columnIndex": 2,
+            "coordinate": "C3",
+            "rowIndex": 2,
+            "type": "date",
+            "value": [
+              1905,
+              7,
+              16,
+            ],
+          },
+        ],
+        [
+          {
+            "columnIndex": 0,
+            "coordinate": "A5",
+            "rowIndex": 4,
+            "type": "string",
+            "value": "Total",
+          },
+          {
+            "columnIndex": 1,
+            "coordinate": "B5",
+            "formula": "SUM(B1:B4)",
+            "rowIndex": 4,
+            "type": "number",
+            "value": 1200.5,
+          },
+        ],
+        [
+          {
+            "columnIndex": 0,
+            "coordinate": "A7",
+            "rowIndex": 6,
+            "type": "string",
+            "value": "Footnote",
+          },
+        ],
+      ],
+      "mergeCells": [
+        "A7:C7",
+      ],
+      "name": "Report",
+      "styles": {
+        "2-1": {
+          "fontName": "Calibri",
+          "fontSize": 12,
+        },
+      },
+      "validations": [],
+    },
+    {
+      "data": [
+        [
+          {
+            "columnIndex": 0,
+            "coordinate": "A1",
+            "rowIndex": 0,
+            "type": "string",
+            "value": "secret",
+          },
+        ],
+      ],
+      "name": "Hidden",
+      "state": "hidden",
+      "validations": [],
+    },
+  ],
+}
+`;
+
+exports[`exceljs-text.xlsx > matches the recorded parse of the file 1`] = `
+{
+  "metadata": {
+    "creator": "excel-bridge fixtures",
+    "subject": undefined,
+    "title": undefined,
+  },
+  "sheets": [
+    {
+      "data": [
+        [
+          {
+            "columnIndex": 0,
+            "coordinate": "A1",
+            "rowIndex": 0,
+            "type": "string",
+            "value": "bold  plain",
+          },
+        ],
+        [
+          {
+            "columnIndex": 0,
+            "coordinate": "A2",
+            "rowIndex": 1,
+            "type": "string",
+            "value": "  padded on both sides  ",
+          },
+        ],
+        [
+          {
+            "columnIndex": 0,
+            "coordinate": "A3",
+            "rowIndex": 2,
+            "type": "string",
+            "value": "& < > " '",
+          },
+        ],
+        [
+          {
+            "columnIndex": 0,
+            "coordinate": "A4",
+            "rowIndex": 3,
+            "type": "string",
+            "value": "line one
+line two",
+          },
+        ],
+        [
+          {
+            "columnIndex": 0,
+            "coordinate": "A5",
+            "rowIndex": 4,
+            "type": "string",
+            "value": "😀 日本語 مرحبا",
+          },
+        ],
+        [
+          {
+            "columnIndex": 0,
+            "coordinate": "A6",
+            "rowIndex": 5,
+            "type": "string",
+            "value": "00123",
+          },
+        ],
+        [
+          {
+            "columnIndex": 0,
+            "coordinate": "A7",
+            "rowIndex": 6,
+            "type": "string",
+            "value": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          },
+        ],
+        [
+          {
+            "columnIndex": 0,
+            "coordinate": "A8",
+            "rowIndex": 7,
+            "type": "string",
+            "value": "&#233; &amp;",
+          },
+        ],
+      ],
+      "name": "Text",
+      "validations": [],
+    },
+  ],
+}
+`;

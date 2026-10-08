@@ -1,6 +1,9 @@
 export type CellValue = string | number | boolean | Date | null | undefined;
 
-export type DataValidationType = 'list' | 'whole' | 'decimal' | 'textLength' | 'date';
+export type DataValidationType =
+  'list' | 'whole' | 'decimal' | 'textLength' | 'date' | 'time' | 'custom';
+
+export type SheetState = 'visible' | 'hidden' | 'veryHidden';
 
 export type DataValidationOperator =
   | 'between'

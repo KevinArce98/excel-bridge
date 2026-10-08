@@ -23,6 +23,7 @@ export type {
   AutoFilter,
   Hyperlink,
   HyperlinkOptions,
+  SheetState,
 } from './writer';
 export type {
   ConditionalFormatStyle,

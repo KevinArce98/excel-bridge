@@ -16,6 +16,8 @@ import {
 } from '../core/xml-templates';
 import { StyleManager } from '../core/style-manager';
 import { isDate } from '../core/date-utils';
+import { validateSheetNames } from '../core/sheet-name';
+import { rowIndexes } from '../core/rows';
 import { prepareHyperlinks, withHyperlinkStyles } from '../core/hyperlinks';
 import {
   AutoFilter,
@@ -24,6 +26,7 @@ import {
   CellStyle,
   ConditionalFormat,
   Hyperlink,
+  SheetState,
 } from '../core/types';
 
 export type {
@@ -35,6 +38,7 @@ export type {
   DataValidationType,
   DataValidationOperator,
   Hyperlink,
+  SheetState,
 } from '../core/types';
 export { dataValidation } from './validation';
 export { hyperlink } from './hyperlink';
@@ -42,6 +46,7 @@ export type { HyperlinkOptions } from './hyperlink';
 
 export interface SheetOptions {
   name?: string;
+  state?: SheetState;
   freezePane?: { row?: number; col?: number };
   autoWidth?: boolean;
   columnWidths?: number[];
@@ -104,7 +109,7 @@ export class ExcelWriter {
     });
 
     const containsDates = data.some(sheetData =>
-      sheetData.data.some(row => row.some(cell => isDate(cell)))
+      rowIndexes(sheetData.data).some(index => sheetData.data[index].some(cell => isDate(cell)))
     );
 
     if (containsDates) {
@@ -112,6 +117,12 @@ export class ExcelWriter {
     }
 
     const sheetNames = data.map((sheet, index) => sheet.options?.name || `Sheet${index + 1}`);
+    validateSheetNames(sheetNames);
+    const sheetStates = data.map(sheet => sheet.options?.state ?? 'visible');
+
+    if (!sheetStates.includes('visible')) {
+      throw new Error('At least one sheet must be visible');
+    }
 
     const worksheetEntries: Array<{ path: string; xml: string; relsPath: string; rels: string }> =
       [];
@@ -158,7 +169,8 @@ export class ExcelWriter {
       filterDatabaseNames(
         sheetNames,
         data.map(sheetData => sheetData.options?.autoFilter)
-      )
+      ),
+      sheetStates
     );
 
     files['xl/styles.xml'] = generateStylesXml(styleManager);
@@ -189,8 +201,8 @@ export class ExcelWriter {
     const list: string[] = [];
 
     data.forEach(sheetData => {
-      sheetData.data.forEach(row => {
-        row.forEach(cell => {
+      rowIndexes(sheetData.data).forEach(index => {
+        sheetData.data[index].forEach(cell => {
           if (typeof cell === 'string' && !cell.startsWith('=') && !map.has(cell)) {
             map.set(cell, list.length);
             list.push(cell);
