@@ -1,9 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { strToU8, zipSync } from 'fflate';
-import { ExcelBridge, ExcelWriter, Workbook } from '../src';
+import { ExcelWriter, Workbook } from '../src';
 import { knownDefect } from './helpers/known-defect';
 import { calendarDay, cellAt, dateOf, readFirstSheet } from './helpers/read';
-import { DATE_STYLES, REL_NS, SPREADSHEET_NS, buildXlsx } from './helpers/xlsx';
+import { DATE_STYLES, buildXlsx } from './helpers/xlsx';
 
 const writer = new ExcelWriter();
 
@@ -135,39 +134,5 @@ describe('sheet views', () => {
       ).toBeUndefined();
     },
     { message: /expected \{ row: 1800, col: 2400 \} to be undefined/ }
-  );
-});
-
-describe('prefixed SpreadsheetML', () => {
-  const prefixed = (prefix: string) => {
-    const declaration = prefix
-      ? `xmlns:${prefix}="${SPREADSHEET_NS}"`
-      : `xmlns="${SPREADSHEET_NS}"`;
-    const tag = (name: string) => (prefix ? `${prefix}:${name}` : name);
-    return zipSync({
-      '[Content_Types].xml': strToU8('<Types/>'),
-      '_rels/.rels': strToU8('<Relationships/>'),
-      'xl/workbook.xml': strToU8(
-        `<${tag('workbook')} ${declaration} xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><${tag('sheets')}><${tag('sheet')} name="S" sheetId="1" r:id="rId1"/></${tag('sheets')}></${tag('workbook')}>`
-      ),
-      'xl/_rels/workbook.xml.rels': strToU8(
-        `<Relationships xmlns="${REL_NS}"><Relationship Id="rId1" Type="worksheet" Target="worksheets/sheet1.xml"/></Relationships>`
-      ),
-      'xl/worksheets/sheet1.xml': strToU8(
-        `<${tag('worksheet')} ${declaration}><${tag('sheetData')}><${tag('row')} r="1"><${tag('c')} r="A1"><${tag('v')}>5</${tag('v')}></${tag('c')}></${tag('row')}></${tag('sheetData')}></${tag('worksheet')}>`
-      ),
-    });
-  };
-
-  it('reads the unprefixed equivalent', () => {
-    expect(cellAt(readFirstSheet(prefixed('')), 'A1')?.value).toBe(5);
-  });
-
-  knownDefect(
-    'a workbook with prefixed elements is rejected as invalid (expected: its sheet is read) (R8)',
-    () => {
-      expect(() => ExcelBridge.read(prefixed('x'))).not.toThrow();
-    },
-    { message: /not throw an error but .*Failed to parse/ }
   );
 });

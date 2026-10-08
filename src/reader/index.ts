@@ -1,7 +1,8 @@
-import { XMLParser } from 'fast-xml-parser';
 import { extractParts, validateExcelStructure } from '../core/zip-manager';
 import type { PartBudget } from '../core/zip-manager';
 import { ExcelBridgeError, invalidInput, limitExceeded } from '../core/errors';
+import { parseXml } from './xml';
+import type { XmlTree } from './xml';
 import type { ReaderLimitName } from '../core/errors';
 import {
   EXCEL_LIMITS,
@@ -233,6 +234,25 @@ const STRUCTURAL_PARTS = new Set([
 const relsPathFor = (partPath: string): string =>
   partPath.replace(/[^/]+$/, name => `_rels/${name}.rels`);
 
+const parseOptionalPart = (xml?: string): XmlTree | undefined => {
+  if (!xml) return undefined;
+  try {
+    return parseXml(xml);
+  } catch {
+    return undefined;
+  }
+};
+
+const parsePart = (path: string, xml: string): XmlTree => {
+  try {
+    return parseXml(xml);
+  } catch (error) {
+    throw new ExcelBridgeError('INVALID_FILE', `${path}: ${(error as Error).message}`, {
+      cause: error,
+    });
+  }
+};
+
 const loadSheetParts = (
   buffer: Uint8Array,
   files: Record<string, string>,
@@ -253,19 +273,10 @@ const loadSheetParts = (
 };
 
 export class ExcelReader {
-  private parser: XMLParser;
   private limits: Required<ExcelReaderOptions>;
 
   constructor(options?: ExcelReaderOptions) {
     this.limits = resolveLimits(options);
-    this.parser = new XMLParser({
-      ignoreAttributes: false,
-      attributeNamePrefix: '',
-      textNodeName: '#text',
-      parseAttributeValue: false,
-      parseTagValue: false,
-      trimValues: false,
-    });
   }
 
   async parseFromFile(file: File): Promise<ParsedWorkbook> {
@@ -282,7 +293,7 @@ export class ExcelReader {
         throw new ExcelBridgeError('INVALID_FILE', 'Invalid Excel file structure');
       }
 
-      const workbook = this.parser.parse(files['xl/workbook.xml']);
+      const workbook = parsePart('xl/workbook.xml', files['xl/workbook.xml']);
       const sharedStrings = this.parseSharedStrings(files);
       const styleSheet = this.parseStyleSheet(files);
       const relMap = this.parseWorkbookRels(files);
@@ -313,6 +324,7 @@ export class ExcelReader {
 
         if (sheetPath && files[sheetPath]) {
           const sheetData = this.parseSheet(
+            sheetPath,
             files[sheetPath],
             sharedStrings,
             styleSheet,
@@ -346,24 +358,22 @@ export class ExcelReader {
     }
   }
 
-  private parseRelationships(relsXml?: string): Record<string, string> {
+  private parseRelationships(path: string, relsXml?: string): Record<string, string> {
     const map: Record<string, string> = {};
     if (!relsXml) return map;
 
-    try {
-      const parsed = this.parser.parse(relsXml);
-      const rels = toArray(parsed.Relationships?.Relationship);
-      for (const rel of rels) {
-        if (!rel.Id || !rel.Target) continue;
-        map[String(rel.Id)] = String(rel.Target);
-      }
-    } catch {}
+    const parsed = parsePart(path, relsXml);
+    for (const rel of toArray(parsed.Relationships?.Relationship)) {
+      if (!rel.Id || !rel.Target) continue;
+      map[String(rel.Id)] = String(rel.Target);
+    }
 
     return map;
   }
 
   private parseWorkbookRels(files: Record<string, string>): Record<string, string> {
-    const map = this.parseRelationships(files['xl/_rels/workbook.xml.rels']);
+    const path = 'xl/_rels/workbook.xml.rels';
+    const map = this.parseRelationships(path, files[path]);
 
     for (const [id, target] of Object.entries(map)) {
       map[id] = target.startsWith('/') ? target.slice(1) : `xl/${target}`;
@@ -392,13 +402,8 @@ export class ExcelReader {
       return [];
     }
 
-    try {
-      const parsed = this.parser.parse(sharedStringsXml);
-      const items = toArray(parsed.sst?.si);
-      return items.map((item: any) => this.extractStringItem(item));
-    } catch {
-      return [];
-    }
+    const parsed = parsePart('xl/sharedStrings.xml', sharedStringsXml);
+    return toArray(parsed.sst?.si).map((item: any) => this.extractStringItem(item));
   }
 
   private extractStringItem(item: any): string {
@@ -438,74 +443,72 @@ export class ExcelReader {
     const stylesXml = files['xl/styles.xml'];
     if (!stylesXml) return result;
 
-    try {
-      const parsed = this.parser.parse(stylesXml);
-      const styleSheet = parsed.styleSheet;
-      if (!styleSheet) return result;
+    const parsed = parsePart('xl/styles.xml', stylesXml);
+    const styleSheet = parsed.styleSheet;
+    if (!styleSheet) return result;
 
-      for (const fmt of toArray(styleSheet.numFmts?.numFmt)) {
-        if (fmt.numFmtId !== undefined && fmt.formatCode !== undefined) {
-          result.customFormats[Number(fmt.numFmtId)] = String(fmt.formatCode);
-        }
+    for (const fmt of toArray(styleSheet.numFmts?.numFmt)) {
+      if (fmt.numFmtId !== undefined && fmt.formatCode !== undefined) {
+        result.customFormats[Number(fmt.numFmtId)] = String(fmt.formatCode);
       }
+    }
 
-      result.fonts = toArray(styleSheet.fonts?.font).map((font: any) => ({
-        bold: font?.b !== undefined,
-        italic: font?.i !== undefined,
-        underline: font?.u !== undefined,
-        color: font?.color?.rgb !== undefined ? String(font.color.rgb) : undefined,
-        size: font?.sz?.val !== undefined ? Number(font.sz.val) : undefined,
-        name: font?.name?.val !== undefined ? String(font.name.val) : undefined,
-      }));
+    result.fonts = toArray(styleSheet.fonts?.font).map((font: any) => ({
+      bold: font?.b !== undefined,
+      italic: font?.i !== undefined,
+      underline: font?.u !== undefined,
+      color: font?.color?.rgb !== undefined ? String(font.color.rgb) : undefined,
+      size: font?.sz?.val !== undefined ? Number(font.sz.val) : undefined,
+      name: font?.name?.val !== undefined ? String(font.name.val) : undefined,
+    }));
 
-      result.fills = toArray(styleSheet.fills?.fill).map((fill: any) => {
-        const patternFill = fill?.patternFill;
-        return {
-          patternType: patternFill?.patternType,
-          fgColor:
-            patternFill?.fgColor?.rgb !== undefined ? String(patternFill.fgColor.rgb) : undefined,
-        };
-      });
+    result.fills = toArray(styleSheet.fills?.fill).map((fill: any) => {
+      const patternFill = fill?.patternFill;
+      return {
+        patternType: patternFill?.patternType,
+        fgColor:
+          patternFill?.fgColor?.rgb !== undefined ? String(patternFill.fgColor.rgb) : undefined,
+      };
+    });
 
-      result.borders = toArray(styleSheet.borders?.border).map(border => this.decodeBorder(border));
+    result.borders = toArray(styleSheet.borders?.border).map(border => this.decodeBorder(border));
 
-      const xfs = toArray(styleSheet.cellXfs?.xf);
-      result.cellXfs = xfs.map((xf: any) => {
-        const alignment = xf?.alignment;
-        return {
-          fontId: xf?.fontId !== undefined ? Number(xf.fontId) : 0,
-          fillId: xf?.fillId !== undefined ? Number(xf.fillId) : 0,
-          borderId: xf?.borderId !== undefined ? Number(xf.borderId) : 0,
-          numFmtId: xf?.numFmtId !== undefined ? Number(xf.numFmtId) : 0,
-          alignment: alignment
-            ? {
-                horizontal: alignment.horizontal,
-                vertical: alignment.vertical === 'center' ? 'middle' : alignment.vertical,
-                wrapText: isFlag(alignment.wrapText),
-              }
-            : undefined,
-        };
-      });
+    const xfs = toArray(styleSheet.cellXfs?.xf);
+    result.cellXfs = xfs.map((xf: any) => {
+      const alignment = xf?.alignment;
+      return {
+        fontId: xf?.fontId !== undefined ? Number(xf.fontId) : 0,
+        fillId: xf?.fillId !== undefined ? Number(xf.fillId) : 0,
+        borderId: xf?.borderId !== undefined ? Number(xf.borderId) : 0,
+        numFmtId: xf?.numFmtId !== undefined ? Number(xf.numFmtId) : 0,
+        alignment: alignment
+          ? {
+              horizontal: alignment.horizontal,
+              vertical: alignment.vertical === 'center' ? 'middle' : alignment.vertical,
+              wrapText: isFlag(alignment.wrapText),
+            }
+          : undefined,
+      };
+    });
 
-      result.cellXfs.forEach((xf, index) => {
-        if (isDateNumFmtId(xf.numFmtId, result.customFormats)) {
-          result.dateStyles.add(index);
-        }
-      });
+    result.cellXfs.forEach((xf, index) => {
+      if (isDateNumFmtId(xf.numFmtId, result.customFormats)) {
+        result.dateStyles.add(index);
+      }
+    });
 
-      result.dxfs = toArray(styleSheet.dxfs?.dxf).map((dxf: any) => {
-        const style: ConditionalFormatStyle = {};
-        const font = dxf?.font;
-        if (font) {
-          if (font.b !== undefined) style.bold = true;
-          if (font.i !== undefined) style.italic = true;
-          if (font.color?.rgb !== undefined) style.color = this.argbToHex(String(font.color.rgb));
-        }
-        const bgColor = dxf?.fill?.patternFill?.bgColor?.rgb;
-        if (bgColor !== undefined) style.background = this.argbToHex(String(bgColor));
-        return style;
-      });
-    } catch {}
+    result.dxfs = toArray(styleSheet.dxfs?.dxf).map((dxf: any) => {
+      const style: ConditionalFormatStyle = {};
+      const font = dxf?.font;
+      if (font) {
+        if (font.b !== undefined) style.bold = true;
+        if (font.i !== undefined) style.italic = true;
+        if (font.color?.rgb !== undefined) style.color = this.argbToHex(String(font.color.rgb));
+      }
+      const bgColor = dxf?.fill?.patternFill?.bgColor?.rgb;
+      if (bgColor !== undefined) style.background = this.argbToHex(String(bgColor));
+      return style;
+    });
 
     return result;
   }
@@ -581,13 +584,14 @@ export class ExcelReader {
   }
 
   private parseSheet(
+    sheetPath: string,
     sheetXml: string,
     sharedStrings: string[],
     styleSheet: StyleSheetData,
     cellBudget: { cells: number },
     relsXml?: string
   ): Omit<ParsedSheet, 'name'> {
-    const parsed = this.parser.parse(sheetXml);
+    const parsed = parsePart(sheetPath, sheetXml);
     const worksheet = parsed.worksheet;
 
     const rows = toArray(worksheet?.sheetData?.row);
@@ -668,7 +672,7 @@ export class ExcelReader {
     const columns = this.parseColumns(worksheet);
     const conditionalFormats = this.parseConditionalFormats(worksheet, styleSheet);
     const autoFilterRef = worksheet?.autoFilter?.ref;
-    const hyperlinks = this.parseHyperlinks(worksheet, relsXml);
+    const hyperlinks = this.parseHyperlinks(worksheet, relsPathFor(sheetPath), relsXml);
 
     return {
       data,
@@ -711,13 +715,13 @@ export class ExcelReader {
     };
   }
 
-  private parseHyperlinks(worksheet: any, relsXml?: string): Hyperlink[] {
+  private parseHyperlinks(worksheet: any, relsPath: string, relsXml?: string): Hyperlink[] {
     const entries = toArray(worksheet?.hyperlinks?.hyperlink);
     if (entries.length === 0) return [];
 
     const relationshipId = (entry: any) => entry?.['r:id'] ?? entry?.id;
     const targets = entries.some(entry => relationshipId(entry) !== undefined)
-      ? this.parseRelationships(relsXml)
+      ? this.parseRelationships(relsPath, relsXml)
       : {};
 
     const links: Hyperlink[] = [];
@@ -898,7 +902,7 @@ export class ExcelReader {
     }
     if (cell.t === 'str')
       return withFormula(
-        { coordinate, rowIndex, columnIndex, type: 'string', value: String(raw) },
+        { coordinate, rowIndex, columnIndex, type: 'string', value: this.extractText(raw) },
         formula
       );
     if (cell.t === 'e')
@@ -947,32 +951,21 @@ export class ExcelReader {
   private extractMetadata(files: Record<string, string>): ParsedWorkbook['metadata'] {
     const metadata: ParsedWorkbook['metadata'] = {};
 
-    try {
-      const appXml = files['docProps/app.xml'];
-      if (appXml) {
-        const parsed = this.parser.parse(appXml);
-        const properties = parsed.Properties;
+    const properties = parseOptionalPart(files['docProps/app.xml'])?.Properties;
+    if (properties) {
+      metadata.creator = properties.Creator;
+      metadata.created = properties.Created;
+      metadata.modified = properties.Modified;
+    }
 
-        if (properties) {
-          metadata.creator = properties.Creator;
-          metadata.created = properties.Created;
-          metadata.modified = properties.Modified;
-        }
-      }
-
-      const coreXml = files['docProps/core.xml'];
-      if (coreXml) {
-        const parsed = this.parser.parse(coreXml);
-        const core = parsed['cp:coreProperties'];
-        if (core) {
-          metadata.creator = this.extractText(core['dc:creator']) || metadata.creator;
-          metadata.created = this.extractText(core['dcterms:created']) || metadata.created;
-          metadata.modified = this.extractText(core['dcterms:modified']) || metadata.modified;
-          metadata.title = this.extractText(core['dc:title']) || undefined;
-          metadata.subject = this.extractText(core['dc:subject']) || undefined;
-        }
-      }
-    } catch {}
+    const core = parseOptionalPart(files['docProps/core.xml'])?.coreProperties;
+    if (core) {
+      metadata.creator = this.extractText(core['dc:creator']) || metadata.creator;
+      metadata.created = this.extractText(core['dcterms:created']) || metadata.created;
+      metadata.modified = this.extractText(core['dcterms:modified']) || metadata.modified;
+      metadata.title = this.extractText(core['dc:title']) || undefined;
+      metadata.subject = this.extractText(core['dc:subject']) || undefined;
+    }
 
     return metadata;
   }
