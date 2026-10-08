@@ -2,6 +2,12 @@ import { describe, it, expect } from 'vitest';
 import { ExcelBridge } from '../src';
 
 describe('Special Characters Handling', () => {
+  it('removes the two Unicode noncharacters U+FFFE and U+FFFF, which XML does not allow', () => {
+    const bytes = ExcelBridge.writeBuffer([['a\uFFFEb\uFFFFc']]);
+    const workbook = ExcelBridge.read(bytes);
+    expect(workbook.sheets[0].data[0][0].value).toBe('abc');
+  });
+
   it('should handle XML special characters correctly', () => {
     const data = [
       ['Company', 'Description'],
@@ -39,7 +45,7 @@ describe('Special Characters Handling', () => {
     const result = ExcelBridge.read(buffer);
 
     const sheet = result.sheets[0];
-    
+
     expect(sheet.data[1][0].value).toBe('José');
     expect(sheet.data[1][1].value).toBe('México');
     expect(sheet.data[2][0].value).toBe('María');
@@ -62,7 +68,7 @@ describe('Special Characters Handling', () => {
     const result = ExcelBridge.read(buffer);
 
     const sheet = result.sheets[0];
-    
+
     expect(sheet.data[1][0].value).toBe('Normal');
     expect(sheet.data[1][1].value).toBe('Normal text');
     expect(sheet.data[2][0].value).toBe('With Space');
@@ -73,21 +79,21 @@ describe('Special Characters Handling', () => {
     const data = [
       ['Product', 'Price', 'Description'],
       ['Widget & Co', 29.99, 'Best <product> ever!'],
-      ['Gadget "Pro"', 149.50, 'It\'s amazing & affordable'],
+      ['Gadget "Pro"', 149.5, "It's amazing & affordable"],
     ];
 
     const buffer = ExcelBridge.writeBuffer(data);
     const result = ExcelBridge.read(buffer);
 
     const sheet = result.sheets[0];
-    
+
     expect(sheet.data[1][0].value).toBe('Widget & Co');
     expect(sheet.data[1][1].value).toBe(29.99);
     expect(sheet.data[1][1].type).toBe('number');
     expect(sheet.data[1][2].value).toBe('Best <product> ever!');
-    
+
     expect(sheet.data[2][0].value).toBe('Gadget "Pro"');
-    expect(sheet.data[2][1].value).toBe(149.50);
+    expect(sheet.data[2][1].value).toBe(149.5);
     expect(sheet.data[2][2].value).toBe("It's amazing & affordable");
   });
 });

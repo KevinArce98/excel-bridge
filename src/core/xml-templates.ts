@@ -1,3 +1,4 @@
+import { invalidInput } from './errors';
 import { XML_NS } from './constants';
 import { StyleManager, normalizeColor } from './style-manager';
 import {
@@ -10,9 +11,9 @@ import {
 import { calculateColumnWidths, generateColsXml } from './column-width';
 import { rowIndexes } from './rows';
 import { prepareLayout } from './sheet-layout';
-import { isExcelError, splitCell } from './cells';
+import { isExcelErrorValue, splitCell } from './cells';
 import { indexToColumnLetter, parseRange, formatRange, quoteSheetName } from './cell-ref';
-import { PreparedHyperlink, prepareHyperlinks, withHyperlinkStyles } from './hyperlinks';
+import { PreparedHyperlink, withHyperlinkStyles } from './hyperlinks';
 import {
   AutoFilter,
   CellValue,
@@ -28,9 +29,7 @@ import {
 export type { CellValidation, CellStyle } from './types';
 
 export interface SheetGenerationOptions extends SheetLayout {
-  freezePane?: { row?: number; col?: number };
   autoWidth?: boolean;
-  columnWidths?: number[];
   mergeCells?: string[];
   conditionalFormats?: ConditionalFormat[];
   sharedStrings?: Map<string, number>;
@@ -77,10 +76,13 @@ const generateConditionalFormattingXml = (
       }
 
       const operator = escapeXmlAttr(cf.operator);
-      const formulasXml =
-        cf.operator === 'between' || cf.operator === 'notBetween'
-          ? `<formula>${cfFormulaValue(cf.value)}</formula><formula>${cfFormulaValue(cf.value2!)}</formula>`
-          : `<formula>${cfFormulaValue(cf.value)}</formula>`;
+      const needsRange = cf.operator === 'between' || cf.operator === 'notBetween';
+      if (needsRange && cf.value2 === undefined) {
+        throw invalidInput(`Conditional format at ${cf.range} needs value2`);
+      }
+      const formulasXml = needsRange
+        ? `<formula>${cfFormulaValue(cf.value)}</formula><formula>${cfFormulaValue(cf.value2 as number | string)}</formula>`
+        : `<formula>${cfFormulaValue(cf.value)}</formula>`;
       return `\n  <conditionalFormatting sqref="${sqref}">\n    <cfRule type="cellIs" dxfId="${dxfId}" priority="${priority}" operator="${operator}">${formulasXml}</cfRule>\n  </conditionalFormatting>`;
     })
     .join('');
@@ -98,7 +100,7 @@ const valueCellXml = (
   }
 
   if (value instanceof Date && !isDate(value)) {
-    throw new Error(`Cell ${ref} holds an invalid Date`);
+    throw invalidInput(`Cell ${ref} holds an invalid Date`);
   }
 
   if (isDate(value)) {
@@ -107,7 +109,7 @@ const valueCellXml = (
 
   if (typeof value === 'number') {
     if (!Number.isFinite(value)) {
-      throw new Error(`Cell ${ref} holds ${value}, which a worksheet cannot store`);
+      throw invalidInput(`Cell ${ref} holds ${value}, which a worksheet cannot store`);
     }
     return `${open}>${formulaXml}<v>${value}</v></c>`;
   }
@@ -118,13 +120,13 @@ const valueCellXml = (
 
   if (typeof value === 'object') {
     if ('error' in value) {
-      if (!isExcelError(value.error)) {
-        throw new Error(`Cell ${ref} holds ${value.error}, which a worksheet cannot store`);
+      if (!isExcelErrorValue(value.error)) {
+        throw invalidInput(`Cell ${ref} holds ${value.error}, which a worksheet cannot store`);
       }
       return `${open} t="e">${formulaXml}<v>${value.error}</v></c>`;
     }
     if ('formula' in value || 'text' in value) {
-      throw new Error(`Cell ${ref} needs a string formula or text`);
+      throw invalidInput(`Cell ${ref} needs a string formula or text`);
     }
   }
 
@@ -132,7 +134,7 @@ const valueCellXml = (
   validateCellValue(stringValue);
 
   if (formulaXml) {
-    return `${open} t="str">${formulaXml}<v>${escapeXml(stringValue)}</v></c>`;
+    return `${open} t="str">${formulaXml}<v>${escapeCellText(stringValue)}</v></c>`;
   }
 
   const index = sharedStrings?.get(stringValue);
@@ -141,7 +143,7 @@ const valueCellXml = (
   }
 
   const space = stringValue !== stringValue.trim() ? ' xml:space="preserve"' : '';
-  return `${open} t="inlineStr"><is><t${space}>${escapeXml(stringValue)}</t></is></c>`;
+  return `${open} t="inlineStr"><is><t${space}>${escapeCellText(stringValue)}</t></is></c>`;
 };
 
 export const generateRowXml = (
@@ -164,8 +166,8 @@ export const generateRowXml = (
       return;
     }
     const { formula, value } = splitCell(cellValue);
-    if (formula === '' && typeof cellValue === 'object') {
-      throw new Error(`Cell ${ref} needs a formula`);
+    if (formula === '') {
+      throw invalidInput(`Cell ${ref} needs a formula`);
     }
     const styleId = isDate(value)
       ? styleManager
@@ -258,9 +260,6 @@ export const generateHyperlinkRelsXml = (links: PreparedHyperlink[]): string => 
 </Relationships>`;
 };
 
-export const generateSheetRelsXml = (hyperlinks: Hyperlink[] = []): string =>
-  generateHyperlinkRelsXml(prepareHyperlinks(hyperlinks));
-
 export const sheetRelsPath = (sheetNumber: number): string =>
   `xl/worksheets/_rels/sheet${sheetNumber}.xml.rels`;
 
@@ -337,22 +336,6 @@ export const generatePreparedSheetXml = (
   );
 };
 
-export const generateSheetXml = (
-  data: CellValue[][],
-  validations: CellValidation[] = [],
-  styles: Record<string, CellStyle> = {},
-  styleManager?: StyleManager,
-  options: SheetGenerationOptions = {}
-) =>
-  generatePreparedSheetXml(
-    data,
-    validations,
-    styles,
-    styleManager,
-    options,
-    prepareHyperlinks(options.hyperlinks)
-  );
-
 export const generateDataValidationsXml = (validations: CellValidation[] = []): string => {
   let validationsXml = '';
   if (validations.length > 0) {
@@ -364,13 +347,12 @@ export const generateDataValidationsXml = (validations: CellValidation[] = []): 
       const sqref = escapeXmlAttr(v.range);
 
       if (type === 'list') {
-        const formula1 =
-          v.formula1 !== undefined
-            ? escapeXml(v.formula1)
-            : `"${escapeXml(v.options.replace(/"/g, '""'))}"`;
+        if (v.formula1 === undefined) {
+          throw invalidInput(`Validation at ${v.range} needs formula1`);
+        }
         validationsXml += `
     <dataValidation type="list" allowBlank="${allowBlank}" showInputMessage="1" showErrorMessage="1" sqref="${sqref}">
-      <formula1>${formula1}</formula1>
+      <formula1>${escapeXml(v.formula1)}</formula1>
     </dataValidation>`;
         return;
       }
@@ -398,7 +380,7 @@ export const generateSharedStringsXml = (strings: string[]) => {
   ${uniqueStrings
     .map(str => {
       const space = str !== str.trim() ? ' xml:space="preserve"' : '';
-      return `<si><t${space}>${escapeXml(str)}</t></si>`;
+      return `<si><t${space}>${escapeCellText(str)}</t></si>`;
     })
     .join('')}
 </sst>`;
@@ -564,12 +546,17 @@ export const generateRootRelsXml = () => {
 </Relationships>`;
 };
 
+const LITERAL_ESCAPE_PREFIX = /_(?=x[0-9A-Fa-f]{4}_)/g;
+
 const escapeXml = (text: string): string => {
   return text
-    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '')
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\uFFFE\uFFFF]/g, '')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
 };
 
 const escapeXmlAttr = (text: string): string => escapeXml(text).replace(/"/g, '&quot;');
+
+const escapeCellText = (text: string): string =>
+  escapeXml(text).replace(LITERAL_ESCAPE_PREFIX, '_x005F_');

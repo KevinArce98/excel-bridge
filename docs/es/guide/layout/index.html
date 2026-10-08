@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Define el diseño de las hojas | excel-bridge docs</title>
+<meta name="description" content="Varias hojas, celdas combinadas, paneles inmovilizados, anchos de columna, alturas de fila, filas y columnas ocultas, filtros e hipervínculos." />
+<link rel="canonical" href="https://kevinarce98.github.io/excel-bridge/es/guide/layout/" />
+<link rel="alternate" hreflang="en" href="https://kevinarce98.github.io/excel-bridge/guide/layout/" />
+<link rel="alternate" hreflang="es" href="https://kevinarce98.github.io/excel-bridge/es/guide/layout/" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="Define el diseño de las hojas | excel-bridge docs" />
+<meta property="og:description" content="Varias hojas, celdas combinadas, paneles inmovilizados, anchos de columna, alturas de fila, filas y columnas ocultas, filtros e hipervínculos." />
+<meta property="og:url" content="https://kevinarce98.github.io/excel-bridge/es/guide/layout/" />
+<meta name="theme-color" content="#0f172a" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231B2336'/%3E%3Crect x='5' y='6' width='22' height='6' rx='2' fill='%2322C55E'/%3E%3Crect x='5' y='15' width='9' height='4' rx='1.5' fill='%23334155'/%3E%3Crect x='18' y='15' width='9' height='4' rx='1.5' fill='%23334155'/%3E%3Crect x='5' y='22' width='9' height='4' rx='1.5' fill='%23334155'/%3E%3Crect x='18' y='22' width='9' height='4' rx='1.5' fill='%2322C55E' fill-opacity='0.5'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../../../assets/docs.css" />
+</head>
+<body>
+<a class="skip" href="#content">Saltar al contenido</a>
+<header class="waybill">
+  <div class="waybill-in">
+    <a class="wordmark" href="../../../" aria-label="excel-bridge"><svg class="mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><rect width="32" height="32" rx="7" fill="#1B2336"/><rect x="5" y="6" width="22" height="6" rx="2" fill="#22C55E"/><rect x="5" y="15" width="9" height="4" rx="1.5" fill="#334155"/><rect x="18" y="15" width="9" height="4" rx="1.5" fill="#334155"/><rect x="5" y="22" width="9" height="4" rx="1.5" fill="#334155"/><rect x="18" y="22" width="9" height="4" rx="1.5" fill="#22C55E" fill-opacity="0.5"/></svg><span><span class="w-excel">excel</span><span class="w-dash">-</span><span class="w-bridge">bridge</span></span></a>
+    <span class="field"><span class="field-caption">Docs</span><span class="field-value">2.x</span></span>
+    <nav class="top-links" aria-label="Sitio">
+      <a href="../../../#pack">Probar</a>
+      <a href="https://github.com/KevinArce98/excel-bridge" rel="noopener">GitHub</a>
+      <a href="https://www.npmjs.com/package/excel-bridge" rel="noopener">npm</a>
+    </nav>
+    <div class="lang" role="group" aria-label="Idioma"><a href="../../../guide/layout/" hreflang="en" lang="en" aria-label="English">EN</a><span class="lang-current" aria-current="true" lang="es">ES</span></div>
+  </div>
+</header>
+<div class="shell">
+  <nav class="rail" aria-label="Docs">
+    <details class="rail-fold" open>
+      <summary>Contenido</summary>
+      <section><p class="rail-group">Inicio</p><ul><li><a href="../../../es/getting-started/">Primeros pasos</a></li></ul></section>
+<section><p class="rail-group">Guía</p><ul><li><a href="../../../es/guide/values/">Escribe valores y fórmulas</a></li><li><a href="../../../es/guide/styling/">Da estilo a las celdas</a></li><li><a href="../../../es/guide/layout/" aria-current="page">Define el diseño de las hojas</a></li><li><a href="../../../es/guide/rules/">Agrega reglas</a></li><li><a href="../../../es/guide/reading/">Lee un libro</a></li><li><a href="../../../es/guide/objects/">Filas como objetos</a></li><li><a href="../../../es/guide/workbook/">Edita un libro</a></li><li><a href="../../../es/guide/streaming/">Exporta archivos grandes con streaming</a></li><li><a href="../../../es/guide/errors/">Maneja errores y límites</a></li></ul></section>
+<section><p class="rail-group">Referencia</p><ul><li><a href="../../../es/api/">Referencia de la API</a></li><li><a href="../../../es/performance/">Rendimiento y tamaño</a></li><li><a href="../../../es/limitations/">Límites y alternativas</a></li><li><a href="../../../es/upgrading/">Actualización</a></li><li><a href="../../../es/security/">Seguridad</a></li></ul></section>
+    </details>
+  </nav>
+  <main id="content" class="sheet">
+    <div class="sheet-rule" aria-hidden="true"></div>
+    <article class="prose">
+<h1 id="define-el-diseno-de-las-hojas">Define el diseño de las hojas</h1>
+<p>Todo lo relativo a dónde se ubica cada elemento en una hoja vive en las <code>options</code> de la hoja y en algunos campos hermanos. Esta página cubre el conjunto completo, en el orden en que sueles necesitarlo.</p>
+<h2 id="varias-hojas">Varias hojas<a class="anchor" href="#varias-hojas" aria-label="Varias hojas">#</a></h2>
+<p>Pasa un objeto por hoja. El nombre y la visibilidad de la hoja van en <code>options</code>.</p>
+<figure class="code"><figcaption><span class="code-name">two-sheets.ts</span><button type="button" class="copy" data-copy="Copiar" data-copied="Copiado">Copiar</button></figcaption><pre tabindex="0"><code><span class="tk-k">import</span> { <span class="tk-t">ExcelWriter</span> } <span class="tk-k">from</span> <span class="tk-s">'excel-bridge'</span>;
+<span class="tk-k">import</span> <span class="tk-k">type</span> { <span class="tk-t">ExcelData</span> } <span class="tk-k">from</span> <span class="tk-s">'excel-bridge'</span>;
+
+<span class="tk-k">const</span> header = { background: <span class="tk-s">'#4472C4'</span>, bold: <span class="tk-k">true</span>, color: <span class="tk-s">'#FFFFFF'</span> };
+
+<span class="tk-k">const</span> sales: <span class="tk-t">ExcelData</span> = {
+  data: [
+    ['<span class="tk-t">Product</span><span class="tk-s">', '</span><span class="tk-t">Price</span><span class="tk-s">', '</span><span class="tk-t">Quantity</span><span class="tk-s">', '</span><span class="tk-t">Total</span>'],
+    ['<span class="tk-t">Laptop</span><span class="tk-s">', 999.99, 5, { formula: '</span><span class="tk-t">B2</span>*<span class="tk-t">C2</span>' }],
+    ['<span class="tk-t">Mouse</span><span class="tk-s">', 29.99, 20, { formula: '</span><span class="tk-t">B3</span>*<span class="tk-t">C3</span>' }],
+  ],
+  styles: { <span class="tk-s">'0-0'</span>: header, <span class="tk-s">'0-1'</span>: header, <span class="tk-s">'0-2'</span>: header, <span class="tk-s">'0-3'</span>: header },
+  options: { name: <span class="tk-s">'Sales Report'</span>, freezePane: { row: <span class="tk-n">1</span> }, autoWidth: <span class="tk-k">true</span> },
+};
+
+<span class="tk-k">const</span> timeline: <span class="tk-t">ExcelData</span> = {
+  data: [
+    ['<span class="tk-t">Event</span><span class="tk-s">', '</span><span class="tk-t">Date</span>'],
+    ['<span class="tk-t">Launch</span>', <span class="tk-k">new</span> <span class="tk-t">Date</span>(<span class="tk-n">2024</span>, <span class="tk-n">6</span>, <span class="tk-n">15</span>)],
+  ],
+  options: { name: <span class="tk-s">'Timeline'</span>, autoWidth: <span class="tk-k">true</span> },
+};
+
+<span class="tk-k">const</span> bytes = <span class="tk-k">new</span> <span class="tk-t">ExcelWriter</span>({ creator: <span class="tk-s">'My App'</span> }).createWorkbookBuffer([sales, timeline]);</code></pre></figure>
+<p>El nombre de una hoja debe tener de 1 a 31 caracteres, sin ninguno de <code>\ / ? * [ ] :</code>, sin caracteres de control, sin apóstrofo en ninguno de los extremos, no ser <code>History</code> (Excel lo reserva) y ser único sin distinguir mayúsculas de minúsculas. Un libro necesita al menos una hoja y al menos una hoja visible. De lo contrario, los escritores lanzan un error.</p>
+<p>Oculta una hoja con <code>state: 'hidden'</code> o <code>state: 'veryHidden'</code>.</p>
+<h2 id="combinar-celdas">Combinar celdas<a class="anchor" href="#combinar-celdas" aria-label="Combinar celdas">#</a></h2>
+<p>Enumera los rangos en <code>mergeCells</code>. Pon el valor en la celda superior izquierda.</p>
+<figure class="code"><figcaption><span class="code-name">merged-title.ts</span><button type="button" class="copy" data-copy="Copiar" data-copied="Copiado">Copiar</button></figcaption><pre tabindex="0"><code><span class="tk-k">import</span> <span class="tk-k">type</span> { <span class="tk-t">ExcelData</span> } <span class="tk-k">from</span> <span class="tk-s">'excel-bridge'</span>;
+
+<span class="tk-k">const</span> quarterly: <span class="tk-t">ExcelData</span> = {
+  data: [
+    ['<span class="tk-t">Q1</span> <span class="tk-n">2024</span> <span class="tk-t">Sales</span> <span class="tk-t">Report</span><span class="tk-s">', '</span><span class="tk-s">', '</span><span class="tk-s">', '</span>'],
+    ['<span class="tk-t">Product</span><span class="tk-s">', '</span><span class="tk-t">January</span><span class="tk-s">', '</span><span class="tk-t">February</span><span class="tk-s">', '</span><span class="tk-t">March</span>'],
+    ['<span class="tk-t">Laptops</span>', <span class="tk-n">45000</span>, <span class="tk-n">52000</span>, <span class="tk-n">48000</span>],
+    ['<span class="tk-t">Accessories</span>', <span class="tk-n">12000</span>, <span class="tk-n">15000</span>, <span class="tk-n">13500</span>],
+  ],
+  styles: { <span class="tk-s">'0-0'</span>: { background: <span class="tk-s">'#5B9BD5'</span>, bold: <span class="tk-k">true</span>, color: <span class="tk-s">'#FFFFFF'</span> } },
+  mergeCells: ['<span class="tk-t">A1</span>:<span class="tk-t">D1</span>'],
+  options: { name: <span class="tk-s">'Quarterly Report'</span>, freezePane: { row: <span class="tk-n">2</span> } },
+};</code></pre></figure>
+<h2 id="paneles-inmovilizados-y-anchos">Paneles inmovilizados y anchos<a class="anchor" href="#paneles-inmovilizados-y-anchos" aria-label="Paneles inmovilizados y anchos">#</a></h2>
+<p><code>freezePane: { row: 2 }</code> mantiene visibles las dos primeras filas, y <code>col</code> inmoviliza columnas de la misma forma. Para los anchos, elige una de dos opciones:</p>
+<ul>
+<li><code>autoWidth: true</code> mide el texto y ajusta el tamaño de cada columna, dentro de límites razonables.</li>
+<li><code>columnWidths: [24, 12, 12, 12]</code> define anchos exactos en unidades de carácter. Tiene prioridad sobre <code>autoWidth</code>.</li>
+</ul>
+<h2 id="alturas-de-fila-filas-ocultas-y-columnas-ocultas">Alturas de fila, filas ocultas y columnas ocultas<a class="anchor" href="#alturas-de-fila-filas-ocultas-y-columnas-ocultas" aria-label="Alturas de fila, filas ocultas y columnas ocultas">#</a></h2>
+<figure class="code"><figcaption><span class="code-name">row-layout.ts</span><button type="button" class="copy" data-copy="Copiar" data-copied="Copiado">Copiar</button></figcaption><pre tabindex="0"><code><span class="tk-k">import</span> <span class="tk-k">type</span> { <span class="tk-t">ExcelData</span> } <span class="tk-k">from</span> <span class="tk-s">'excel-bridge'</span>;
+
+<span class="tk-k">const</span> layout: <span class="tk-t">ExcelData</span> = {
+  data: [
+    ['<span class="tk-t">Title</span>'],
+    ['<span class="tk-t">Row</span> <span class="tk-n">2</span>'],
+    ['<span class="tk-t">Row</span> <span class="tk-n">3</span>'],
+    ['<span class="tk-t">Row</span> <span class="tk-n">4</span>'],
+  ],
+  options: {
+    rowHeights: { <span class="tk-n">0</span>: <span class="tk-n">28</span> },
+    hiddenRows: [<span class="tk-n">2</span>],
+    hiddenColumns: [<span class="tk-n">3</span>],
+  },
+};</code></pre></figure>
+<ul>
+<li><code>rowHeights</code> asocia índices de fila base cero con alturas en puntos, mayores que 0 y de 409.5 como máximo. Una fila sin altura conserva el valor predeterminado de Excel.</li>
+<li><code>hiddenRows</code> y <code>hiddenColumns</code> enumeran índices base cero. Una columna oculta sin ancho se escribe con ancho <code>9.140625</code>.</li>
+<li>Las tres funcionan en el <a href="../streaming/">escritor de streaming</a> y en un <a href="../workbook/"><code>Workbook</code></a> mediante <code>setRowHeight</code>, <code>setRowHidden</code> y <code>setColumnHidden</code>.</li>
+</ul>
+<aside class="callout callout-limit"><p class="callout-name">Límite</p><p>Los valores predeterminados de la hoja, como la altura de fila predeterminada, el ancho de columna predeterminado y los niveles de esquema, no se escriben ni se conservan.</p>
+</aside>
+<h2 id="listas-desplegables-de-filtro">Listas desplegables de filtro<a class="anchor" href="#listas-desplegables-de-filtro" aria-label="Listas desplegables de filtro">#</a></h2>
+<p><code>options.autoFilter</code> agrega listas desplegables de filtro a una fila de encabezado. Incluye también las filas de datos, tal como Excel guarda un filtro.</p>
+<figure class="code"><figcaption><span class="code-name">filter.ts</span><button type="button" class="copy" data-copy="Copiar" data-copied="Copiado">Copiar</button></figcaption><pre tabindex="0"><code><span class="tk-k">import</span> <span class="tk-k">type</span> { <span class="tk-t">ExcelData</span> } <span class="tk-k">from</span> <span class="tk-s">'excel-bridge'</span>;
+
+<span class="tk-k">const</span> rows = [
+  ['<span class="tk-t">Region</span><span class="tk-s">', '</span><span class="tk-t">Rep</span><span class="tk-s">', '</span><span class="tk-t">Revenue</span>'],
+  ['<span class="tk-t">North</span><span class="tk-s">', '</span><span class="tk-t">Ann</span>', <span class="tk-n">1200</span>],
+  ['<span class="tk-t">South</span><span class="tk-s">', '</span><span class="tk-t">Bob</span>', <span class="tk-n">480</span>],
+];
+
+<span class="tk-k">const</span> filtered: <span class="tk-t">ExcelData</span> = {
+  data: rows,
+  options: { freezePane: { row: <span class="tk-n">1</span> }, autoFilter: { range: <span class="tk-s">`A1:C${rows.length}`</span> } },
+};</code></pre></figure>
+<p>Una hoja admite un solo filtro. El escritor también agrega el nombre oculto <code>_xlnm._FilterDatabase</code> que escribe Excel para un filtro. Los criterios de filtro y el estado de ordenación no se escriben ni se leen, así que un archivo escrito por <code>ExcelWriter</code> se abre con todas las filas visibles, a menos que pases <code>hiddenRows</code>.</p>
+<h2 id="hipervinculos">Hipervínculos<a class="anchor" href="#hipervinculos" aria-label="Hipervínculos">#</a></h2>
+<p>Adjunta vínculos mediante el arreglo <code>hyperlinks</code> de una hoja. La celda conserva el texto de <code>data</code>; el vínculo define a dónde lleva un clic. Los constructores <code>hyperlink</code> cubren los tres tipos.</p>
+<figure class="code"><figcaption><span class="code-name">links.ts</span><button type="button" class="copy" data-copy="Copiar" data-copied="Copiado">Copiar</button></figcaption><pre tabindex="0"><code><span class="tk-k">import</span> { <span class="tk-t">ExcelWriter</span>, hyperlink } <span class="tk-k">from</span> <span class="tk-s">'excel-bridge'</span>;
+
+<span class="tk-k">const</span> bytes = <span class="tk-k">new</span> <span class="tk-t">ExcelWriter</span>().createWorkbookBuffer([
+  {
+    data: [
+      ['<span class="tk-t">Resource</span><span class="tk-s">', '</span><span class="tk-t">Contact</span><span class="tk-s">', '</span><span class="tk-t">Details</span>'],
+      ['<span class="tk-t">Docs</span><span class="tk-s">', '</span><span class="tk-t">Email</span> the team<span class="tk-s">', '</span><span class="tk-t">See</span> <span class="tk-t">Q1</span>'],
+    ],
+    hyperlinks: [
+      hyperlink.url('<span class="tk-t">A2</span><span class="tk-s">', '</span>https://example.com/docs<span class="tk-s">', { tooltip: '</span><span class="tk-t">Open</span> the docs' }),
+      hyperlink.email('<span class="tk-t">B2</span><span class="tk-s">', '</span>team@example.com<span class="tk-s">', { subject: '</span><span class="tk-t">Report</span> question' }),
+      hyperlink.internal('<span class="tk-t">C2</span><span class="tk-s">', '</span><span class="tk-t">Q1</span> <span class="tk-t">Sales</span><span class="tk-s">', '</span><span class="tk-t">A1</span>'),
+    ],
+    options: { name: <span class="tk-s">'Links'</span> },
+  },
+  { data: [['<span class="tk-t">Q1</span><span class="tk-s">']], options: { name: '</span><span class="tk-t">Q1</span> <span class="tk-t">Sales</span>' } },
+]);</code></pre></figure>
+<p>Un vínculo también puede ser un objeto simple: <code>{ range: 'A2', url: 'https://…' }</code> o <code>{ range: 'C2', location: &quot;'Q1 Sales'!A1&quot; }</code>, con <code>tooltip</code> y <code>display</code> opcionales. Se descarta un <code>#</code> inicial en <code>location</code>.</p>
+<ul>
+<li><strong>Aspecto:</strong> la primera celda de cada vínculo recibe el color de hipervínculo de Excel (<code>#0563C1</code>) y un subrayado. Un <code>color</code> o un <code>underline</code> en el estilo propio de esa celda prevalece, cada uno por separado.</li>
+<li><strong>URL permitidas:</strong> <code>http:</code>, <code>https:</code> y <code>mailto:</code>, con los espacios y las comillas codificados en porcentaje. Cualquier otra cosa lanza un error, porque las exportaciones suelen llevar datos de usuarios y los vínculos <code>file:</code> o los controladores de protocolo personalizados no son seguros de abrir con un clic.</li>
+<li><strong>Límites:</strong> un vínculo por rango, 65,530 vínculos por hoja y 2,079 caracteres por dirección.</li>
+</ul>
+
+    </article>
+    <nav class="stubs" aria-label="Anterior y siguiente"><a class="stub stub-prev" href="../../../es/guide/styling/"><span class="field-caption">Anterior</span><span class="stub-title">Da estilo a las celdas</span></a><a class="stub stub-next" href="../../../es/guide/rules/"><span class="field-caption">Siguiente</span><span class="stub-title">Agrega reglas</span></a></nav>
+    <p class="doc-foot"><a href="https://github.com/KevinArce98/excel-bridge/edit/main/docs-src/es/guide/layout.md" rel="noopener">Editar esta página</a> · Licencia MIT · Microsoft Excel es una marca de Microsoft; este proyecto no está afiliado a Microsoft.</p>
+  </main>
+  <aside class="toc" aria-label="En esta página">
+    <p class="field-caption">En esta página</p>
+    <ul><li><a href="#varias-hojas">Varias hojas</a></li><li><a href="#combinar-celdas">Combinar celdas</a></li><li><a href="#paneles-inmovilizados-y-anchos">Paneles inmovilizados y anchos</a></li><li><a href="#alturas-de-fila-filas-ocultas-y-columnas-ocultas">Alturas de fila, filas ocultas y columnas ocultas</a></li><li><a href="#listas-desplegables-de-filtro">Listas desplegables de filtro</a></li><li><a href="#hipervinculos">Hipervínculos</a></li></ul>
+  </aside>
+</div>
+<script src="../../../assets/docs.js" defer></script>
+</body>
+</html>

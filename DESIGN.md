@@ -12,6 +12,7 @@ colors:
   paper: "#f8fafc"
   paper-2: "#eef2f7"
   paper-3: "#e3e9f0"
+  callout: "#f3f6fa"
   paper-rule: "#cbd5e1"
   ink: "#0f172a"
   ink-2: "#334155"
@@ -108,6 +109,23 @@ typography:
     fontSize: "13.5px"
     fontWeight: 400
     lineHeight: 1.75
+  doc-h2:
+    fontFamily: "JetBrains Mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
+    fontSize: "1.4rem"
+    fontWeight: 800
+    lineHeight: 1.2
+    letterSpacing: "-0.03em"
+  doc-h3:
+    fontFamily: "Inter, Segoe UI, system-ui, -apple-system, sans-serif"
+    fontSize: "1.15rem"
+    fontWeight: 700
+    lineHeight: 1.3
+    letterSpacing: "-0.012em"
+  doc-body:
+    fontFamily: "Inter, Segoe UI, system-ui, -apple-system, sans-serif"
+    fontSize: "16px"
+    fontWeight: 400
+    lineHeight: 1.65
 rounded:
   zone: "3px"
   label: "6px"
@@ -216,6 +234,37 @@ components:
     textColor: "{colors.ink}"
     rounded: "{rounded.control}"
     padding: "12px 16px"
+  manual-sheet:
+    backgroundColor: "{colors.paper}"
+    textColor: "{colors.ink-2}"
+    typography: "{typography.doc-body}"
+    rounded: "{rounded.doc}"
+    padding: "28px 48px 8px"
+    width: "860px"
+  rail-link:
+    backgroundColor: "transparent"
+    textColor: "{colors.text}"
+    rounded: "8px"
+    padding: "7px 12px"
+  rail-link-current:
+    backgroundColor: "{colors.dock-0}"
+    textColor: "{colors.text-hi}"
+  callout:
+    backgroundColor: "{colors.callout}"
+    textColor: "{colors.ink-2}"
+    rounded: "{rounded.label}"
+    padding: "14px 18px 4px"
+  doc-stub:
+    backgroundColor: "{colors.paper-2}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.label}"
+    padding: "14px 18px"
+  doc-stub-hover:
+    backgroundColor: "{colors.green-wash}"
+  lang-current:
+    backgroundColor: "{colors.dock-0}"
+    textColor: "{colors.text-hi}"
+    padding: "9px 11px"
 ---
 
 # Design System: excel-bridge
@@ -250,7 +299,7 @@ A navy dock under thermal paper, printed in navy ink, with green reserved for cl
 - **Cleared Wash** (`green-wash`): the excel-bridge column in the rate sheet and the total row in the demo sheet.
 
 ### Secondary
-- **Handling Amber** (`amber-deep`): the HEAVY handling stamp on the ExcelJS and SheetJS back labels; also the error-toast icon and boolean cell-type ink in the read-back view.
+- **Handling Amber** (`amber-deep`): the HEAVY handling stamp on the ExcelJS and SheetJS back labels; also the error-toast icon, boolean cell-type ink in the read-back view, and the names of limit, warning and breaking callouts in the manual.
 - **Fault Amber** (`amber`): the status LED when the live library is offline; a translucent tint of it (with literal `#fde68a` / `#fef3c7` text) is the read-error panel.
 
 ### Neutral
@@ -259,6 +308,7 @@ A navy dock under thermal paper, printed in navy ink, with green reserved for cl
 - **Dock Steel** (`dock-2`): equipment bodies: label printer head, receiving-dock drop zone.
 - **Plate** (`plate`, `plate-2`): hover and drag-over fills on dock equipment and nav links.
 - **Dock Rule** (`rule`, `rule-soft`): hairlines, dashed perforations and equipment borders on the dock; `rule-soft` for quieter separators (status strip, band edges, tab dividers).
+- **Callout Tint** (`callout`, #f3f6fa): the documentation callout slip, a cool step between `paper` and `paper-2`; the breaking-change variant swaps in literal `#fffaf0` / `#e7c27d` values.
 - **Thermal Stock** (`paper`, `paper-2`, `paper-3`): label and document stock; `paper-2` for stubs, doc-feet, sheet tab rails, the blank label and the nearer back label; `paper-3` for the farthest back label.
 - **Paper Rule** (`paper-rule`): 1px field dividers on paper.
 - **Navy Ink** (`ink`, `ink-2`, `ink-3`): printed values, secondary printed text, and field captions on paper; `ink` also draws the 3px header rules, barcodes and the XLSX zone block.
@@ -270,7 +320,7 @@ A navy dock under thermal paper, printed in navy ink, with green reserved for cl
 
 **The Cleared-Ink Rule.** Green means cleared, routed, live or "this is excel-bridge". On paper it is always `green-deep`; bright `green` never carries text on paper.
 
-**The Handling-Stamp Rule.** Amber marks handling and faults only: the HEAVY stamp, the offline LED, errors. It is never emphasis, decoration or a second brand color.
+**The Handling-Stamp Rule.** Amber marks handling and faults only: the HEAVY stamp, the offline LED, errors, and in the manual the names of limit, warning and breaking-change callouts. It is never emphasis, decoration or a second brand color.
 
 ## Typography
 
@@ -285,6 +335,7 @@ A navy dock under thermal paper, printed in navy ink, with green reserved for cl
 - **Display** (800, `clamp(2.5rem, 4.5vw, 4.1rem)`, 1.02, -0.05em, balanced): the hero headline "Ships at 12.0 KB.", about 64px at 1440. The footer "Ship it." uses the larger close variant `clamp(2.6rem, 5.2vw, 4.4rem)`.
 - **Headline** (800, `clamp(1.85rem, 3.1vw, 2.7rem)`, 1.08, -0.045em, balanced): section h2s on the dock. On paper docs, `clamp(1.7rem, 2.6vw, 2.35rem)` in navy ink.
 - **Title** (Inter 700, 1.4rem, 1.25, -0.012em): h3 sub-heads ("Transit times"); 16px inside the drop zone.
+- **Doc prose** (manual sheet): H1 uses the paper-doc Headline size; H2 is mono 800 `1.4rem`/1.2/-0.03em under a hairline; H3 is Inter 700 `1.15rem`, H4 Inter 700 1rem; body and list text Inter 400 16px/1.65 in `ink-2` at a 70ch measure; inline code is mono 500 at 0.88em on `paper-3` with a 3px radius. Table header captions and callout names reuse the Field caption.
 - **Body** (Inter 400, 16px, 1.6): prose. Lede `clamp(1.06rem, 1.45vw, 1.2rem)` capped at 44ch; section subtitles `clamp(1rem, 1.35vw, 1.12rem)` capped at 60ch; doc-title prose 14.5px at 52ch; notes 13–13.5px.
 - **Field caption** (Mono 700, 11px, 0.16em, uppercase): every field label on labels, docs, tables, strip-heads, the tracking field, status strip and footer column heads. Table header captions share it.
 - **Field value** (Mono 600, 13.5px, 1.35): printed values under captions; table cells 12.5–13.5px with 700 and tabular numerals for figures.
@@ -319,6 +370,15 @@ Breakpoints (as built: 1020 / 900 / 640 / 560):
 - **≤560px:** gutter 18px; the manifest number, status strip, "Try it"/"Code" nav links and "Via" service line hide; back labels hide and the CLEARED stamp shrinks to 84px; carrier tabs become four equal-width tabs; CTAs go full width; the itemized manifest drops its min-width and tightens to 10px/12px cells; the transit table hides its bar column.
 
 Wide tables otherwise scroll inside their own focusable region and never widen the page.
+
+### Documentation surface
+The multi-page manual (`docs/**`, generated by `scripts/build-docs.mjs` from `docs-src/`, styled by `docs/assets/docs.css`) is a three-column shell, up to 1320px wide with the 24px gutter: section rail 236px, manual sheet `minmax(0, 860px)`, on-this-page rail 208px, 40px gaps, rails sticky below the 62px header. The sheet is one paper stock on the dock with a 3px ink rule inset 48px at its top and no label above the H1; prose is capped at 70ch, while tables, code windows and callouts run the sheet's full inner width. H2s open with 56px of room and a `paper-rule` hairline.
+
+Docs breakpoints (as built: 1180 / 900 / 640 / 560):
+- **≤1180px:** the on-this-page rail hides; the shell becomes rail 220px / sheet.
+- **≤900px:** one column. The section rail becomes a `Contents` fold (`dock-2`, 10px radius, mono caps summary with a green +/− mark); the DOCS field in the header hides; sheet inset drops to 32px.
+- **≤640px:** tables stack (see Manual tables); no scroll region, no card chrome.
+- **≤560px:** gutter 18px, sheet inset 20px; header keeps only the last nav link (npm); previous/next stubs stack in one column; code padding tightens.
 
 ## Elevation & Depth
 
@@ -400,6 +460,30 @@ The **transit table** is printed directly on the dock instead: mono 13.5px rows 
 ### Code window
 `dock-0` window with a hairline and 10px radius; a `dock` tab bar of mono 13px file-name tabs (active: `dock-0` fill with a 2px green underline) and a copy button; code in mono 13.5px/1.75 with a small token palette (keywords `green-hi`, strings `#86efac`, numbers and class names `text-hi`, comments italic `text-dim`).
 
+### Docs waybill and language switch
+The landing's sticky waybill, reduced for the manual: wordmark, a DOCS / 2.x field behind the hairline divider (hidden at 900 and below), Inter nav links (Try it, GitHub, npm) and the EN/ES switch. The switch is a mono 700 12px, 0.1em two-cell field with a `rule` hairline and 8px radius; the current language is `dock-0` with a 2px green underline and `aria-current`, the other is a real link to the same page in the other language (`hreflang`).
+
+### Section rail
+The manual's navigation, on the dock: three groups, each headed by a mono caps `rail-group` caption in `text-dim`, over Inter 500 14.5px links (7px/12px padding, 8px radius, `plate` hover). The current page is `dock-0` fill, `text-hi` at 600, with a 2px green underline (`aria-current="page"`). Under 900px the whole rail is a native `details` fold labelled Contents. The on-this-page rail beside the sheet is a column of Inter 13.5px links on a `rule` left line; the section in view turns `green-hi` with a green line.
+
+### Manual sheet
+One `paper` sheet (8px, Paper shadow) with a 3px ink rule inset at its top, H1 first with a lede in `ink-2`, then prose (see Typography). Links are `green-deep`, underlined 1px offset 3px, 2px on hover. Heading anchors (`#`) are `paper-rule` and appear on hover or focus; on touch devices they stay at 55% opacity. Horizontal rules are dashed `ink-3` perforations.
+
+### Docs code windows and install tabs
+The Code window, carried onto the sheet: a `dock` caption bar holds the file name (mono 600 12.5px, `text-mid`) and a copy button (mono 600 12px, 8px radius, `plate` hover, label turns `green-hi` once copied). Syntax colors: keywords `green-hi`, strings `#86efac`, numbers and types `text-hi`, comments `text-dim` italic. Consecutive blocks that carry a tab name collapse into install tabs: a `dock` tab list of mono 600 13px tabs, the active tab `dock-0` with a 2px green underline, over the panel with its caption bar hidden. Only the active tab is in the tab order; arrow keys, Home and End move and wrap.
+
+### Manual tables
+Printed on the sheet inside a labelled scroll region with a 1px `paper-rule` ring and 6px radius. Header: Field caption in `ink-3` on `paper-2`, closed by a 3px ink rule; cells Inter 14px in `ink-2` over `paper-rule` hairlines; figure columns are right-aligned mono 600 with tabular numerals; code in cells does not wrap. At 640 and below the header is visually hidden and each row stacks: the first cell is a bold title, every following cell is prefixed by its column name from `data-label` as a mono caps caption, rows divided by a hairline, no card chrome and no horizontal scroll.
+
+### Callouts
+Inline slips on the sheet: `callout` tint (`#f3f6fa`), 1px `paper-rule` border, 6px radius, a mono caps name inside the box (the caption lives in its field, per the Printed Field Rule). Note is `ink-3`; tip is `green-deep`; limit, warning and breaking are `amber-deep`. Breaking additionally takes literal build values: a `#fffaf0` fill and a `#e7c27d` border. Amber is spent only on limits, warnings and breaking changes.
+
+### Previous / next stubs and doc foot
+Under the sheet's prose, below a dashed `ink-3` perforation, two `paper-2` stubs (1px `paper-rule`, 6px radius): a Field caption (previous or next) over a mono 700 15px page title. Next is right-aligned, in the second column; hover turns the border `green-deep` and the fill `green-wash`. They stack at 560. The doc foot repeats the landing doc-foot: a dashed perforation over 13px `ink-3` text with `green-deep` links.
+
+### Not-found card
+The 404 is a single `paper` card (8px, Paper shadow, 520px max, 40px/48px padding) centered on the dock, with a mono 800 2rem title, one line of Inter, and the primary-green `Docs` button.
+
 ### Toast
 A paper slip fixed bottom-center (10px radius, Float shadow, Inter 600 14px) with a Deep Green icon, or Handling Amber on errors. Rises 16px and fades in.
 
@@ -429,6 +513,10 @@ One authored moment: printing a label. The printout feeds from the slot in 1.15s
 - **Do** use `green-deep` for green on paper and reserve amber for HEAVY stamps and faults.
 - **Do** give each object one elevation: a hairline on the dock or a navy shadow on paper.
 - **Do** show the printed label complete when reduced motion is requested.
+- **Do** (manual) open every page with the 3px ink rule and the H1 directly, then the lede; the page's section is told by the rail, not by a label.
+- **Do** (manual) let tables stack at 640 with each cell captioned from `data-label`, and keep figure columns right-aligned in tabular mono.
+- **Do** (manual) mark the current rail page with `dock-0` fill and the 2px green underline, and the current language the same way.
+- **Do** (manual) give every code window a file-name caption bar and a copy button, and keep install tabs on roving focus.
 
 ### Don't:
 - **Don't** use the dark-SaaS look: gradients, glow, glass, or floating feature-card grids.
@@ -437,4 +525,7 @@ One authored moment: printing a label. The printout feeds from the slot in 1.15s
 - **Don't** invent testimonials, customer logos, download counts or any unmeasured number; live third-party numbers come from dynamic badges only.
 - **Don't** encode fake data in a barcode or draw decorative barcode stripes.
 - **Don't** use amber for emphasis or decoration.
+- **Don't** (manual) spend amber on anything but limits, warnings and breaking changes; notes stay `ink-3` and tips `green-deep`.
+- **Don't** (manual) scroll tables sideways on phones or wrap stacked rows in cards.
+- **Don't** (manual) widen prose past 70ch or the sheet past 860px; code, tables and callouts may fill the sheet but never overflow it.
 - **Don't** add colored shadows, backdrop blur, or a second elevation to an already bordered object.

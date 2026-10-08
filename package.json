@@ -47,10 +47,13 @@
     "size": "pnpm run build && node benchmarks/size.mjs",
     "size:check": "node benchmarks/size.mjs --check",
     "check:package": "publint --strict && attw --pack .",
-    "smoke:pack": "node scripts/smoke-pack.mjs"
+    "smoke:pack": "node scripts/smoke-pack.mjs",
+    "channel:check": "node scripts/check-channel.mjs",
+    "docs:build": "node scripts/build-docs.mjs",
+    "docs:check": "node scripts/build-docs.mjs --check",
+    "docs:examples": "node scripts/check-docs-examples.mjs"
   },
   "dependencies": {
-    "fast-xml-parser": "^5.11.1",
     "fflate": "^0.8.3"
   },
   "devDependencies": {
@@ -66,7 +69,9 @@
     "@typescript-eslint/parser": "^8.71.1",
     "esbuild": "^0.28.2",
     "eslint": "^10.12.0",
+    "fast-xml-parser": "^5.11.1",
     "globals": "^17.13.0",
+    "marked": "^18.1.0",
     "prettier": "^3.9.9",
     "publint": "^0.3.25",
     "semantic-release": "^25.0.9",

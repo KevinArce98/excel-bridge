@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Escribe valores y fórmulas | excel-bridge docs</title>
+<meta name="description" content="Qué puede contener una celda, cómo se escriben las fórmulas, el texto literal y los errores, y qué comprueba la biblioteca antes de escribir." />
+<link rel="canonical" href="https://kevinarce98.github.io/excel-bridge/es/guide/values/" />
+<link rel="alternate" hreflang="en" href="https://kevinarce98.github.io/excel-bridge/guide/values/" />
+<link rel="alternate" hreflang="es" href="https://kevinarce98.github.io/excel-bridge/es/guide/values/" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="Escribe valores y fórmulas | excel-bridge docs" />
+<meta property="og:description" content="Qué puede contener una celda, cómo se escriben las fórmulas, el texto literal y los errores, y qué comprueba la biblioteca antes de escribir." />
+<meta property="og:url" content="https://kevinarce98.github.io/excel-bridge/es/guide/values/" />
+<meta name="theme-color" content="#0f172a" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231B2336'/%3E%3Crect x='5' y='6' width='22' height='6' rx='2' fill='%2322C55E'/%3E%3Crect x='5' y='15' width='9' height='4' rx='1.5' fill='%23334155'/%3E%3Crect x='18' y='15' width='9' height='4' rx='1.5' fill='%23334155'/%3E%3Crect x='5' y='22' width='9' height='4' rx='1.5' fill='%23334155'/%3E%3Crect x='18' y='22' width='9' height='4' rx='1.5' fill='%2322C55E' fill-opacity='0.5'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../../../assets/docs.css" />
+</head>
+<body>
+<a class="skip" href="#content">Saltar al contenido</a>
+<header class="waybill">
+  <div class="waybill-in">
+    <a class="wordmark" href="../../../" aria-label="excel-bridge"><svg class="mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><rect width="32" height="32" rx="7" fill="#1B2336"/><rect x="5" y="6" width="22" height="6" rx="2" fill="#22C55E"/><rect x="5" y="15" width="9" height="4" rx="1.5" fill="#334155"/><rect x="18" y="15" width="9" height="4" rx="1.5" fill="#334155"/><rect x="5" y="22" width="9" height="4" rx="1.5" fill="#334155"/><rect x="18" y="22" width="9" height="4" rx="1.5" fill="#22C55E" fill-opacity="0.5"/></svg><span><span class="w-excel">excel</span><span class="w-dash">-</span><span class="w-bridge">bridge</span></span></a>
+    <span class="field"><span class="field-caption">Docs</span><span class="field-value">2.x</span></span>
+    <nav class="top-links" aria-label="Sitio">
+      <a href="../../../#pack">Probar</a>
+      <a href="https://github.com/KevinArce98/excel-bridge" rel="noopener">GitHub</a>
+      <a href="https://www.npmjs.com/package/excel-bridge" rel="noopener">npm</a>
+    </nav>
+    <div class="lang" role="group" aria-label="Idioma"><a href="../../../guide/values/" hreflang="en" lang="en" aria-label="English">EN</a><span class="lang-current" aria-current="true" lang="es">ES</span></div>
+  </div>
+</header>
+<div class="shell">
+  <nav class="rail" aria-label="Docs">
+    <details class="rail-fold" open>
+      <summary>Contenido</summary>
+      <section><p class="rail-group">Inicio</p><ul><li><a href="../../../es/getting-started/">Primeros pasos</a></li></ul></section>
+<section><p class="rail-group">Guía</p><ul><li><a href="../../../es/guide/values/" aria-current="page">Escribe valores y fórmulas</a></li><li><a href="../../../es/guide/styling/">Da estilo a las celdas</a></li><li><a href="../../../es/guide/layout/">Define el diseño de las hojas</a></li><li><a href="../../../es/guide/rules/">Agrega reglas</a></li><li><a href="../../../es/guide/reading/">Lee un libro</a></li><li><a href="../../../es/guide/objects/">Filas como objetos</a></li><li><a href="../../../es/guide/workbook/">Edita un libro</a></li><li><a href="../../../es/guide/streaming/">Exporta archivos grandes con streaming</a></li><li><a href="../../../es/guide/errors/">Maneja errores y límites</a></li></ul></section>
+<section><p class="rail-group">Referencia</p><ul><li><a href="../../../es/api/">Referencia de la API</a></li><li><a href="../../../es/performance/">Rendimiento y tamaño</a></li><li><a href="../../../es/limitations/">Límites y alternativas</a></li><li><a href="../../../es/upgrading/">Actualización</a></li><li><a href="../../../es/security/">Seguridad</a></li></ul></section>
+    </details>
+  </nav>
+  <main id="content" class="sheet">
+    <div class="sheet-rule" aria-hidden="true"></div>
+    <article class="prose">
+<h1 id="escribe-valores-y-formulas">Escribe valores y fórmulas</h1>
+<p>Una hoja es un arreglo de filas, y una fila es un arreglo de celdas. La mayoría de las celdas son valores simples. Unas pocas necesitan un objeto, porque expresan algo que un valor simple no puede.</p>
+<h2 id="valores-simples">Valores simples<a class="anchor" href="#valores-simples" aria-label="Valores simples">#</a></h2>
+<div class="table-scroll" role="region" tabindex="0" aria-label="Valores simples"><table><thead><tr><th scope="col">Escribes</th><th scope="col">La celda contiene</th></tr></thead><tbody>
+<tr><td data-label="Escribes"><code>'Laptop'</code></td><td data-label="La celda contiene">Texto. Una cadena siempre es texto, incluso si empieza con <code>=</code>.</td></tr>
+<tr><td data-label="Escribes"><code>999.99</code></td><td data-label="La celda contiene">Un número. Debe ser finito.</td></tr>
+<tr><td data-label="Escribes"><code>true</code></td><td data-label="La celda contiene">Un booleano.</td></tr>
+<tr><td data-label="Escribes"><code>new Date(2024, 0, 15)</code></td><td data-label="La celda contiene">Una fecha, guardada como número de serie de Excel.</td></tr>
+<tr><td data-label="Escribes"><code>null</code> o <code>undefined</code></td><td data-label="La celda contiene">Una celda vacía.</td></tr>
+</tbody></table></div>
+<figure class="code"><figcaption><span class="code-name">plain-values.ts</span><button type="button" class="copy" data-copy="Copiar" data-copied="Copiado">Copiar</button></figcaption><pre tabindex="0"><code><span class="tk-k">import</span> { <span class="tk-t">ExcelWriter</span> } <span class="tk-k">from</span> <span class="tk-s">'excel-bridge'</span>;
+
+<span class="tk-k">const</span> bytes = <span class="tk-k">new</span> <span class="tk-t">ExcelWriter</span>().createWorkbookBuffer([
+  {
+    data: [
+      ['<span class="tk-t">Item</span><span class="tk-s">', '</span><span class="tk-t">Price</span><span class="tk-s">', '</span><span class="tk-t">In</span> stock<span class="tk-s">', '</span><span class="tk-t">Added</span><span class="tk-s">', '</span><span class="tk-t">Note</span>'],
+      ['<span class="tk-t">Laptop</span>', <span class="tk-n">999.99</span>, <span class="tk-k">true</span>, <span class="tk-k">new</span> <span class="tk-t">Date</span>(<span class="tk-n">2024</span>, <span class="tk-n">0</span>, <span class="tk-n">15</span>), <span class="tk-k">null</span>],
+      ['=not a formula<span class="tk-s">', 29.99, false, new Date(2024, 1, 2), '</span>plain text'],
+    ],
+  },
+]);</code></pre></figure>
+<p>Como las cadenas siempre son texto, exportar datos de usuarios no puede crear una fórmula por accidente. Un nombre como <code>=HYPERLINK(&quot;https://example.com&quot;)</code> se escribe como el texto que es.</p>
+<h2 id="formulas">Fórmulas<a class="anchor" href="#formulas" aria-label="Fórmulas">#</a></h2>
+<p>Escribe una fórmula con un objeto. Omite el <code>=</code> inicial; se acepta y se ignora un <code>=</code> inicial.</p>
+<figure class="code"><figcaption><span class="code-name">formulas.ts</span><button type="button" class="copy" data-copy="Copiar" data-copied="Copiado">Copiar</button></figcaption><pre tabindex="0"><code><span class="tk-k">import</span> { <span class="tk-t">ExcelWriter</span> } <span class="tk-k">from</span> <span class="tk-s">'excel-bridge'</span>;
+
+<span class="tk-k">const</span> bytes = <span class="tk-k">new</span> <span class="tk-t">ExcelWriter</span>().createWorkbookBuffer([
+  {
+    data: [
+      ['<span class="tk-t">Product</span><span class="tk-s">', '</span><span class="tk-t">Price</span><span class="tk-s">', '</span><span class="tk-t">Quantity</span><span class="tk-s">', '</span><span class="tk-t">Total</span>'],
+      ['<span class="tk-t">Laptop</span><span class="tk-s">', 999.99, 5, { formula: '</span><span class="tk-t">B2</span>*<span class="tk-t">C2</span>', result: <span class="tk-n">4999.95</span> }],
+      ['<span class="tk-t">Mouse</span><span class="tk-s">', 29.99, 20, { formula: '</span><span class="tk-t">B3</span>*<span class="tk-t">C3</span>' }],
+      ['', <span class="tk-s">''</span>, <span class="tk-s">'Sum'</span>, { formula: <span class="tk-s">'SUM(D2:D3)'</span> }],
+    ],
+  },
+]);</code></pre></figure>
+<ul>
+<li><strong><code>{ formula }</code></strong> escribe una fórmula sin valor almacenado. El libro le pide a Excel que recalcule todas las fórmulas al abrir el archivo.</li>
+<li><strong><code>{ formula, result }</code></strong> también guarda el último valor que tuvo la fórmula. <code>result</code> es una cadena, un número, un booleano, un <code>Date</code> o un <code>{ error }</code>.</li>
+</ul>
+<p>La biblioteca nunca calcula una fórmula. Un lector que no calcula, como un visor de vista previa o un script, muestra <code>result</code> cuando lo proporcionas y una celda vacía cuando no.</p>
+<aside class="callout callout-warning"><p class="callout-name">Aviso</p><p>Nunca pases entrada no confiable a <code>{ formula }</code>. Una fórmula se ejecuta cuando se abre el archivo. El texto del usuario va en una cadena simple.</p>
+</aside>
+<h2 id="texto-literal-y-errores">Texto literal y errores<a class="anchor" href="#texto-literal-y-errores" aria-label="Texto literal y errores">#</a></h2>
+<p><code>{ text }</code> escribe texto, exactamente igual que una cadena simple. Úsalo cuando el mismo código también deba ejecutarse en excel-bridge 1.6, donde una cadena simple que empieza con <code>=</code> es una fórmula. Antes de 1.6 una celda con objeto se escribe como <code>[object Object]</code>.</p>
+<p><code>{ error }</code> escribe un valor de error. Los siete errores clásicos son <code>#NULL!</code>, <code>#DIV/0!</code>, <code>#VALUE!</code>, <code>#REF!</code>, <code>#NAME?</code>, <code>#NUM!</code> y <code>#N/A</code>. Cualquier otro texto de error lanza un error.</p>
+<figure class="code"><figcaption><span class="code-name">text-and-errors.ts</span><button type="button" class="copy" data-copy="Copiar" data-copied="Copiado">Copiar</button></figcaption><pre tabindex="0"><code><span class="tk-k">import</span> <span class="tk-k">type</span> { <span class="tk-t">CellValue</span> } <span class="tk-k">from</span> <span class="tk-s">'excel-bridge'</span>;
+
+<span class="tk-k">const</span> row: <span class="tk-t">CellValue</span>[] = [{ text: <span class="tk-s">'=SUM(A1:A3)'</span> }, { error: <span class="tk-s">'#N/A'</span> }, { formula: <span class="tk-s">'1/0'</span>, result: { error: <span class="tk-s">'#DIV/0!'</span> } }];</code></pre></figure>
+<h2 id="fechas">Fechas<a class="anchor" href="#fechas" aria-label="Fechas">#</a></h2>
+<p>Un <code>Date</code> se escribe como hora local de reloj, así que <code>new Date(2024, 0, 15)</code> es el 15 de enero en cualquier zona horaria. Dos funciones auxiliares convierten entre fechas y números de serie de Excel: <code>dateToExcelSerial(date)</code> y <code>excelSerialToDate(serial)</code>.</p>
+<aside class="callout callout-limit"><p class="callout-name">Límite</p><p>Una fecha a medianoche UTC, como <code>new Date('2024-01-15')</code>, cae en el día anterior con desfases negativos. Una hora local que no existe, dentro de un salto por horario de verano, se adelanta.</p>
+</aside>
+<p>Para mostrar la hora del día u otro formato, asigna a la celda un <code>numberFormat</code> de fecha. Consulta <a href="../styling/">Da estilo a las celdas</a>.</p>
+<h2 id="que-comprueba-el-escritor">Qué comprueba el escritor<a class="anchor" href="#que-comprueba-el-escritor" aria-label="Qué comprueba el escritor">#</a></h2>
+<p>Los escritores lanzan un <a href="../errors/"><code>ExcelBridgeError</code></a> con el código <code>INVALID_INPUT</code> para las entradas siguientes.</p>
+<div class="table-scroll" role="region" tabindex="0" aria-label="Qué comprueba el escritor"><table><thead><tr><th scope="col">Entrada</th><th scope="col">Resultado</th></tr></thead><tbody>
+<tr><td data-label="Entrada"><code>NaN</code>, <code>Infinity</code> o un <code>Date</code> no válido</td><td data-label="Resultado">Lanza un error y nombra la celda, como <code>Cell B2 holds NaN, which a worksheet cannot store</code>.</td></tr>
+<tr><td data-label="Entrada">Una cadena de más de 32,767 caracteres</td><td data-label="Resultado">Lanza un error.</td></tr>
+<tr><td data-label="Entrada"><code>{ formula: '' }</code></td><td data-label="Resultado">Lanza un error.</td></tr>
+<tr><td data-label="Entrada">Un valor de error fuera de los siete</td><td data-label="Resultado">Lanza un error.</td></tr>
+<tr><td data-label="Entrada">Caracteres de control distintos de tabulación, salto de línea y retorno de carro</td><td data-label="Resultado">Se eliminan sin avisar.</td></tr>
+</tbody></table></div>
+<h2 id="cadenas-y-tamano-del-archivo">Cadenas y tamaño del archivo<a class="anchor" href="#cadenas-y-tamano-del-archivo" aria-label="Cadenas y tamaño del archivo">#</a></h2>
+<p>Las cadenas se escriben en línea de forma predeterminada, lo cual es simple y confiable. Para un libro con muchas cadenas repetidas, activa una tabla de cadenas compartidas para reducir el tamaño del archivo.</p>
+<figure class="code"><figcaption><span class="code-name">shared-strings.ts</span><button type="button" class="copy" data-copy="Copiar" data-copied="Copiado">Copiar</button></figcaption><pre tabindex="0"><code><span class="tk-k">import</span> { <span class="tk-t">ExcelWriter</span> } <span class="tk-k">from</span> <span class="tk-s">'excel-bridge'</span>;
+
+<span class="tk-k">const</span> writer = <span class="tk-k">new</span> <span class="tk-t">ExcelWriter</span>({ sharedStrings: <span class="tk-k">true</span> });
+<span class="tk-k">const</span> bytes = writer.createWorkbookBuffer([
+  { data: [['<span class="tk-t">Status</span><span class="tk-s">'], ['</span><span class="tk-t">Open</span><span class="tk-s">'], ['</span><span class="tk-t">Open</span><span class="tk-s">'], ['</span><span class="tk-t">Done</span><span class="tk-s">'], ['</span><span class="tk-t">Open</span>']] },
+]);</code></pre></figure>
+<p>El <a href="../streaming/">escritor de streaming</a> ignora esta opción y siempre escribe cadenas en línea.</p>
+
+    </article>
+    <nav class="stubs" aria-label="Anterior y siguiente"><a class="stub stub-prev" href="../../../es/getting-started/"><span class="field-caption">Anterior</span><span class="stub-title">Primeros pasos</span></a><a class="stub stub-next" href="../../../es/guide/styling/"><span class="field-caption">Siguiente</span><span class="stub-title">Da estilo a las celdas</span></a></nav>
+    <p class="doc-foot"><a href="https://github.com/KevinArce98/excel-bridge/edit/main/docs-src/es/guide/values.md" rel="noopener">Editar esta página</a> · Licencia MIT · Microsoft Excel es una marca de Microsoft; este proyecto no está afiliado a Microsoft.</p>
+  </main>
+  <aside class="toc" aria-label="En esta página">
+    <p class="field-caption">En esta página</p>
+    <ul><li><a href="#valores-simples">Valores simples</a></li><li><a href="#formulas">Fórmulas</a></li><li><a href="#texto-literal-y-errores">Texto literal y errores</a></li><li><a href="#fechas">Fechas</a></li><li><a href="#que-comprueba-el-escritor">Qué comprueba el escritor</a></li><li><a href="#cadenas-y-tamano-del-archivo">Cadenas y tamaño del archivo</a></li></ul>
+  </aside>
+</div>
+<script src="../../../assets/docs.js" defer></script>
+</body>
+</html>

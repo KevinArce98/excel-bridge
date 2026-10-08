@@ -1,5 +1,5 @@
 import type { EXCEL_ERRORS } from './cells';
-import type { CellBorder, ParsedBorder } from './borders';
+import type { CellBorder } from './borders';
 
 export type {
   CellBorder,
@@ -55,8 +55,6 @@ export type DataValidationOperator =
 
 export interface CellValidation {
   range: string;
-  /** Legacy list shorthand: comma-separated allowed values (used when `type` is 'list' or unset). */
-  options: string;
   type?: DataValidationType;
   operator?: DataValidationOperator;
   formula1?: string;
@@ -129,14 +127,16 @@ export interface InternalHyperlink {
 export type Hyperlink = ExternalHyperlink | InternalHyperlink;
 
 export interface SheetLayout {
+  freezePane?: { row?: number; col?: number };
+  columnWidths?: number[];
   rowHeights?: Record<number, number>;
   hiddenRows?: number[];
   hiddenColumns?: number[];
 }
 
-export interface CellStyle {
+export interface CellStyle<Border extends CellBorder = CellBorder> {
   background?: string;
-  border?: CellBorder;
+  border?: Border;
   bold?: boolean;
   italic?: boolean;
   underline?: boolean;
@@ -148,5 +148,3 @@ export interface CellStyle {
   wrapText?: boolean;
   numberFormat?: string;
 }
-
-export type ParsedCellStyle = Omit<CellStyle, 'border'> & { border?: ParsedBorder };

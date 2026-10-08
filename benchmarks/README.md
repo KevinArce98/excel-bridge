@@ -1,9 +1,10 @@
 # Benchmarks
 
-Two scripts, both run against the local `dist/` build:
+Three scripts, all run against the local `dist/` build:
 
 - [Write speed](#write-speed) — `bench.mjs` compares write time and output size against `exceljs`,
   `xlsx` (SheetJS) and `hucre`.
+- [Read speed](#read-speed) — `bench-read.mjs` times `ExcelBridge.read` on a file excel-bridge wrote.
 - [Bundle size](#bundle-size) — `size.mjs` measures what each import adds to a browser bundle, next
   to `hucre`, `@mitresthen/excelents`, `read-excel-file`, `write-excel-file`, `xlsx` and `exceljs`.
 
@@ -37,29 +38,51 @@ ROWS=200000 pnpm run bench
 ### Reference results
 
 Writing **50,000 rows × 10 columns** (mixed strings and numbers), median of 5 runs, three
-invocations on an Apple M4, Node 24.19 (2026-10-07). Numbers vary by machine and by about 10%
+invocations on an Apple M4, Node 24.19 (2026-10-08). Numbers vary by machine and by about 10%
 between runs — run it yourself for your own hardware.
 
 | Library | Write time | Output size |
 | --- | ---: | ---: |
 | **excel-bridge** (write) | **560 ms** | **2.41 MiB** |
-| excel-bridge (stream) | 590 ms | 2.48 MiB |
+| excel-bridge (stream) | 580 ms | 2.48 MiB |
 | hucre (write) | 390 ms | 2.79 MiB |
 | xlsx / SheetJS (write, no compression) | 510 ms | 18.23 MiB |
-| xlsx / SheetJS (write, `compression: true`) | 570 ms | 6.26 MiB |
-| exceljs (write) | 1490 ms | 2.82 MiB |
+| xlsx / SheetJS (write, `compression: true`) | 580 ms | 6.26 MiB |
+| exceljs (write) | 1430 ms | 2.82 MiB |
 
 Takeaways for this workload:
 
-- **~2.7× faster than ExcelJS** with a smaller file.
+- **~2.6× faster than ExcelJS** with a smaller file.
 - hucre is faster (about 390 ms). SheetJS is on par: 510 ms with its default output, which is
-  ~7.5× larger because it does not compress, and 570 ms with `compression: true`, ~2.6× larger.
+  ~7.5× larger because it does not compress, and 580 ms with `compression: true`, ~2.6× larger.
 - The streaming writer is not faster than the in-memory writer; it keeps memory lower (roughly
   250 MB against 375 MB peak resident memory for 50,000 rows, collecting the stream with
   `streamToBuffer`), and the gap grows with row count.
 
 > Every library was driven with its documented defaults; no per-library tuning was
 > applied. Treat these as directional, not absolute.
+
+## Read speed
+
+### Run it
+
+```bash
+pnpm run build
+node --expose-gc benchmarks/bench-read.mjs
+```
+
+The script writes a file with excel-bridge, reads it `RUNS` times (default `5`) and reports the median and the peak memory of the process. Tune it with `ROWS` (default `50000`) and `RUNS`.
+
+### Reference results
+
+Reading a file excel-bridge wrote, 10 columns of mixed strings and numbers, on an Apple M4 with Node 24.19 (2026-10-08). The 1.6.0 column runs the same script against the published 1.6.0 package.
+
+| Rows | 1.6.0 | 2.0 | Peak memory 1.6.0 | Peak memory 2.0 |
+| --- | ---: | ---: | ---: | ---: |
+| 50,000 (median of 7) | 1503 ms | 270 ms | 859 MiB | 451 MiB |
+| 200,000 (median of 3) | 6521 ms | 1435 ms | 2679 MiB | 1611 MiB |
+
+The peak memory is that of the whole process, which also builds the file it reads.
 
 ## Bundle size
 
@@ -101,12 +124,12 @@ The excel-bridge rows were measured 2026-10-08 and the other rows 2026-10-07, wi
 
 | Package | Import | Min | Min+gzip |
 | --- | --- | ---: | ---: |
-| excel-bridge@1.6.0 (dist) | `{ createExcelWorkbookStream }` | 30.6 KB | 12.3 KB |
-| excel-bridge@1.6.0 (dist) | `{ ExcelWriter }` | 32.2 KB | 12.9 KB |
-| excel-bridge@1.6.0 (dist) | `{ ExcelReader }` | 81.7 KB | 28.7 KB |
-| excel-bridge@1.6.0 (dist) | `{ Workbook }` | 116.6 KB | 41.0 KB |
-| excel-bridge@1.6.0 (dist) | `{ ExcelBridge }` | 117.0 KB | 41.1 KB |
-| excel-bridge@1.6.0 (dist) | `* (everything)` | 124.4 KB | 43.7 KB |
+| excel-bridge@2.0.0 (dist) | `{ createExcelWorkbookStream }` | 30.7 KB | 12.4 KB |
+| excel-bridge@2.0.0 (dist) | `{ ExcelWriter }` | 32.0 KB | 12.9 KB |
+| excel-bridge@2.0.0 (dist) | `{ ExcelReader }` | 23.5 KB | 9.9 KB |
+| excel-bridge@2.0.0 (dist) | `{ Workbook }` | 57.6 KB | 22.0 KB |
+| excel-bridge@2.0.0 (dist) | `{ ExcelBridge }` | 58.1 KB | 22.1 KB |
+| excel-bridge@2.0.0 (dist) | `* (everything)` | 67.8 KB | 25.8 KB |
 | hucre@1.2.0 | `{ writeXlsx }` | 136.2 KB | 41.6 KB |
 | hucre@1.2.0 | `{ readXlsx }` | 136.6 KB | 41.1 KB |
 | hucre/xlsx@1.2.0 | `{ XlsxStreamWriter }` | 36.8 KB | 12.1 KB |

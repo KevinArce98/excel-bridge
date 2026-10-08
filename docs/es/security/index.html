@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Seguridad | excel-bridge docs</title>
+<meta name="description" content="Cómo reportar una vulnerabilidad y qué hacer antes de leer un .xlsx que no creaste tú." />
+<link rel="canonical" href="https://kevinarce98.github.io/excel-bridge/es/security/" />
+<link rel="alternate" hreflang="en" href="https://kevinarce98.github.io/excel-bridge/security/" />
+<link rel="alternate" hreflang="es" href="https://kevinarce98.github.io/excel-bridge/es/security/" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="Seguridad | excel-bridge docs" />
+<meta property="og:description" content="Cómo reportar una vulnerabilidad y qué hacer antes de leer un .xlsx que no creaste tú." />
+<meta property="og:url" content="https://kevinarce98.github.io/excel-bridge/es/security/" />
+<meta name="theme-color" content="#0f172a" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231B2336'/%3E%3Crect x='5' y='6' width='22' height='6' rx='2' fill='%2322C55E'/%3E%3Crect x='5' y='15' width='9' height='4' rx='1.5' fill='%23334155'/%3E%3Crect x='18' y='15' width='9' height='4' rx='1.5' fill='%23334155'/%3E%3Crect x='5' y='22' width='9' height='4' rx='1.5' fill='%23334155'/%3E%3Crect x='18' y='22' width='9' height='4' rx='1.5' fill='%2322C55E' fill-opacity='0.5'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../../assets/docs.css" />
+</head>
+<body>
+<a class="skip" href="#content">Saltar al contenido</a>
+<header class="waybill">
+  <div class="waybill-in">
+    <a class="wordmark" href="../../" aria-label="excel-bridge"><svg class="mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><rect width="32" height="32" rx="7" fill="#1B2336"/><rect x="5" y="6" width="22" height="6" rx="2" fill="#22C55E"/><rect x="5" y="15" width="9" height="4" rx="1.5" fill="#334155"/><rect x="18" y="15" width="9" height="4" rx="1.5" fill="#334155"/><rect x="5" y="22" width="9" height="4" rx="1.5" fill="#334155"/><rect x="18" y="22" width="9" height="4" rx="1.5" fill="#22C55E" fill-opacity="0.5"/></svg><span><span class="w-excel">excel</span><span class="w-dash">-</span><span class="w-bridge">bridge</span></span></a>
+    <span class="field"><span class="field-caption">Docs</span><span class="field-value">2.x</span></span>
+    <nav class="top-links" aria-label="Sitio">
+      <a href="../../#pack">Probar</a>
+      <a href="https://github.com/KevinArce98/excel-bridge" rel="noopener">GitHub</a>
+      <a href="https://www.npmjs.com/package/excel-bridge" rel="noopener">npm</a>
+    </nav>
+    <div class="lang" role="group" aria-label="Idioma"><a href="../../security/" hreflang="en" lang="en" aria-label="English">EN</a><span class="lang-current" aria-current="true" lang="es">ES</span></div>
+  </div>
+</header>
+<div class="shell">
+  <nav class="rail" aria-label="Docs">
+    <details class="rail-fold" open>
+      <summary>Contenido</summary>
+      <section><p class="rail-group">Inicio</p><ul><li><a href="../../es/getting-started/">Primeros pasos</a></li></ul></section>
+<section><p class="rail-group">Guía</p><ul><li><a href="../../es/guide/values/">Escribe valores y fórmulas</a></li><li><a href="../../es/guide/styling/">Da estilo a las celdas</a></li><li><a href="../../es/guide/layout/">Define el diseño de las hojas</a></li><li><a href="../../es/guide/rules/">Agrega reglas</a></li><li><a href="../../es/guide/reading/">Lee un libro</a></li><li><a href="../../es/guide/objects/">Filas como objetos</a></li><li><a href="../../es/guide/workbook/">Edita un libro</a></li><li><a href="../../es/guide/streaming/">Exporta archivos grandes con streaming</a></li><li><a href="../../es/guide/errors/">Maneja errores y límites</a></li></ul></section>
+<section><p class="rail-group">Referencia</p><ul><li><a href="../../es/api/">Referencia de la API</a></li><li><a href="../../es/performance/">Rendimiento y tamaño</a></li><li><a href="../../es/limitations/">Límites y alternativas</a></li><li><a href="../../es/upgrading/">Actualización</a></li><li><a href="../../es/security/" aria-current="page">Seguridad</a></li></ul></section>
+    </details>
+  </nav>
+  <main id="content" class="sheet">
+    <div class="sheet-rule" aria-hidden="true"></div>
+    <article class="prose">
+<h1 id="seguridad">Seguridad</h1>
+<h2 id="reportar-una-vulnerabilidad">Reportar una vulnerabilidad<a class="anchor" href="#reportar-una-vulnerabilidad" aria-label="Reportar una vulnerabilidad">#</a></h2>
+<p>Reporta las vulnerabilidades en privado mediante los <a href="https://github.com/KevinArce98/excel-bridge/security/advisories/new" rel="noopener">avisos de seguridad de GitHub</a>. La <a href="https://github.com/KevinArce98/excel-bridge/blob/main/SECURITY.md" rel="noopener">política de seguridad</a> enumera qué está dentro del alcance. Por favor, no abras un issue público para reportar una vulnerabilidad.</p>
+<h2 id="antes-de-escribir-datos-de-usuarios">Antes de escribir datos de usuarios<a class="anchor" href="#antes-de-escribir-datos-de-usuarios" aria-label="Antes de escribir datos de usuarios">#</a></h2>
+<ul>
+<li><strong>Las cadenas no pueden convertirse en fórmulas.</strong> Una cadena simple siempre es texto, así que <code>=HYPERLINK(...)</code> en el nombre de un cliente se escribe como texto. Solo <code>{ formula }</code> escribe una fórmula en una celda, así que nunca le pases entrada no confiable. La <code>expression</code> de un formato condicional y la <code>formula1</code> de una validación <code>custom</code> también son fórmulas.</li>
+<li><strong>Los vínculos se comprueban.</strong> El escritor solo acepta URL <code>http:</code>, <code>https:</code> y <code>mailto:</code> y ubicaciones dentro del libro, y lanza un error para cualquier otra cosa.</li>
+</ul>
+<h2 id="antes-de-leer-un-archivo-que-no-creaste-tu">Antes de leer un archivo que no creaste tú<a class="anchor" href="#antes-de-leer-un-archivo-que-no-creaste-tu" aria-label="Antes de leer un archivo que no creaste tú">#</a></h2>
+<ul>
+<li><strong>Los límites son un mínimo, no una garantía.</strong> <code>maxPartBytes</code>, <code>maxTotalBytes</code> y <code>maxSheets</code> rechazan los archivos grandes antes de descomprimir las hojas. <code>maxCells</code> se comprueba mientras se analiza una hoja, después de descomprimir su XML. Un archivo por debajo de todos los valores predeterminados aún puede usar mucha memoria: leer una hoja de 205 MiB llegó a entre 2.1 y 2.5 GB de memoria residente, unas 10 a 12 veces el XML de la hoja.</li>
+<li><strong>Baja <code>maxSheets</code></strong> para cargas públicas. Por defecto es 1,000. Un archivo puede listar muchas hojas que apunten a una misma parte grande, que se descomprime una vez pero se analiza una vez por hoja.</li>
+<li><strong>Limita el tamaño de la carga</strong> antes de analizar, y define los límites según lo que necesite tu producto.</li>
+<li><strong>Analiza las cargas no confiables en un worker o en un proceso separado</strong> que se pueda reiniciar.</li>
+<li><strong>Comprueba los esquemas de hipervínculo</strong> antes de mostrar un vínculo leído de un archivo. <code>ExcelReader</code> devuelve los vínculos tal como están guardados.</li>
+<li><strong>El lector de XML rechaza <code>DOCTYPE</code></strong>, así que un archivo no puede expandir entidades.</li>
+</ul>
+<p>Consulta <a href="../guide/errors/">Maneja errores y límites</a> para ver las opciones.</p>
+
+    </article>
+    <nav class="stubs" aria-label="Anterior y siguiente"><a class="stub stub-prev" href="../../es/upgrading/"><span class="field-caption">Anterior</span><span class="stub-title">Actualización</span></a><span></span></nav>
+    <p class="doc-foot"><a href="https://github.com/KevinArce98/excel-bridge/edit/main/docs-src/es/security.md" rel="noopener">Editar esta página</a> · Licencia MIT · Microsoft Excel es una marca de Microsoft; este proyecto no está afiliado a Microsoft.</p>
+  </main>
+  <aside class="toc" aria-label="En esta página">
+    <p class="field-caption">En esta página</p>
+    <ul><li><a href="#reportar-una-vulnerabilidad">Reportar una vulnerabilidad</a></li><li><a href="#antes-de-escribir-datos-de-usuarios">Antes de escribir datos de usuarios</a></li><li><a href="#antes-de-leer-un-archivo-que-no-creaste-tu">Antes de leer un archivo que no creaste tú</a></li></ul>
+  </aside>
+</div>
+<script src="../../assets/docs.js" defer></script>
+</body>
+</html>

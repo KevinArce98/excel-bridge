@@ -8,7 +8,7 @@ web
 
 ## Stack
 
-Static, self-contained `docs/index.html` (HTML + CSS + a single ES module), deployed via GitHub Pages from the `docs/` folder on `main`. No build step. The library is loaded at runtime as browser ESM from jsDelivr (`https://cdn.jsdelivr.net/npm/excel-bridge@<version>/+esm`), so the page runs the actual published npm package. Decided for this surface (a demo/landing page for a GitHub-hosted OSS project); a heavier framework would add a build step with no benefit for a single static page.
+Two static surfaces, both served by GitHub Pages from the `docs/` folder on `main`, with no framework. The demo/landing page is a single self-contained `docs/index.html` (HTML + CSS + a single ES module) that loads the library at runtime as browser ESM from jsDelivr (`https://cdn.jsdelivr.net/npm/excel-bridge@<version>/+esm`), so it runs the actual published npm package. The documentation, in English and Spanish, is written in Markdown in `docs-src/` and turned into `docs/**/index.html` by `scripts/build-docs.mjs` (CSS and JS in `docs/assets/`); the generated HTML is committed and CI fails when it is out of date (`pnpm run docs:check`), and every example in it is type-checked and run (`pnpm run docs:examples`). A framework was rejected for both: it would add dependencies and fight the design system for no benefit.
 
 ## Users
 
@@ -16,24 +16,24 @@ Developers choosing an `.xlsx` read/write library for TypeScript/JavaScript that
 
 ## Product Purpose
 
-`excel-bridge` reads and writes `.xlsx` spreadsheets in the browser and Node.js without pulling in ExcelJS or SheetJS. This surface — the project's demo/landing page — exists to let a developer understand what the library is and try it for real in under a minute, then install it. Success = the visitor generates or reads a real `.xlsx` in the browser and leaves with the install command.
+`excel-bridge` reads and writes `.xlsx` spreadsheets in the browser and Node.js without pulling in ExcelJS or SheetJS. The demo/landing page exists to let a developer understand what the library is and try it for real in under a minute, then install it. Success = the visitor generates or reads a real `.xlsx` in the browser and leaves with the install command. The documentation exists to let a developer who has chosen the library do each task from a page they can read in a few minutes, with examples that run, and to say plainly what the library does not do. The README is only the entry: what it is, how to install it, one example, and where the documentation is.
 
 ## Positioning
 
-One tree-shakeable package: import a class and a bundler ships only that part. Two direct runtime dependencies (`fflate` for zip, `fast-xml-parser` for reading; the writer bundles no parser code), ESM **and** CJS, TypeScript-first, synchronous. One API spans browser and Node; reading and writing buffers is synchronous, while reading a `File` and streaming are async. Read **and** write — cell styles, formulas, dates, merged cells, freeze panes, conditional formatting, data validation, autofilters, hyperlinks, hidden sheets, multi-sheet — plus a streaming writer for very large exports and a `Workbook` load/edit/save API for files the library can model. The defensible claim is the combination, stated with its limits: SheetJS gates styling/conditional-formatting/streaming behind its Pro edition; ExcelJS carries a large CJS-first runtime; newer libraries such as hucre cover more features at 3x the writer size. It is not the smallest on every row and does not do images, charts, comments, tables, diagonal borders or file-preserving edits.
+One tree-shakeable package: import a class and a bundler ships only that part. One runtime dependency (`fflate` for zip; the reader has its own small XML tokenizer), ESM **and** CJS, TypeScript-first, synchronous. One API spans browser and Node; reading and writing buffers is synchronous, while reading a `File` and streaming are async. Read **and** write — cell styles, formulas, dates, merged cells, freeze panes, conditional formatting, data validation, autofilters, hyperlinks, hidden sheets, multi-sheet — plus a streaming writer for very large exports and a `Workbook` load/edit/save API for files the library can model. The defensible claim is the combination, stated with its limits: SheetJS gates styling/conditional-formatting/streaming behind its Pro edition; ExcelJS carries a large CJS-first runtime; newer libraries such as hucre cover more features at 3x the writer size. It is not the smallest on every row and does not do images, charts, comments, tables, diagonal borders or file-preserving edits.
 
 ## Operating Context
 
-Evaluation happens at a desk, in a browser, alongside npm, GitHub, and Bundlephobia tabs. Developers compare install size, skim a README, and want to try before adopting (the README already points to a RunKit sandbox). The demo therefore runs the real published package client-side: build a styled workbook and download it (open in Excel to verify), or drop in an existing `.xlsx` and see it parsed. The page is the trial.
+Evaluation happens at a desk, in a browser, alongside npm, GitHub, and Bundlephobia tabs. Developers compare install size, skim a README, and want to try before adopting (the demo and the documentation answer that). The demo therefore runs the real published package client-side: build a styled workbook and download it (open in Excel to verify), or drop in an existing `.xlsx` and see it parsed. The page is the trial.
 
 ## Capabilities and Constraints
 
 Confirmed capabilities (published 1.6.0):
 
 - `ExcelBridge.read` / `readFromFile` / `write` / `writeBuffer` entry points.
-- Classes: `Workbook` (load/edit/save), `ExcelReader`, `ExcelWriter`, `StyleManager`.
+- Classes: `Workbook` (load/edit/save), `ExcelReader`, `ExcelWriter`.
 - Cell styling: background, bold, italic, underline, color, fontSize, fontName, align, verticalAlign, wrapText, numberFormat, and borders (all four sides, a line style, or per side; 13 line styles, RGB colours). `Date` cells take their style too.
-- Formulas (strings starting with `=`, or `{ formula, result? }` with a cached result), literal text that starts with `=` (`{ text }`), error values (`{ error }`), `Date` → Excel serial conversion, merged cells, freeze panes, column widths / autoWidth, row heights, hidden rows and hidden columns (writers, reader and `Workbook`).
+- Formulas (`{ formula, result? }` with an optional cached result; a plain string is always text, and `{ text }` means the same), error values (`{ error }`), `Date` → Excel serial conversion, merged cells, freeze panes, column widths / autoWidth, row heights, hidden rows and hidden columns (writers, reader and `Workbook`).
 - Conditional formatting: `cellValue`, `expression`, `colorScale` — written and read back, and kept by a `Workbook` round trip.
 - Data validation builders: `list`, `wholeNumber`, `decimal`, `textLength`, `dateBetween`; the types `time` and `custom` are written from plain objects. Rules are read back in full and kept by a `Workbook` round trip.
 - AutoFilter (`options.autoFilter`) and hyperlinks (`hyperlinks` array, `hyperlink.url` / `email` / `internal` builders; `http`, `https`, `mailto` and in-workbook locations) — written by both writers, read back, and kept by a `Workbook` round trip.
@@ -44,12 +44,12 @@ Confirmed capabilities (published 1.6.0):
 Constraints:
 
 - Inline strings by default (enable `sharedStrings: true` for smaller files with repeated text).
-- Formula strings and `{ formula }` without `result` are written without a cached value; the workbook asks Excel to recalculate on open (`fullCalcOnLoad`). Pass `result` to store one.
+- `{ formula }` without `result` is written without a cached value; the workbook asks Excel to recalculate on open (`fullCalcOnLoad`). Pass `result` to store one.
 - Node engines `^20.19.0 || ^22.13.0 || >=24`; browsers need ES2022 + `File`/`Blob`; full Excel compatibility targets Excel 2016+.
 - The streaming writer does not support `autoWidth`, `validations`, `conditionalFormats`, `sharedStrings` or sheet `state`.
-- The `=` string shorthand stays a formula for all of 1.x (use `{ text }` for literal text); no diagonal borders, no sheet defaults (default row height and column width, outline levels); theme and indexed border colours read as black.
+- Strings are always text, so user data cannot become a formula; no diagonal borders, no sheet defaults (default row height and column width, outline levels); theme and indexed border colours read as black.
 - `Workbook` rebuilds the file from its model: images, charts, comments, tables, defined names, print setup, themes and macros of a loaded file are dropped.
-- The reader holds the whole file in memory, rejects out-of-grid references and caps empty padding cells at 5,000,000; it is not hardened for untrusted files beyond that. Known read gaps: 1904 dates, shared-formula followers, ISO date cells, prefixed namespaces, split panes.
+- The reader holds the whole file in memory, rejects out-of-grid references, and refuses files over configurable limits (`maxCells` 5,000,000, `maxPartBytes` 256 MiB, `maxTotalBytes` 512 MiB, `maxSheets` unlimited by default); it is not hardened for untrusted files beyond that. Known read gaps: 1904 dates, ISO date cells, `_x000D_` escapes, split panes; a shared-formula follower reads as its cached value without a formula.
 
 ## Brand Commitments
 
@@ -61,10 +61,10 @@ Constraints:
 
 ## Evidence on Hand
 
-- Real, published npm package `excel-bridge@1.6.0` (provenance-signed). The demo loads it live from jsDelivr and shows the figures below; move the version pin and the figures together on each release.
-- Real benchmark (README, `benchmarks/`): writing 50,000 rows × 10 columns, median of 5 runs, Node 24.19, Apple M4 — excel-bridge **560 ms / 2.41 MiB**, hucre 390 ms / 2.79 MiB, exceljs 1490 ms / 2.82 MiB, xlsx (SheetJS) 510 ms / 18.23 MiB uncompressed (570 ms / 6.26 MiB with `compression: true`). Reproducible via `pnpm run bench`. Never claim "fastest".
-- Real bundle-size measurements (README "Bundle size", `benchmarks/size.mjs`): esbuild browser ESM bundles, min+gzip. Published 1.6.0 (measured 2026-10-08, esbuild 0.28.2): `ExcelWriter` **12.9 KB**, `ExcelReader` 28.7 KB, full import 43.7 KB. Others (2026-10-07): hucre 1.2.0 `writeXlsx` 41.6 KB and `XlsxStreamWriter` 12.1 KB, excelents 1.0.1 12.2 KB (reader and writer, no conditional formatting), SheetJS `utils` + `write` 95.8 KB, ExcelJS 272.1 KB. Reproducible via `pnpm run size`; show them with their method footnote and never say "smallest" without the qualifier.
-- Real capability comparison table (README) vs ExcelJS and SheetJS community edition.
+- Real, published npm package `excel-bridge@1.6.0` (provenance-signed); 2.0.0 is unreleased. The demo loads the published version live from jsDelivr and shows its figures: move the version pin, the figures and every `=`-string write in the demo together when 2.0.0 is published.
+- Real benchmark (the performance page, `benchmarks/`): writing 50,000 rows × 10 columns, median of 5 runs, Node 24.19, Apple M4 — excel-bridge **560 ms / 2.41 MiB**, hucre 390 ms / 2.79 MiB, exceljs 1430 ms / 2.82 MiB, xlsx (SheetJS) 510 ms / 18.23 MiB uncompressed (580 ms / 6.26 MiB with `compression: true`). Reproducible via `pnpm run bench`. Reading 50,000 × 10 takes 270 ms in 2.0 against 1503 ms in 1.6.0 (`node --expose-gc benchmarks/bench-read.mjs`). Never claim "fastest".
+- Real bundle-size measurements (the performance page, `benchmarks/size.mjs`): esbuild browser ESM bundles, min+gzip. 2.0 build (measured 2026-10-08, esbuild 0.28.2): `ExcelWriter` **12.9 KB**, `ExcelReader` 9.9 KB, `Workbook` 22.0 KB, full import 25.8 KB (published 1.6.0: 12.9 / 28.7 / 41.0 / 43.7). Others (2026-10-07): hucre 1.2.0 `writeXlsx` 41.6 KB and `XlsxStreamWriter` 12.1 KB, excelents 1.0.1 12.2 KB (reader and writer, no conditional formatting), SheetJS `utils` + `write` 95.8 KB, ExcelJS 272.1 KB. Reproducible via `pnpm run size`; show them with their method footnote and never say "smallest" without the qualifier.
+- Real capability comparison table (the performance page) vs ExcelJS and SheetJS community edition.
 - Real API surface (`src/index.ts`) and banner asset.
 - **No** testimonials, named customers, download counts, or endorsements exist — these must not be fabricated. Dynamic badges (npm version and downloads) are the only live third-party numbers and should be linked, not hardcoded. Download counts follow releases, so they say little about use.
 

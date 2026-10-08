@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Edit a workbook | excel-bridge docs</title>
+<meta name="description" content="Build a workbook with Workbook, or load one, change cells, styles and layout, and save it back." />
+<link rel="canonical" href="https://kevinarce98.github.io/excel-bridge/guide/workbook/" />
+<link rel="alternate" hreflang="en" href="https://kevinarce98.github.io/excel-bridge/guide/workbook/" />
+<link rel="alternate" hreflang="es" href="https://kevinarce98.github.io/excel-bridge/es/guide/workbook/" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="Edit a workbook | excel-bridge docs" />
+<meta property="og:description" content="Build a workbook with Workbook, or load one, change cells, styles and layout, and save it back." />
+<meta property="og:url" content="https://kevinarce98.github.io/excel-bridge/guide/workbook/" />
+<meta name="theme-color" content="#0f172a" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231B2336'/%3E%3Crect x='5' y='6' width='22' height='6' rx='2' fill='%2322C55E'/%3E%3Crect x='5' y='15' width='9' height='4' rx='1.5' fill='%23334155'/%3E%3Crect x='18' y='15' width='9' height='4' rx='1.5' fill='%23334155'/%3E%3Crect x='5' y='22' width='9' height='4' rx='1.5' fill='%23334155'/%3E%3Crect x='18' y='22' width='9' height='4' rx='1.5' fill='%2322C55E' fill-opacity='0.5'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../../assets/docs.css" />
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+<header class="waybill">
+  <div class="waybill-in">
+    <a class="wordmark" href="../../" aria-label="excel-bridge"><svg class="mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><rect width="32" height="32" rx="7" fill="#1B2336"/><rect x="5" y="6" width="22" height="6" rx="2" fill="#22C55E"/><rect x="5" y="15" width="9" height="4" rx="1.5" fill="#334155"/><rect x="18" y="15" width="9" height="4" rx="1.5" fill="#334155"/><rect x="5" y="22" width="9" height="4" rx="1.5" fill="#334155"/><rect x="18" y="22" width="9" height="4" rx="1.5" fill="#22C55E" fill-opacity="0.5"/></svg><span><span class="w-excel">excel</span><span class="w-dash">-</span><span class="w-bridge">bridge</span></span></a>
+    <span class="field"><span class="field-caption">Docs</span><span class="field-value">2.x</span></span>
+    <nav class="top-links" aria-label="Site">
+      <a href="../../#pack">Try it</a>
+      <a href="https://github.com/KevinArce98/excel-bridge" rel="noopener">GitHub</a>
+      <a href="https://www.npmjs.com/package/excel-bridge" rel="noopener">npm</a>
+    </nav>
+    <div class="lang" role="group" aria-label="Language"><span class="lang-current" aria-current="true" lang="en">EN</span><a href="../../es/guide/workbook/" hreflang="es" lang="es" aria-label="Español">ES</a></div>
+  </div>
+</header>
+<div class="shell">
+  <nav class="rail" aria-label="Docs">
+    <details class="rail-fold" open>
+      <summary>Contents</summary>
+      <section><p class="rail-group">Start</p><ul><li><a href="../../getting-started/">Getting started</a></li></ul></section>
+<section><p class="rail-group">Guide</p><ul><li><a href="../../guide/values/">Write values and formulas</a></li><li><a href="../../guide/styling/">Style cells</a></li><li><a href="../../guide/layout/">Lay out sheets</a></li><li><a href="../../guide/rules/">Add rules</a></li><li><a href="../../guide/reading/">Read a workbook</a></li><li><a href="../../guide/objects/">Rows as objects</a></li><li><a href="../../guide/workbook/" aria-current="page">Edit a workbook</a></li><li><a href="../../guide/streaming/">Stream big exports</a></li><li><a href="../../guide/errors/">Handle errors and limits</a></li></ul></section>
+<section><p class="rail-group">Reference</p><ul><li><a href="../../api/">API reference</a></li><li><a href="../../performance/">Performance and size</a></li><li><a href="../../limitations/">Limits and alternatives</a></li><li><a href="../../upgrading/">Upgrading</a></li><li><a href="../../security/">Security</a></li></ul></section>
+    </details>
+  </nav>
+  <main id="content" class="sheet">
+    <div class="sheet-rule" aria-hidden="true"></div>
+    <article class="prose">
+<h1 id="edit-a-workbook">Edit a workbook</h1>
+<p><code>Workbook</code> builds a workbook, or loads one, edits it and saves it back, without rebuilding sheet data by hand. It rebuilds the file from what the library models, so it suits files this library wrote and simple files from other tools.</p>
+<figure class="code"><figcaption><span class="code-name">workbook.ts</span><button type="button" class="copy" data-copy="Copy" data-copied="Copied">Copy</button></figcaption><pre tabindex="0"><code><span class="tk-k">import</span> fs <span class="tk-k">from</span> <span class="tk-s">'node:fs'</span>;
+<span class="tk-k">import</span> { <span class="tk-t">Workbook</span> } <span class="tk-k">from</span> <span class="tk-s">'excel-bridge'</span>;
+
+<span class="tk-k">const</span> wb = <span class="tk-t">Workbook</span>.create();
+wb.addSheet('<span class="tk-t">Sales</span>', [
+  ['<span class="tk-t">Product</span><span class="tk-s">', '</span><span class="tk-t">Price</span><span class="tk-s">', '</span><span class="tk-t">Qty</span>'],
+  ['<span class="tk-t">Laptop</span>', <span class="tk-n">999.99</span>, <span class="tk-n">5</span>],
+]);
+wb.setCellStyle('<span class="tk-t">Sales</span><span class="tk-s">', 0, 0, { bold: true, background: '</span>#<span class="tk-t">C4</span><span class="tk-s">', color: '</span>#<span class="tk-t">FFFFFF</span>' });
+wb.setFreezePane('<span class="tk-t">Sales</span>', { row: <span class="tk-n">1</span> });
+wb.setMetadata({ creator: <span class="tk-s">'My App'</span>, title: <span class="tk-s">'Sales Report'</span> });
+fs.writeFileSync('sales.xlsx', wb.toBuffer());
+
+<span class="tk-k">const</span> existing = <span class="tk-t">Workbook</span>.fromBuffer(fs.readFileSync('sales.xlsx'));
+existing.setCellValue('<span class="tk-t">Sales</span>', <span class="tk-n">1</span>, <span class="tk-n">1</span>, <span class="tk-n">899.99</span>);
+<span class="tk-k">const</span> blob = existing.toBlob();</code></pre></figure>
+<p>Load with <code>Workbook.fromBuffer(buffer)</code>, or <code>await Workbook.fromFile(file)</code> in the browser. Both take the same <a href="../errors/">reader limits</a> as <code>ExcelReader</code>. Save with <code>toBuffer()</code> or <code>toBlob()</code>.</p>
+<h2 id="methods">Methods<a class="anchor" href="#methods" aria-label="Methods">#</a></h2>
+<p>Rows and columns are zero-based, and sheets are addressed by name.</p>
+<div class="table-scroll" role="region" tabindex="0" aria-label="Methods"><table><thead><tr><th scope="col">Area</th><th scope="col">Methods</th></tr></thead><tbody>
+<tr><td data-label="Area">Sheets</td><td data-label="Methods"><code>addSheet</code>, <code>renameSheet</code>, <code>removeSheet</code>, <code>getSheetNames</code>, <code>getSheetData</code>, <code>getSheetState</code>, <code>setSheetState</code></td></tr>
+<tr><td data-label="Area">Cells</td><td data-label="Methods"><code>getCellValue</code>, <code>setCellValue</code>, <code>getCellStyle</code>, <code>setCellStyle</code></td></tr>
+<tr><td data-label="Area">Layout</td><td data-label="Methods"><code>setMergeCells</code>, <code>setFreezePane</code>, <code>setColumnWidths</code>, <code>setAutoWidth</code>, <code>setRowHeight</code>/<code>getRowHeight</code>, <code>setRowHidden</code>/<code>isRowHidden</code>, <code>setColumnHidden</code>/<code>isColumnHidden</code></td></tr>
+<tr><td data-label="Area">Rules and links</td><td data-label="Methods"><code>addValidation</code>, <code>addConditionalFormat</code>, <code>setAutoFilter</code>, <code>getAutoFilter</code>, <code>removeAutoFilter</code>, <code>setHyperlink</code>, <code>getHyperlinks</code>, <code>removeHyperlink</code></td></tr>
+<tr><td data-label="Area">Document</td><td data-label="Methods"><code>getMetadata</code>, <code>setMetadata</code></td></tr>
+<tr><td data-label="Area">Output</td><td data-label="Methods"><code>toBuffer</code>, <code>toBlob</code></td></tr>
+</tbody></table></div>
+<h2 id="what-you-get-back-from-a-loaded-file">What you get back from a loaded file<a class="anchor" href="#what-you-get-back-from-a-loaded-file" aria-label="What you get back from a loaded file">#</a></h2>
+<p><code>getCellValue</code> and <code>getSheetData</code> return the same values you write. A loaded formula comes back as <code>{ formula, result? }</code> with the value stored in the file, and a loaded error as <code>{ error }</code>. Text stays text, even when it starts with <code>=</code>.</p>
+<aside class="callout callout-warning"><p class="callout-name">Warning</p><p>A formula&#39;s <code>result</code> is the value the file stored. It does not change when you edit the cells the formula uses, so it can go stale until Excel recalculates on open. Set the cell to <code>{ formula }</code> without a <code>result</code> to drop it.</p>
+</aside>
+<p><code>getSheetData(name)</code> has holes where the file has blank rows: <code>length</code> is the last row plus one, <code>for...of</code> yields <code>undefined</code> for a hole and <code>JSON.stringify</code> writes <code>null</code>. A loaded sheet whose name Excel would reject, for example one over 31 characters, loads, but saving throws until you give it a valid name with <code>renameSheet</code>.</p>
+<h2 id="what-a-round-trip-keeps">What a round trip keeps<a class="anchor" href="#what-a-round-trip-keeps" aria-label="What a round trip keeps">#</a></h2>
+<p><code>Workbook.fromBuffer</code> and <code>fromFile</code> restore:</p>
+<ul>
+<li>data at its row and column, styles, merges, freeze panes and column widths</li>
+<li>per-side borders, row heights, hidden rows and hidden columns</li>
+<li>data validations, conditional formatting rules, autofilter ranges, hyperlinks and sheet visibility</li>
+<li>formulas with their stored results, and the seven classic error values</li>
+</ul>
+<h2 id="what-it-changes-or-drops">What it changes or drops<a class="anchor" href="#what-it-changes-or-drops" aria-label="What it changes or drops">#</a></h2>
+<ul>
+<li>Images, charts, comments, Excel tables, pivot tables, defined names, print setup, themes and macros.</li>
+<li>Filter criteria and sort state set in Excel. Rows hidden by a filter stay hidden, and <code>removeAutoFilter</code> shows the rows under the removed range.</li>
+<li>Links the writer does not accept (anything but <code>http:</code>, <code>https:</code>, <code>mailto:</code> or a location in the workbook), and validations of a type the reader does not know. <code>ExcelReader</code> still returns the links.</li>
+<li>Validation input and error messages, the error style (stop, warning, information) and the &quot;show message&quot; switches. Every saved rule is written to show both messages and to reject bad entries.</li>
+<li>Error text other than the seven classic errors, which is saved as text.</li>
+<li>Locale-dependent built-in date and time formats, which are written back as explicit en-US codes. The built-in short date (id 14) stays the short date.</li>
+<li>Theme and indexed colours, and built-in number formats such as <code>0%</code>. Only RGB colours, custom number formats and the built-in date and time formats are read, and theme or indexed border colours become black.</li>
+<li>Diagonal borders, rich text (flattened) and split panes (dropped).</li>
+<li>Conditional formatting rules other than <code>cellIs</code>, <code>expression</code> and <code>colorScale</code>.</li>
+<li>Sheet defaults (<code>&lt;sheetFormatPr&gt;</code>: default row height and column width, outline levels). A collapsed outline group stays hidden but loses its buttons.</li>
+<li>Shared-formula followers, which are read without their formula.</li>
+<li>A stored formula whose text starts with <code>=</code>. Excel does not write one, but a file made by 1.x from a string such as <code>=== Summary ===</code> has one. <code>Workbook</code> saves it without that first <code>=</code>, and a formula that is only <code>=</code> makes <code>toBuffer</code> throw.</li>
+</ul>
+<p>A column stored with width 0 stays 0 wide when you unhide it with <code>setColumnHidden</code>. Set its width as well.</p>
+<aside class="callout callout-limit"><p class="callout-name">Limit</p><p>If you need to edit a file and keep everything you did not touch, such as a template with charts or macros, <code>Workbook</code> is the wrong tool: it rebuilds the file from its model. hucre&#39;s <code>openXlsx</code> and <code>saveXlsx</code> keep the parts they do not model.</p>
+</aside>
+
+    </article>
+    <nav class="stubs" aria-label="Previous and next"><a class="stub stub-prev" href="../../guide/objects/"><span class="field-caption">Previous</span><span class="stub-title">Rows as objects</span></a><a class="stub stub-next" href="../../guide/streaming/"><span class="field-caption">Next</span><span class="stub-title">Stream big exports</span></a></nav>
+    <p class="doc-foot"><a href="https://github.com/KevinArce98/excel-bridge/edit/main/docs-src/en/guide/workbook.md" rel="noopener">Edit this page</a> · MIT licence · Microsoft Excel is a trademark of Microsoft; this project is not affiliated with Microsoft.</p>
+  </main>
+  <aside class="toc" aria-label="On this page">
+    <p class="field-caption">On this page</p>
+    <ul><li><a href="#methods">Methods</a></li><li><a href="#what-you-get-back-from-a-loaded-file">What you get back from a loaded file</a></li><li><a href="#what-a-round-trip-keeps">What a round trip keeps</a></li><li><a href="#what-it-changes-or-drops">What it changes or drops</a></li></ul>
+  </aside>
+</div>
+<script src="../../assets/docs.js" defer></script>
+</body>
+</html>

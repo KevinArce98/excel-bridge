@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Getting started | excel-bridge docs</title>
+<meta name="description" content="Install excel-bridge, write a styled .xlsx and read it back, in the browser and Node.js." />
+<link rel="canonical" href="https://kevinarce98.github.io/excel-bridge/getting-started/" />
+<link rel="alternate" hreflang="en" href="https://kevinarce98.github.io/excel-bridge/getting-started/" />
+<link rel="alternate" hreflang="es" href="https://kevinarce98.github.io/excel-bridge/es/getting-started/" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="Getting started | excel-bridge docs" />
+<meta property="og:description" content="Install excel-bridge, write a styled .xlsx and read it back, in the browser and Node.js." />
+<meta property="og:url" content="https://kevinarce98.github.io/excel-bridge/getting-started/" />
+<meta name="theme-color" content="#0f172a" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231B2336'/%3E%3Crect x='5' y='6' width='22' height='6' rx='2' fill='%2322C55E'/%3E%3Crect x='5' y='15' width='9' height='4' rx='1.5' fill='%23334155'/%3E%3Crect x='18' y='15' width='9' height='4' rx='1.5' fill='%23334155'/%3E%3Crect x='5' y='22' width='9' height='4' rx='1.5' fill='%23334155'/%3E%3Crect x='18' y='22' width='9' height='4' rx='1.5' fill='%2322C55E' fill-opacity='0.5'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../assets/docs.css" />
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+<header class="waybill">
+  <div class="waybill-in">
+    <a class="wordmark" href="../" aria-label="excel-bridge"><svg class="mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><rect width="32" height="32" rx="7" fill="#1B2336"/><rect x="5" y="6" width="22" height="6" rx="2" fill="#22C55E"/><rect x="5" y="15" width="9" height="4" rx="1.5" fill="#334155"/><rect x="18" y="15" width="9" height="4" rx="1.5" fill="#334155"/><rect x="5" y="22" width="9" height="4" rx="1.5" fill="#334155"/><rect x="18" y="22" width="9" height="4" rx="1.5" fill="#22C55E" fill-opacity="0.5"/></svg><span><span class="w-excel">excel</span><span class="w-dash">-</span><span class="w-bridge">bridge</span></span></a>
+    <span class="field"><span class="field-caption">Docs</span><span class="field-value">2.x</span></span>
+    <nav class="top-links" aria-label="Site">
+      <a href="../#pack">Try it</a>
+      <a href="https://github.com/KevinArce98/excel-bridge" rel="noopener">GitHub</a>
+      <a href="https://www.npmjs.com/package/excel-bridge" rel="noopener">npm</a>
+    </nav>
+    <div class="lang" role="group" aria-label="Language"><span class="lang-current" aria-current="true" lang="en">EN</span><a href="../es/getting-started/" hreflang="es" lang="es" aria-label="Español">ES</a></div>
+  </div>
+</header>
+<div class="shell">
+  <nav class="rail" aria-label="Docs">
+    <details class="rail-fold" open>
+      <summary>Contents</summary>
+      <section><p class="rail-group">Start</p><ul><li><a href="../getting-started/" aria-current="page">Getting started</a></li></ul></section>
+<section><p class="rail-group">Guide</p><ul><li><a href="../guide/values/">Write values and formulas</a></li><li><a href="../guide/styling/">Style cells</a></li><li><a href="../guide/layout/">Lay out sheets</a></li><li><a href="../guide/rules/">Add rules</a></li><li><a href="../guide/reading/">Read a workbook</a></li><li><a href="../guide/objects/">Rows as objects</a></li><li><a href="../guide/workbook/">Edit a workbook</a></li><li><a href="../guide/streaming/">Stream big exports</a></li><li><a href="../guide/errors/">Handle errors and limits</a></li></ul></section>
+<section><p class="rail-group">Reference</p><ul><li><a href="../api/">API reference</a></li><li><a href="../performance/">Performance and size</a></li><li><a href="../limitations/">Limits and alternatives</a></li><li><a href="../upgrading/">Upgrading</a></li><li><a href="../security/">Security</a></li></ul></section>
+    </details>
+  </nav>
+  <main id="content" class="sheet">
+    <div class="sheet-rule" aria-hidden="true"></div>
+    <article class="prose">
+<h1 id="getting-started">Getting started</h1>
+<!-- channel:prerelease -->
+<aside class="callout callout-note"><p class="callout-name">Note</p><p><strong>You are reading the docs of the 2.0 release candidate.</strong> Install the pre-release with <code>npm install excel-bridge@next</code>. A plain <code>npm install excel-bridge</code> still installs the stable 1.x. What breaks and how to adapt: <a href="../upgrading/">Upgrading</a>.</p>
+</aside>
+<!-- /channel:prerelease --><p>Write a styled spreadsheet and read it back, in the browser or Node.js, from one small package. Import a class and your bundler ships only that part: the writer adds 12.9 KB min+gzip.</p>
+<h2 id="install">Install<a class="anchor" href="#install" aria-label="Install">#</a></h2>
+<figure class="code" data-tab="npm"><figcaption><span class="code-name">BASH</span><button type="button" class="copy" data-copy="Copy" data-copied="Copied">Copy</button></figcaption><pre tabindex="0"><code><span class="tk-k">npm</span> install excel-bridge</code></pre></figure>
+<figure class="code" data-tab="pnpm"><figcaption><span class="code-name">BASH</span><button type="button" class="copy" data-copy="Copy" data-copied="Copied">Copy</button></figcaption><pre tabindex="0"><code><span class="tk-k">pnpm</span> add excel-bridge</code></pre></figure>
+<figure class="code" data-tab="yarn"><figcaption><span class="code-name">BASH</span><button type="button" class="copy" data-copy="Copy" data-copied="Copied">Copy</button></figcaption><pre tabindex="0"><code><span class="tk-k">yarn</span> add excel-bridge</code></pre></figure>
+<figure class="code" data-tab="bun"><figcaption><span class="code-name">BASH</span><button type="button" class="copy" data-copy="Copy" data-copied="Copied">Copy</button></figcaption><pre tabindex="0"><code><span class="tk-k">bun</span> add excel-bridge</code></pre></figure>
+<p>excel-bridge needs Node.js 20.19, 22.13 or 24 and later, or a modern browser. It is written in TypeScript and ships ESM and CommonJS builds with types.</p>
+<h2 id="write-a-workbook">Write a workbook<a class="anchor" href="#write-a-workbook" aria-label="Write a workbook">#</a></h2>
+<p>Each sheet is an object with <code>data</code> and, optionally, <code>styles</code> and <code>options</code>. Styles are keyed by <code>&quot;&lt;row&gt;-&lt;col&gt;&quot;</code> with zero-based indexes.</p>
+<figure class="code"><figcaption><span class="code-name">write.ts</span><button type="button" class="copy" data-copy="Copy" data-copied="Copied">Copy</button></figcaption><pre tabindex="0"><code><span class="tk-k">import</span> fs <span class="tk-k">from</span> <span class="tk-s">'node:fs'</span>;
+<span class="tk-k">import</span> { <span class="tk-t">ExcelWriter</span> } <span class="tk-k">from</span> <span class="tk-s">'excel-bridge'</span>;
+
+<span class="tk-k">const</span> header = { bold: <span class="tk-k">true</span>, background: <span class="tk-s">'#4472C4'</span>, color: <span class="tk-s">'#FFFFFF'</span> };
+
+<span class="tk-k">const</span> sheet = {
+  data: [
+    ['<span class="tk-t">Name</span><span class="tk-s">', '</span><span class="tk-t">Age</span><span class="tk-s">', '</span><span class="tk-t">City</span>'],
+    ['<span class="tk-t">John</span><span class="tk-s">', 25, '</span><span class="tk-t">New</span> <span class="tk-t">York</span>'],
+    ['<span class="tk-t">Jane</span><span class="tk-s">', 30, '</span><span class="tk-t">Los</span> <span class="tk-t">Angeles</span>'],
+  ],
+  styles: { <span class="tk-s">'0-0'</span>: header, <span class="tk-s">'0-1'</span>: header, <span class="tk-s">'0-2'</span>: header },
+  options: { name: <span class="tk-s">'People'</span>, freezePane: { row: <span class="tk-n">1</span> }, autoWidth: <span class="tk-k">true</span> },
+};
+
+<span class="tk-k">const</span> writer = <span class="tk-k">new</span> <span class="tk-t">ExcelWriter</span>();
+
+fs.writeFileSync('people.xlsx', writer.createWorkbookBuffer([sheet]));</code></pre></figure>
+<p>In the browser, <code>createWorkbook([sheet])</code> returns a <code>Blob</code>. Pass it to <code>downloadXlsx(blob, 'people')</code> to start the download.</p>
+<aside class="callout callout-note"><p class="callout-name">Note</p><p><code>createWorkbookBuffer</code> returns a plain <code>Uint8Array</code>, not a <code>Buffer</code>. Express 4 needs <code>res.send(Buffer.from(bytes))</code>.</p>
+</aside>
+<h2 id="read-it-back">Read it back<a class="anchor" href="#read-it-back" aria-label="Read it back">#</a></h2>
+<figure class="code"><figcaption><span class="code-name">read.ts</span><button type="button" class="copy" data-copy="Copy" data-copied="Copied">Copy</button></figcaption><pre tabindex="0"><code><span class="tk-k">import</span> fs <span class="tk-k">from</span> <span class="tk-s">'node:fs'</span>;
+<span class="tk-k">import</span> { <span class="tk-t">ExcelReader</span> } <span class="tk-k">from</span> <span class="tk-s">'excel-bridge'</span>;
+
+<span class="tk-k">const</span> workbook = <span class="tk-k">new</span> <span class="tk-t">ExcelReader</span>().parseFromBuffer(fs.readFileSync('people.xlsx'));
+
+workbook.sheets[<span class="tk-n">0</span>].data.forEach(row =&gt; {
+  row.forEach(cell =&gt; console.log(cell.coordinate, cell.<span class="tk-k">type</span>, cell.value));
+});</code></pre></figure>
+<p>Every cell carries its <code>type</code>. Dates come back as <code>Date</code>, and a formula cell carries its formula in <code>formula</code>. In the browser, <code>await reader.parseFromFile(file)</code> takes the <code>File</code> from an <code>&lt;input type=&quot;file&quot;&gt;</code>.</p>
+<h2 id="edit-a-file">Edit a file<a class="anchor" href="#edit-a-file" aria-label="Edit a file">#</a></h2>
+<p><code>Workbook</code> loads a file, lets you change it and saves it back.</p>
+<figure class="code"><figcaption><span class="code-name">edit.ts</span><button type="button" class="copy" data-copy="Copy" data-copied="Copied">Copy</button></figcaption><pre tabindex="0"><code><span class="tk-k">import</span> fs <span class="tk-k">from</span> <span class="tk-s">'node:fs'</span>;
+<span class="tk-k">import</span> { <span class="tk-t">Workbook</span> } <span class="tk-k">from</span> <span class="tk-s">'excel-bridge'</span>;
+
+<span class="tk-k">const</span> workbook = <span class="tk-t">Workbook</span>.fromBuffer(fs.readFileSync('people.xlsx'));
+workbook.setCellValue('<span class="tk-t">People</span>', <span class="tk-n">1</span>, <span class="tk-n">1</span>, <span class="tk-n">26</span>);
+fs.writeFileSync('people.xlsx', workbook.toBuffer());</code></pre></figure>
+<aside class="callout callout-limit"><p class="callout-name">Limit</p><p><code>Workbook</code> rebuilds the file from what it models, so images, charts and comments of a loaded file are dropped. See <a href="../guide/workbook/">Edit a workbook</a>.</p>
+</aside>
+<h2 id="where-to-go-next">Where to go next<a class="anchor" href="#where-to-go-next" aria-label="Where to go next">#</a></h2>
+<ul>
+<li><a href="../guide/values/">Write values and formulas</a>: what a cell can hold, and how to write a formula.</li>
+<li><a href="../guide/styling/">Style cells</a> and <a href="../guide/layout/">Lay out sheets</a>: borders, widths, merged cells, filters.</li>
+<li><a href="../guide/reading/">Read a workbook</a> and <a href="../guide/objects/">Rows as objects</a>: typed cells and typed rows.</li>
+<li><a href="../guide/streaming/">Stream big exports</a>: million-row files and file delivery.</li>
+<li><a href="../api/">API reference</a> and <a href="../upgrading/">Upgrading</a>.</li>
+</ul>
+
+    </article>
+    <nav class="stubs" aria-label="Previous and next"><span></span><a class="stub stub-next" href="../guide/values/"><span class="field-caption">Next</span><span class="stub-title">Write values and formulas</span></a></nav>
+    <p class="doc-foot"><a href="https://github.com/KevinArce98/excel-bridge/edit/main/docs-src/en/getting-started.md" rel="noopener">Edit this page</a> · MIT licence · Microsoft Excel is a trademark of Microsoft; this project is not affiliated with Microsoft.</p>
+  </main>
+  <aside class="toc" aria-label="On this page">
+    <p class="field-caption">On this page</p>
+    <ul><li><a href="#install">Install</a></li><li><a href="#write-a-workbook">Write a workbook</a></li><li><a href="#read-it-back">Read it back</a></li><li><a href="#edit-a-file">Edit a file</a></li><li><a href="#where-to-go-next">Where to go next</a></li></ul>
+  </aside>
+</div>
+<script src="../assets/docs.js" defer></script>
+</body>
+</html>

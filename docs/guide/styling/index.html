@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Style cells | excel-bridge docs</title>
+<meta name="description" content="Colour, fonts, number formats, alignment and per-side borders for any cell, keyed by row and column." />
+<link rel="canonical" href="https://kevinarce98.github.io/excel-bridge/guide/styling/" />
+<link rel="alternate" hreflang="en" href="https://kevinarce98.github.io/excel-bridge/guide/styling/" />
+<link rel="alternate" hreflang="es" href="https://kevinarce98.github.io/excel-bridge/es/guide/styling/" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="Style cells | excel-bridge docs" />
+<meta property="og:description" content="Colour, fonts, number formats, alignment and per-side borders for any cell, keyed by row and column." />
+<meta property="og:url" content="https://kevinarce98.github.io/excel-bridge/guide/styling/" />
+<meta name="theme-color" content="#0f172a" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231B2336'/%3E%3Crect x='5' y='6' width='22' height='6' rx='2' fill='%2322C55E'/%3E%3Crect x='5' y='15' width='9' height='4' rx='1.5' fill='%23334155'/%3E%3Crect x='18' y='15' width='9' height='4' rx='1.5' fill='%23334155'/%3E%3Crect x='5' y='22' width='9' height='4' rx='1.5' fill='%23334155'/%3E%3Crect x='18' y='22' width='9' height='4' rx='1.5' fill='%2322C55E' fill-opacity='0.5'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../../assets/docs.css" />
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+<header class="waybill">
+  <div class="waybill-in">
+    <a class="wordmark" href="../../" aria-label="excel-bridge"><svg class="mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><rect width="32" height="32" rx="7" fill="#1B2336"/><rect x="5" y="6" width="22" height="6" rx="2" fill="#22C55E"/><rect x="5" y="15" width="9" height="4" rx="1.5" fill="#334155"/><rect x="18" y="15" width="9" height="4" rx="1.5" fill="#334155"/><rect x="5" y="22" width="9" height="4" rx="1.5" fill="#334155"/><rect x="18" y="22" width="9" height="4" rx="1.5" fill="#22C55E" fill-opacity="0.5"/></svg><span><span class="w-excel">excel</span><span class="w-dash">-</span><span class="w-bridge">bridge</span></span></a>
+    <span class="field"><span class="field-caption">Docs</span><span class="field-value">2.x</span></span>
+    <nav class="top-links" aria-label="Site">
+      <a href="../../#pack">Try it</a>
+      <a href="https://github.com/KevinArce98/excel-bridge" rel="noopener">GitHub</a>
+      <a href="https://www.npmjs.com/package/excel-bridge" rel="noopener">npm</a>
+    </nav>
+    <div class="lang" role="group" aria-label="Language"><span class="lang-current" aria-current="true" lang="en">EN</span><a href="../../es/guide/styling/" hreflang="es" lang="es" aria-label="Español">ES</a></div>
+  </div>
+</header>
+<div class="shell">
+  <nav class="rail" aria-label="Docs">
+    <details class="rail-fold" open>
+      <summary>Contents</summary>
+      <section><p class="rail-group">Start</p><ul><li><a href="../../getting-started/">Getting started</a></li></ul></section>
+<section><p class="rail-group">Guide</p><ul><li><a href="../../guide/values/">Write values and formulas</a></li><li><a href="../../guide/styling/" aria-current="page">Style cells</a></li><li><a href="../../guide/layout/">Lay out sheets</a></li><li><a href="../../guide/rules/">Add rules</a></li><li><a href="../../guide/reading/">Read a workbook</a></li><li><a href="../../guide/objects/">Rows as objects</a></li><li><a href="../../guide/workbook/">Edit a workbook</a></li><li><a href="../../guide/streaming/">Stream big exports</a></li><li><a href="../../guide/errors/">Handle errors and limits</a></li></ul></section>
+<section><p class="rail-group">Reference</p><ul><li><a href="../../api/">API reference</a></li><li><a href="../../performance/">Performance and size</a></li><li><a href="../../limitations/">Limits and alternatives</a></li><li><a href="../../upgrading/">Upgrading</a></li><li><a href="../../security/">Security</a></li></ul></section>
+    </details>
+  </nav>
+  <main id="content" class="sheet">
+    <div class="sheet-rule" aria-hidden="true"></div>
+    <article class="prose">
+<h1 id="style-cells">Style cells</h1>
+<p>Give any cell a fill, a font, an alignment, a number format or a border. Styles live next to the data, keyed by <code>&quot;&lt;row&gt;-&lt;col&gt;&quot;</code> with zero-based indexes, so you can build them from the data itself.</p>
+<figure class="code"><figcaption><span class="code-name">header-row.ts</span><button type="button" class="copy" data-copy="Copy" data-copied="Copied">Copy</button></figcaption><pre tabindex="0"><code><span class="tk-k">import</span> { <span class="tk-t">ExcelWriter</span> } <span class="tk-k">from</span> <span class="tk-s">'excel-bridge'</span>;
+<span class="tk-k">import</span> <span class="tk-k">type</span> { <span class="tk-t">ExcelData</span> } <span class="tk-k">from</span> <span class="tk-s">'excel-bridge'</span>;
+
+<span class="tk-k">const</span> header = { background: <span class="tk-s">'#4472C4'</span>, bold: <span class="tk-k">true</span>, color: <span class="tk-s">'#FFFFFF'</span> };
+
+<span class="tk-k">const</span> sheet: <span class="tk-t">ExcelData</span> = {
+  data: [
+    ['<span class="tk-t">Product</span><span class="tk-s">', '</span><span class="tk-t">Price</span><span class="tk-s">', '</span><span class="tk-t">Stock</span><span class="tk-s">', '</span><span class="tk-t">Status</span>'],
+    ['<span class="tk-t">Laptop</span><span class="tk-s">', 999.99, 15, '</span><span class="tk-t">Available</span>'],
+    ['<span class="tk-t">Mouse</span><span class="tk-s">', 29.99, 5, '</span><span class="tk-t">Low</span> stock'],
+    ['<span class="tk-t">Keyboard</span><span class="tk-s">', 79.99, 0, '</span><span class="tk-t">Out</span> <span class="tk-k">of</span> stock'],
+  ],
+  styles: {
+    <span class="tk-s">'0-0'</span>: header,
+    <span class="tk-s">'0-1'</span>: header,
+    <span class="tk-s">'0-2'</span>: header,
+    <span class="tk-s">'0-3'</span>: header,
+    <span class="tk-s">'1-2'</span>: { background: <span class="tk-s">'#E2EFDA'</span>, color: <span class="tk-s">'#006100'</span> },
+    <span class="tk-s">'2-2'</span>: { background: <span class="tk-s">'#FFC7CE'</span>, color: <span class="tk-s">'#9C0006'</span> },
+    <span class="tk-s">'3-3'</span>: { background: <span class="tk-s">'#FFE6E6'</span>, color: <span class="tk-s">'#C00000'</span> },
+  },
+  options: { name: <span class="tk-s">'Inventory'</span>, freezePane: { row: <span class="tk-n">1</span> }, autoWidth: <span class="tk-k">true</span> },
+};
+
+<span class="tk-k">const</span> bytes = <span class="tk-k">new</span> <span class="tk-t">ExcelWriter</span>().createWorkbookBuffer([sheet]);</code></pre></figure>
+<aside class="callout callout-tip"><p class="callout-name">Tip</p><p>Annotate the sheet as <code>ExcelData</code>. Without it, TypeScript widens literals such as <code>align: 'center'</code> to <code>string</code> and rejects the object.</p>
+</aside>
+<h2 id="what-a-style-can-hold">What a style can hold<a class="anchor" href="#what-a-style-can-hold" aria-label="What a style can hold">#</a></h2>
+<div class="table-scroll" role="region" tabindex="0" aria-label="What a style can hold"><table><thead><tr><th scope="col">Property</th><th scope="col">Value</th><th scope="col">Effect</th></tr></thead><tbody>
+<tr><td data-label="Property"><code>background</code></td><td data-label="Value">colour</td><td data-label="Effect">Solid fill.</td></tr>
+<tr><td data-label="Property"><code>color</code></td><td data-label="Value">colour</td><td data-label="Effect">Font colour.</td></tr>
+<tr><td data-label="Property"><code>bold</code>, <code>italic</code>, <code>underline</code></td><td data-label="Value"><code>boolean</code></td><td data-label="Effect">Font weight, slant, underline.</td></tr>
+<tr><td data-label="Property"><code>fontSize</code></td><td data-label="Value"><code>number</code></td><td data-label="Effect">Points. Default 11.</td></tr>
+<tr><td data-label="Property"><code>fontName</code></td><td data-label="Value"><code>string</code></td><td data-label="Effect">Default <code>Calibri</code>.</td></tr>
+<tr><td data-label="Property"><code>align</code></td><td data-label="Value"><code>'left' | 'center' | 'right'</code></td><td data-label="Effect">Horizontal alignment.</td></tr>
+<tr><td data-label="Property"><code>verticalAlign</code></td><td data-label="Value"><code>'top' | 'middle' | 'bottom'</code></td><td data-label="Effect">Vertical alignment.</td></tr>
+<tr><td data-label="Property"><code>wrapText</code></td><td data-label="Value"><code>boolean</code></td><td data-label="Effect">Wrap long text inside the cell.</td></tr>
+<tr><td data-label="Property"><code>numberFormat</code></td><td data-label="Value">format code</td><td data-label="Effect">For example <code>'#,##0.00'</code> or <code>'0%'</code>.</td></tr>
+<tr><td data-label="Property"><code>border</code></td><td data-label="Value"><code>boolean</code>, a line style or per-side entries</td><td data-label="Effect">See <a href="#borders">Borders</a>.</td></tr>
+</tbody></table></div>
+<p>Colours are hex: <code>#RGB</code>, <code>#RRGGBB</code> or <code>#AARRGGBB</code>, with or without the <code>#</code>. Anything else, such as <code>red</code>, throws instead of writing an invalid value.</p>
+<figure class="code"><figcaption><span class="code-name">invoice.ts</span><button type="button" class="copy" data-copy="Copy" data-copied="Copied">Copy</button></figcaption><pre tabindex="0"><code><span class="tk-k">import</span> <span class="tk-k">type</span> { <span class="tk-t">ExcelData</span> } <span class="tk-k">from</span> <span class="tk-s">'excel-bridge'</span>;
+
+<span class="tk-k">const</span> invoice: <span class="tk-t">ExcelData</span> = {
+  data: [
+    ['<span class="tk-t">Invoice</span>', <span class="tk-n">1250.5</span>],
+    ['<span class="tk-t">Tax</span>', <span class="tk-n">237.6</span>],
+  ],
+  styles: {
+    <span class="tk-s">'0-0'</span>: { bold: <span class="tk-k">true</span>, italic: <span class="tk-k">true</span>, fontSize: <span class="tk-n">14</span>, fontName: <span class="tk-s">'Arial'</span>, align: <span class="tk-s">'center'</span>, wrapText: <span class="tk-k">true</span> },
+    <span class="tk-s">'0-1'</span>: { numberFormat: <span class="tk-s">'#,##0.00'</span> },
+    <span class="tk-s">'1-1'</span>: { numberFormat: <span class="tk-s">'#,##0.00'</span>, verticalAlign: <span class="tk-s">'middle'</span> },
+  },
+};</code></pre></figure>
+<h2 id="dates-take-styles-too">Dates take styles too<a class="anchor" href="#dates-take-styles-too" aria-label="Dates take styles too">#</a></h2>
+<p>A <code>Date</code> cell uses the built-in short date format. Give its style a date <code>numberFormat</code> to show the time of day or another layout. A <code>numberFormat</code> that is not a date format is ignored on a <code>Date</code> cell.</p>
+<figure class="code"><figcaption><span class="code-name">dates.ts</span><button type="button" class="copy" data-copy="Copy" data-copied="Copied">Copy</button></figcaption><pre tabindex="0"><code><span class="tk-k">import</span> <span class="tk-k">type</span> { <span class="tk-t">ExcelData</span> } <span class="tk-k">from</span> <span class="tk-s">'excel-bridge'</span>;
+
+<span class="tk-k">const</span> events: <span class="tk-t">ExcelData</span> = {
+  data: [['<span class="tk-t">Launch</span>', <span class="tk-k">new</span> <span class="tk-t">Date</span>(<span class="tk-n">2024</span>, <span class="tk-n">0</span>, <span class="tk-n">15</span>, <span class="tk-n">13</span>, <span class="tk-n">45</span>)]],
+  styles: { <span class="tk-s">'0-1'</span>: { bold: <span class="tk-k">true</span>, numberFormat: <span class="tk-s">'yyyy-mm-dd hh:mm'</span> } },
+};</code></pre></figure>
+<aside class="callout callout-limit"><p class="callout-name">Limit</p><p>A <code>Date</code> is written as local wall-clock time: <code>new Date(2024, 0, 15)</code> is 15 January in every time zone. A UTC-midnight date such as <code>new Date('2024-01-15')</code> falls on the previous day in negative offsets, and a local time that does not exist (inside a daylight-saving gap) moves forward.</p>
+</aside>
+<h2 id="borders">Borders<a class="anchor" href="#borders" aria-label="Borders">#</a></h2>
+<p><code>border: true</code> draws a thin black box on all four sides. For anything else, pass a line style, a <code>{ style, color? }</code> pair, or an object with one entry per side.</p>
+<figure class="code"><figcaption><span class="code-name">borders.ts</span><button type="button" class="copy" data-copy="Copy" data-copied="Copied">Copy</button></figcaption><pre tabindex="0"><code><span class="tk-k">import</span> <span class="tk-k">type</span> { <span class="tk-t">ExcelData</span> } <span class="tk-k">from</span> <span class="tk-s">'excel-bridge'</span>;
+
+<span class="tk-k">const</span> report: <span class="tk-t">ExcelData</span> = {
+  data: [
+    ['<span class="tk-t">Region</span><span class="tk-s">', '</span><span class="tk-t">Revenue</span>'],
+    ['<span class="tk-t">North</span>', <span class="tk-n">1200</span>],
+    ['<span class="tk-t">South</span>', <span class="tk-n">480</span>],
+  ],
+  styles: {
+    <span class="tk-s">'0-0'</span>: { bold: <span class="tk-k">true</span>, border: { bottom: <span class="tk-s">'medium'</span> } },
+    <span class="tk-s">'0-1'</span>: { bold: <span class="tk-k">true</span>, border: { bottom: <span class="tk-s">'medium'</span> } },
+    <span class="tk-s">'1-1'</span>: { border: { left: { style: <span class="tk-s">'thin'</span>, color: <span class="tk-s">'#CCCCCC'</span> } } },
+    <span class="tk-s">'2-0'</span>: { border: <span class="tk-s">'thin'</span> },
+    <span class="tk-s">'2-1'</span>: { border: { top: <span class="tk-s">'thin'</span>, bottom: { style: <span class="tk-s">'double'</span>, color: <span class="tk-s">'#CC0000'</span> } } },
+  },
+};</code></pre></figure>
+<ul>
+<li><strong>Accepted values:</strong> <code>true</code> or <code>false</code>; a line style for all four sides; <code>{ style, color? }</code> for all four sides; or <code>{ left?, right?, top?, bottom? }</code>, each a line style or <code>{ style, color? }</code>.</li>
+<li><strong>Line styles (13):</strong> <code>thin</code>, <code>medium</code>, <code>thick</code>, <code>dashed</code>, <code>dotted</code>, <code>double</code>, <code>hair</code>, <code>mediumDashed</code>, <code>dashDot</code>, <code>mediumDashDot</code>, <code>dashDotDot</code>, <code>mediumDashDotDot</code>, <code>slantDashDot</code>.</li>
+<li><strong>Colours:</strong> <code>#RGB</code>, <code>#RRGGBB</code> or <code>#AARRGGBB</code>. Without a colour the line is black.</li>
+<li><strong>Errors:</strong> an unknown line style or a colour such as <code>red</code> throws and names the value.</li>
+<li><strong>Merged cells:</strong> the file stores borders per cell, and the writer does not copy a border across a merged range. Set the side on each edge cell and pad the data with <code>null</code> so those cells exist. A style on a cell past the end of its row is ignored.</li>
+</ul>
+<aside class="callout callout-limit"><p class="callout-name">Limit</p><p>No diagonal borders, and no borders inside conditional formats.</p>
+</aside>
+<h2 id="conditional-formatting-without-a-style-per-cell">Conditional formatting without a style per cell<a class="anchor" href="#conditional-formatting-without-a-style-per-cell" aria-label="Conditional formatting without a style per cell">#</a></h2>
+<p>Highlight cells by value or formula, or with a colour scale, using <a href="../rules/">rules</a> instead of one style per cell.</p>
+
+    </article>
+    <nav class="stubs" aria-label="Previous and next"><a class="stub stub-prev" href="../../guide/values/"><span class="field-caption">Previous</span><span class="stub-title">Write values and formulas</span></a><a class="stub stub-next" href="../../guide/layout/"><span class="field-caption">Next</span><span class="stub-title">Lay out sheets</span></a></nav>
+    <p class="doc-foot"><a href="https://github.com/KevinArce98/excel-bridge/edit/main/docs-src/en/guide/styling.md" rel="noopener">Edit this page</a> · MIT licence · Microsoft Excel is a trademark of Microsoft; this project is not affiliated with Microsoft.</p>
+  </main>
+  <aside class="toc" aria-label="On this page">
+    <p class="field-caption">On this page</p>
+    <ul><li><a href="#what-a-style-can-hold">What a style can hold</a></li><li><a href="#dates-take-styles-too">Dates take styles too</a></li><li><a href="#borders">Borders</a></li><li><a href="#conditional-formatting-without-a-style-per-cell">Conditional formatting without a style per cell</a></li></ul>
+  </aside>
+</div>
+<script src="../../assets/docs.js" defer></script>
+</body>
+</html>

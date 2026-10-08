@@ -38,6 +38,7 @@ exports[`'exceljs-report.xlsx' > matches the recorded parse of the file 1`] = `
             "value": "Date",
           },
         ],
+        ,
         [
           {
             "columnIndex": 0,
@@ -65,6 +66,7 @@ exports[`'exceljs-report.xlsx' > matches the recorded parse of the file 1`] = `
             ],
           },
         ],
+        ,
         [
           {
             "columnIndex": 0,
@@ -82,6 +84,7 @@ exports[`'exceljs-report.xlsx' > matches the recorded parse of the file 1`] = `
             "value": 1200.5,
           },
         ],
+        ,
         [
           {
             "columnIndex": 0,
@@ -144,7 +147,6 @@ exports[`'exceljs-report.xlsx' > matches the recorded parse of the file 1`] = `
           "allowBlank": true,
           "formula1": "1",
           "formula2": "10000",
-          "options": "1",
           "range": "B3",
           "type": "whole",
         },
@@ -208,6 +210,7 @@ exports[`'hucre-report.xlsx' > matches the recorded parse of the file 1`] = `
             "value": "Date",
           },
         ],
+        ,
         [
           {
             "columnIndex": 0,
@@ -235,6 +238,7 @@ exports[`'hucre-report.xlsx' > matches the recorded parse of the file 1`] = `
             ],
           },
         ],
+        ,
         [
           {
             "columnIndex": 0,
@@ -252,6 +256,7 @@ exports[`'hucre-report.xlsx' > matches the recorded parse of the file 1`] = `
             "value": null,
           },
         ],
+        ,
         [
           {
             "columnIndex": 0,
@@ -356,6 +361,7 @@ exports[`'sheetjs-report.xlsx' > matches the recorded parse of the file 1`] = `
             "value": "Date",
           },
         ],
+        ,
         [
           {
             "columnIndex": 0,
@@ -377,12 +383,13 @@ exports[`'sheetjs-report.xlsx' > matches the recorded parse of the file 1`] = `
             "rowIndex": 2,
             "type": "date",
             "value": [
-              1905,
-              7,
-              16,
+              2024,
+              2,
+              29,
             ],
           },
         ],
+        ,
         [
           {
             "columnIndex": 0,
@@ -400,6 +407,7 @@ exports[`'sheetjs-report.xlsx' > matches the recorded parse of the file 1`] = `
             "value": 1200.5,
           },
         ],
+        ,
         [
           {
             "columnIndex": 0,
