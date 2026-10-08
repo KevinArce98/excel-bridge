@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Primeros pasos | excel-bridge docs</title>
+<meta name="description" content="Instala excel-bridge, escribe un .xlsx con estilos y léelo de vuelta, en el navegador y en Node.js." />
+<link rel="canonical" href="https://kevinarce98.github.io/excel-bridge/es/getting-started/" />
+<link rel="alternate" hreflang="en" href="https://kevinarce98.github.io/excel-bridge/getting-started/" />
+<link rel="alternate" hreflang="es" href="https://kevinarce98.github.io/excel-bridge/es/getting-started/" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="Primeros pasos | excel-bridge docs" />
+<meta property="og:description" content="Instala excel-bridge, escribe un .xlsx con estilos y léelo de vuelta, en el navegador y en Node.js." />
+<meta property="og:url" content="https://kevinarce98.github.io/excel-bridge/es/getting-started/" />
+<meta name="theme-color" content="#0f172a" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231B2336'/%3E%3Crect x='5' y='6' width='22' height='6' rx='2' fill='%2322C55E'/%3E%3Crect x='5' y='15' width='9' height='4' rx='1.5' fill='%23334155'/%3E%3Crect x='18' y='15' width='9' height='4' rx='1.5' fill='%23334155'/%3E%3Crect x='5' y='22' width='9' height='4' rx='1.5' fill='%23334155'/%3E%3Crect x='18' y='22' width='9' height='4' rx='1.5' fill='%2322C55E' fill-opacity='0.5'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../../assets/docs.css" />
+</head>
+<body>
+<a class="skip" href="#content">Saltar al contenido</a>
+<header class="waybill">
+  <div class="waybill-in">
+    <a class="wordmark" href="../../" aria-label="excel-bridge"><svg class="mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><rect width="32" height="32" rx="7" fill="#1B2336"/><rect x="5" y="6" width="22" height="6" rx="2" fill="#22C55E"/><rect x="5" y="15" width="9" height="4" rx="1.5" fill="#334155"/><rect x="18" y="15" width="9" height="4" rx="1.5" fill="#334155"/><rect x="5" y="22" width="9" height="4" rx="1.5" fill="#334155"/><rect x="18" y="22" width="9" height="4" rx="1.5" fill="#22C55E" fill-opacity="0.5"/></svg><span><span class="w-excel">excel</span><span class="w-dash">-</span><span class="w-bridge">bridge</span></span></a>
+    <span class="field"><span class="field-caption">Docs</span><span class="field-value">2.x</span></span>
+    <nav class="top-links" aria-label="Sitio">
+      <a href="../../#pack">Probar</a>
+      <a href="https://github.com/KevinArce98/excel-bridge" rel="noopener">GitHub</a>
+      <a href="https://www.npmjs.com/package/excel-bridge" rel="noopener">npm</a>
+    </nav>
+    <div class="lang" role="group" aria-label="Idioma"><a href="../../getting-started/" hreflang="en" lang="en" aria-label="English">EN</a><span class="lang-current" aria-current="true" lang="es">ES</span></div>
+  </div>
+</header>
+<div class="shell">
+  <nav class="rail" aria-label="Docs">
+    <details class="rail-fold" open>
+      <summary>Contenido</summary>
+      <section><p class="rail-group">Inicio</p><ul><li><a href="../../es/getting-started/" aria-current="page">Primeros pasos</a></li></ul></section>
+<section><p class="rail-group">Guía</p><ul><li><a href="../../es/guide/values/">Escribe valores y fórmulas</a></li><li><a href="../../es/guide/styling/">Da estilo a las celdas</a></li><li><a href="../../es/guide/layout/">Define el diseño de las hojas</a></li><li><a href="../../es/guide/rules/">Agrega reglas</a></li><li><a href="../../es/guide/reading/">Lee un libro</a></li><li><a href="../../es/guide/objects/">Filas como objetos</a></li><li><a href="../../es/guide/workbook/">Edita un libro</a></li><li><a href="../../es/guide/streaming/">Exporta archivos grandes con streaming</a></li><li><a href="../../es/guide/errors/">Maneja errores y límites</a></li></ul></section>
+<section><p class="rail-group">Referencia</p><ul><li><a href="../../es/api/">Referencia de la API</a></li><li><a href="../../es/performance/">Rendimiento y tamaño</a></li><li><a href="../../es/limitations/">Límites y alternativas</a></li><li><a href="../../es/upgrading/">Actualización</a></li><li><a href="../../es/security/">Seguridad</a></li></ul></section>
+    </details>
+  </nav>
+  <main id="content" class="sheet">
+    <div class="sheet-rule" aria-hidden="true"></div>
+    <article class="prose">
+<h1 id="primeros-pasos">Primeros pasos</h1>
+<p>Escribe una hoja de cálculo con estilos y léela de vuelta, en el navegador o en Node.js, con un solo paquete pequeño. Importa una clase y tu empaquetador incluye solo esa parte: el escritor suma 12.8 KB min+gzip.</p>
+<h2 id="instalacion">Instalación<a class="anchor" href="#instalacion" aria-label="Instalación">#</a></h2>
+<figure class="code" data-tab="npm"><figcaption><span class="code-name">BASH</span><button type="button" class="copy" data-copy="Copiar" data-copied="Copiado">Copiar</button></figcaption><pre tabindex="0"><code><span class="tk-k">npm</span> install excel-bridge</code></pre></figure>
+<figure class="code" data-tab="pnpm"><figcaption><span class="code-name">BASH</span><button type="button" class="copy" data-copy="Copiar" data-copied="Copiado">Copiar</button></figcaption><pre tabindex="0"><code><span class="tk-k">pnpm</span> add excel-bridge</code></pre></figure>
+<figure class="code" data-tab="yarn"><figcaption><span class="code-name">BASH</span><button type="button" class="copy" data-copy="Copiar" data-copied="Copiado">Copiar</button></figcaption><pre tabindex="0"><code><span class="tk-k">yarn</span> add excel-bridge</code></pre></figure>
+<figure class="code" data-tab="bun"><figcaption><span class="code-name">BASH</span><button type="button" class="copy" data-copy="Copiar" data-copied="Copiado">Copiar</button></figcaption><pre tabindex="0"><code><span class="tk-k">bun</span> add excel-bridge</code></pre></figure>
+<p>excel-bridge necesita Node.js 20.19, 22.13 o 24 y posteriores, o un navegador moderno. Está escrito en TypeScript e incluye compilaciones ESM y CommonJS con tipos.</p>
+<h2 id="escribir-un-libro">Escribir un libro<a class="anchor" href="#escribir-un-libro" aria-label="Escribir un libro">#</a></h2>
+<p>Cada hoja es un objeto con <code>data</code> y, de forma opcional, <code>styles</code> y <code>options</code>. Los estilos usan como clave <code>&quot;&lt;row&gt;-&lt;col&gt;&quot;</code>, con índices que empiezan en cero.</p>
+<figure class="code"><figcaption><span class="code-name">write.ts</span><button type="button" class="copy" data-copy="Copiar" data-copied="Copiado">Copiar</button></figcaption><pre tabindex="0"><code><span class="tk-k">import</span> fs <span class="tk-k">from</span> <span class="tk-s">'node:fs'</span>;
+<span class="tk-k">import</span> { <span class="tk-t">ExcelWriter</span> } <span class="tk-k">from</span> <span class="tk-s">'excel-bridge'</span>;
+
+<span class="tk-k">const</span> header = { bold: <span class="tk-k">true</span>, background: <span class="tk-s">'#4472C4'</span>, color: <span class="tk-s">'#FFFFFF'</span> };
+
+<span class="tk-k">const</span> sheet = {
+  data: [
+    ['<span class="tk-t">Name</span><span class="tk-s">', '</span><span class="tk-t">Age</span><span class="tk-s">', '</span><span class="tk-t">City</span>'],
+    ['<span class="tk-t">John</span><span class="tk-s">', 25, '</span><span class="tk-t">New</span> <span class="tk-t">York</span>'],
+    ['<span class="tk-t">Jane</span><span class="tk-s">', 30, '</span><span class="tk-t">Los</span> <span class="tk-t">Angeles</span>'],
+  ],
+  styles: { <span class="tk-s">'0-0'</span>: header, <span class="tk-s">'0-1'</span>: header, <span class="tk-s">'0-2'</span>: header },
+  options: { name: <span class="tk-s">'People'</span>, freezePane: { row: <span class="tk-n">1</span> }, autoWidth: <span class="tk-k">true</span> },
+};
+
+<span class="tk-k">const</span> writer = <span class="tk-k">new</span> <span class="tk-t">ExcelWriter</span>();
+
+fs.writeFileSync('people.xlsx', writer.createWorkbookBuffer([sheet]));</code></pre></figure>
+<p>En el navegador, <code>createWorkbook([sheet])</code> devuelve un <code>Blob</code>. Pásalo a <code>downloadXlsx(blob, 'people')</code> para iniciar la descarga.</p>
+<aside class="callout callout-note"><p class="callout-name">Nota</p><p><code>createWorkbookBuffer</code> devuelve un <code>Uint8Array</code> simple, no un <code>Buffer</code>. Express 4 necesita <code>res.send(Buffer.from(bytes))</code>.</p>
+</aside>
+<h2 id="leerlo-de-vuelta">Leerlo de vuelta<a class="anchor" href="#leerlo-de-vuelta" aria-label="Leerlo de vuelta">#</a></h2>
+<figure class="code"><figcaption><span class="code-name">read.ts</span><button type="button" class="copy" data-copy="Copiar" data-copied="Copiado">Copiar</button></figcaption><pre tabindex="0"><code><span class="tk-k">import</span> fs <span class="tk-k">from</span> <span class="tk-s">'node:fs'</span>;
+<span class="tk-k">import</span> { <span class="tk-t">ExcelReader</span> } <span class="tk-k">from</span> <span class="tk-s">'excel-bridge'</span>;
+
+<span class="tk-k">const</span> workbook = <span class="tk-k">new</span> <span class="tk-t">ExcelReader</span>().parseFromBuffer(fs.readFileSync('people.xlsx'));
+
+workbook.sheets[<span class="tk-n">0</span>].data.forEach(row =&gt; {
+  row.forEach(cell =&gt; console.log(cell.coordinate, cell.<span class="tk-k">type</span>, cell.value));
+});</code></pre></figure>
+<p>Cada celda lleva su <code>type</code>. Las fechas vuelven como <code>Date</code>, y una celda con fórmula guarda su fórmula en <code>formula</code>. En el navegador, <code>await reader.parseFromFile(file)</code> recibe el <code>File</code> de un <code>&lt;input type=&quot;file&quot;&gt;</code>.</p>
+<h2 id="editar-un-archivo">Editar un archivo<a class="anchor" href="#editar-un-archivo" aria-label="Editar un archivo">#</a></h2>
+<p><code>Workbook</code> carga un archivo, te permite modificarlo y lo guarda de nuevo.</p>
+<figure class="code"><figcaption><span class="code-name">edit.ts</span><button type="button" class="copy" data-copy="Copiar" data-copied="Copiado">Copiar</button></figcaption><pre tabindex="0"><code><span class="tk-k">import</span> fs <span class="tk-k">from</span> <span class="tk-s">'node:fs'</span>;
+<span class="tk-k">import</span> { <span class="tk-t">Workbook</span> } <span class="tk-k">from</span> <span class="tk-s">'excel-bridge'</span>;
+
+<span class="tk-k">const</span> workbook = <span class="tk-t">Workbook</span>.fromBuffer(fs.readFileSync('people.xlsx'));
+workbook.setCellValue('<span class="tk-t">People</span>', <span class="tk-n">1</span>, <span class="tk-n">1</span>, <span class="tk-n">26</span>);
+fs.writeFileSync('people.xlsx', workbook.toBuffer());</code></pre></figure>
+<aside class="callout callout-limit"><p class="callout-name">Límite</p><p><code>Workbook</code> reconstruye el archivo a partir de lo que modela, así que las imágenes, los gráficos y los comentarios de un archivo cargado se descartan. Consulta <a href="../guide/workbook/">Edita un libro</a>.</p>
+</aside>
+<h2 id="siguientes-pasos">Siguientes pasos<a class="anchor" href="#siguientes-pasos" aria-label="Siguientes pasos">#</a></h2>
+<ul>
+<li><a href="../guide/values/">Escribe valores y fórmulas</a>: qué puede contener una celda y cómo escribir una fórmula.</li>
+<li><a href="../guide/styling/">Da estilo a las celdas</a> y <a href="../guide/layout/">Define el diseño de las hojas</a>: bordes, anchos, celdas combinadas, filtros.</li>
+<li><a href="../guide/reading/">Lee un libro</a> y <a href="../guide/objects/">Filas como objetos</a>: celdas con tipo y filas con tipo.</li>
+<li><a href="../guide/streaming/">Exporta archivos grandes con streaming</a>: archivos de un millón de filas y entrega de archivos.</li>
+<li><a href="../api/">Referencia de la API</a> y <a href="../upgrading/">Actualización</a>.</li>
+</ul>
+
+    </article>
+    <nav class="stubs" aria-label="Anterior y siguiente"><span></span><a class="stub stub-next" href="../../es/guide/values/"><span class="field-caption">Siguiente</span><span class="stub-title">Escribe valores y fórmulas</span></a></nav>
+    <p class="doc-foot"><a href="https://github.com/KevinArce98/excel-bridge/edit/main/docs-src/es/getting-started.md" rel="noopener">Editar esta página</a> · Licencia MIT · Microsoft Excel es una marca de Microsoft; este proyecto no está afiliado a Microsoft.</p>
+  </main>
+  <aside class="toc" aria-label="En esta página">
+    <p class="field-caption">En esta página</p>
+    <ul><li><a href="#instalacion">Instalación</a></li><li><a href="#escribir-un-libro">Escribir un libro</a></li><li><a href="#leerlo-de-vuelta">Leerlo de vuelta</a></li><li><a href="#editar-un-archivo">Editar un archivo</a></li><li><a href="#siguientes-pasos">Siguientes pasos</a></li></ul>
+  </aside>
+</div>
+<script src="../../assets/docs.js" defer></script>
+</body>
+</html>

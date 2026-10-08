@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Rendimiento y tamaño | excel-bridge docs</title>
+<meta name="description" content="El tamaño del paquete de cada punto de entrada junto a otras bibliotecas, la velocidad de escritura y de lectura, y cómo se midió cada número." />
+<link rel="canonical" href="https://kevinarce98.github.io/excel-bridge/es/performance/" />
+<link rel="alternate" hreflang="en" href="https://kevinarce98.github.io/excel-bridge/performance/" />
+<link rel="alternate" hreflang="es" href="https://kevinarce98.github.io/excel-bridge/es/performance/" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="Rendimiento y tamaño | excel-bridge docs" />
+<meta property="og:description" content="El tamaño del paquete de cada punto de entrada junto a otras bibliotecas, la velocidad de escritura y de lectura, y cómo se midió cada número." />
+<meta property="og:url" content="https://kevinarce98.github.io/excel-bridge/es/performance/" />
+<meta name="theme-color" content="#0f172a" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231B2336'/%3E%3Crect x='5' y='6' width='22' height='6' rx='2' fill='%2322C55E'/%3E%3Crect x='5' y='15' width='9' height='4' rx='1.5' fill='%23334155'/%3E%3Crect x='18' y='15' width='9' height='4' rx='1.5' fill='%23334155'/%3E%3Crect x='5' y='22' width='9' height='4' rx='1.5' fill='%23334155'/%3E%3Crect x='18' y='22' width='9' height='4' rx='1.5' fill='%2322C55E' fill-opacity='0.5'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../../assets/docs.css" />
+</head>
+<body>
+<a class="skip" href="#content">Saltar al contenido</a>
+<header class="waybill">
+  <div class="waybill-in">
+    <a class="wordmark" href="../../" aria-label="excel-bridge"><svg class="mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><rect width="32" height="32" rx="7" fill="#1B2336"/><rect x="5" y="6" width="22" height="6" rx="2" fill="#22C55E"/><rect x="5" y="15" width="9" height="4" rx="1.5" fill="#334155"/><rect x="18" y="15" width="9" height="4" rx="1.5" fill="#334155"/><rect x="5" y="22" width="9" height="4" rx="1.5" fill="#334155"/><rect x="18" y="22" width="9" height="4" rx="1.5" fill="#22C55E" fill-opacity="0.5"/></svg><span><span class="w-excel">excel</span><span class="w-dash">-</span><span class="w-bridge">bridge</span></span></a>
+    <span class="field"><span class="field-caption">Docs</span><span class="field-value">2.x</span></span>
+    <nav class="top-links" aria-label="Sitio">
+      <a href="../../#pack">Probar</a>
+      <a href="https://github.com/KevinArce98/excel-bridge" rel="noopener">GitHub</a>
+      <a href="https://www.npmjs.com/package/excel-bridge" rel="noopener">npm</a>
+    </nav>
+    <div class="lang" role="group" aria-label="Idioma"><a href="../../performance/" hreflang="en" lang="en" aria-label="English">EN</a><span class="lang-current" aria-current="true" lang="es">ES</span></div>
+  </div>
+</header>
+<div class="shell">
+  <nav class="rail" aria-label="Docs">
+    <details class="rail-fold" open>
+      <summary>Contenido</summary>
+      <section><p class="rail-group">Inicio</p><ul><li><a href="../../es/getting-started/">Primeros pasos</a></li></ul></section>
+<section><p class="rail-group">Guía</p><ul><li><a href="../../es/guide/values/">Escribe valores y fórmulas</a></li><li><a href="../../es/guide/styling/">Da estilo a las celdas</a></li><li><a href="../../es/guide/layout/">Define el diseño de las hojas</a></li><li><a href="../../es/guide/rules/">Agrega reglas</a></li><li><a href="../../es/guide/reading/">Lee un libro</a></li><li><a href="../../es/guide/objects/">Filas como objetos</a></li><li><a href="../../es/guide/workbook/">Edita un libro</a></li><li><a href="../../es/guide/streaming/">Exporta archivos grandes con streaming</a></li><li><a href="../../es/guide/errors/">Maneja errores y límites</a></li></ul></section>
+<section><p class="rail-group">Referencia</p><ul><li><a href="../../es/api/">Referencia de la API</a></li><li><a href="../../es/performance/" aria-current="page">Rendimiento y tamaño</a></li><li><a href="../../es/limitations/">Límites y alternativas</a></li><li><a href="../../es/upgrading/">Actualización</a></li><li><a href="../../es/security/">Seguridad</a></li></ul></section>
+    </details>
+  </nav>
+  <main id="content" class="sheet">
+    <div class="sheet-rule" aria-hidden="true"></div>
+    <article class="prose">
+<h1 id="rendimiento-y-tamano">Rendimiento y tamaño</h1>
+<p>Cada número de esta página sale de un script del repositorio, y el método está junto a él. Ejecuta los scripts para comprobarlos en tu propia máquina.</p>
+<h2 id="tamano-del-paquete">Tamaño del paquete<a class="anchor" href="#tamano-del-paquete" aria-label="Tamaño del paquete">#</a></h2>
+<p>Los empaquetadores conservan las exportaciones que importas y descartan el resto. Esto es lo que suma cada punto de entrada a un paquete para navegador:</p>
+<div class="table-scroll" role="region" tabindex="0" aria-label="Tamaño del paquete"><table><thead><tr><th scope="col">Importar desde <code>excel-bridge</code></th><th scope="col" class="a-right">min+gzip</th></tr></thead><tbody>
+<tr><td data-label="Importar desde `excel-bridge`"><code>createExcelWorkbookStream</code></td><td class="a-right" data-label="min+gzip">12.3 KB</td></tr>
+<tr><td data-label="Importar desde `excel-bridge`"><code>ExcelWriter</code></td><td class="a-right" data-label="min+gzip">12.8 KB</td></tr>
+<tr><td data-label="Importar desde `excel-bridge`"><code>ExcelReader</code></td><td class="a-right" data-label="min+gzip">9.5 KB</td></tr>
+<tr><td data-label="Importar desde `excel-bridge`"><code>Workbook</code> (lector + escritor)</td><td class="a-right" data-label="min+gzip">21.5 KB</td></tr>
+<tr><td data-label="Importar desde `excel-bridge`"><code>ExcelBridge</code> (objeto de conveniencia)</td><td class="a-right" data-label="min+gzip">21.6 KB</td></tr>
+<tr><td data-label="Importar desde `excel-bridge`">Todo</td><td class="a-right" data-label="min+gzip">25.1 KB</td></tr>
+</tbody></table></div>
+<p>La misma medición para otras bibliotecas (2026-10-07):</p>
+<div class="table-scroll" role="region" tabindex="0" aria-label="Tamaño del paquete"><table><thead><tr><th scope="col">Biblioteca</th><th scope="col">Importación</th><th scope="col" class="a-right">min+gzip</th></tr></thead><tbody>
+<tr><td data-label="Biblioteca">hucre 1.2.0</td><td data-label="Importación"><code>writeXlsx</code></td><td class="a-right" data-label="min+gzip">41.6 KB</td></tr>
+<tr><td data-label="Biblioteca">hucre 1.2.0</td><td data-label="Importación"><code>readXlsx</code></td><td class="a-right" data-label="min+gzip">41.1 KB</td></tr>
+<tr><td data-label="Biblioteca">hucre 1.2.0</td><td data-label="Importación"><code>XlsxStreamWriter</code> (desde <code>hucre/xlsx</code>)</td><td class="a-right" data-label="min+gzip">12.1 KB</td></tr>
+<tr><td data-label="Biblioteca">hucre 1.2.0</td><td data-label="Importación"><code>streamXlsxRows</code> (desde <code>hucre/xlsx</code>)</td><td class="a-right" data-label="min+gzip">17.4 KB</td></tr>
+<tr><td data-label="Biblioteca">@mitresthen/excelents 1.0.1</td><td data-label="Importación">toda la entrada principal, lector y escritor</td><td class="a-right" data-label="min+gzip">12.2 KB</td></tr>
+<tr><td data-label="Biblioteca">read-excel-file 9.3.10</td><td data-label="Importación"><code>read-excel-file/browser</code>, solo lectura</td><td class="a-right" data-label="min+gzip">16.7 KB</td></tr>
+<tr><td data-label="Biblioteca">write-excel-file 4.1.1</td><td data-label="Importación"><code>write-excel-file/universal</code>, solo escritura</td><td class="a-right" data-label="min+gzip">19.8 KB</td></tr>
+<tr><td data-label="Biblioteca">SheetJS (<code>xlsx</code> 0.18.5 en npm)</td><td data-label="Importación"><code>utils</code> + <code>write</code></td><td class="a-right" data-label="min+gzip">95.8 KB</td></tr>
+<tr><td data-label="Biblioteca">ExcelJS 4.4.0</td><td data-label="Importación">compilación de navegador predeterminada, no admite tree-shaking</td><td class="a-right" data-label="min+gzip">272.1 KB</td></tr>
+</tbody></table></div>
+<p><strong>excel-bridge no es el más pequeño en cada fila.</strong> <code>ExcelWriter</code> escribe estilos, bordes, formato condicional, validación de datos, autofiltros e hipervínculos en 12.8 KB. Algunas bibliotecas son más pequeñas para una sola tarea, o renuncian a una función para lograrlo: la entrada de <code>excelents</code> no tiene formato condicional en 1.0.1, y lee y escribe en menos espacio que todo excel-bridge. Compara lo que obtienes por los bytes, no solo los bytes.</p>
+<p>El tree-shaking usa la compilación ESM, que los empaquetadores eligen para <code>import</code>. <code>require('excel-bridge')</code> carga la compilación CommonJS completa. <code>ExcelBridge</code> pesa 21.6 KB frente a 12.8 KB de <code>ExcelWriter</code>, porque los empaquetadores conservan un objeto completo: incluso una sola llamada a <code>ExcelBridge.write</code> incluye también el lector.</p>
+<p><strong>Cómo se midieron estos números</strong></p>
+<ul>
+<li><strong>Herramientas:</strong> esbuild 0.28.2 (<code>--bundle --minify --platform=browser --format=esm</code>). Las filas de excel-bridge se midieron el 2026-10-08 y las de las demás bibliotecas el 2026-10-07.</li>
+<li><strong>Entrada:</strong> cada fila empaqueta un archivo de una línea <code>export { … } from '&lt;package&gt;'</code> y luego comprime la salida con gzip mediante zlib de Node en el nivel predeterminado. 1 KB = 1,000 bytes.</li>
+<li><strong>Fuentes:</strong> las filas de excel-bridge salen de la compilación de este repositorio. Las demás bibliotecas se instalaron en un directorio temporal.</li>
+<li><strong>Margen:</strong> las implementaciones de gzip difieren en cerca de 1%. El <code>gzip</code> de macOS da un resultado un poco más pequeño.</li>
+<li><strong>No medido:</strong> las compilaciones más recientes de SheetJS Community Edition, que se distribuyen desde el CDN de SheetJS.</li>
+<li><strong>Reproducir:</strong> ejecuta <code>pnpm run size</code>. CI ejecuta <code>pnpm run size:check</code>, que falla cuando una fila de excel-bridge se aleja más de 100 bytes del tamaño medido.</li>
+</ul>
+<h2 id="como-se-compara">Cómo se compara<a class="anchor" href="#como-se-compara" aria-label="Cómo se compara">#</a></h2>
+<div class="table-scroll" role="region" tabindex="0" aria-label="Cómo se compara"><table><thead><tr><th scope="col"></th><th scope="col" class="a-center"><strong>excel-bridge</strong></th><th scope="col" class="a-center">ExcelJS</th><th scope="col" class="a-center">SheetJS (<code>xlsx</code> de la comunidad)</th></tr></thead><tbody>
+<tr><td data-label="">Leer <code>.xlsx</code></td><td class="a-center" data-label="**excel-bridge**">✅</td><td class="a-center" data-label="ExcelJS">✅</td><td class="a-center" data-label="SheetJS (`xlsx` de la comunidad)">✅</td></tr>
+<tr><td data-label="">Escribir <code>.xlsx</code></td><td class="a-center" data-label="**excel-bridge**">✅</td><td class="a-center" data-label="ExcelJS">✅</td><td class="a-center" data-label="SheetJS (`xlsx` de la comunidad)">✅</td></tr>
+<tr><td data-label="">Estilos de celda (color, fuente, bordes por lado)</td><td class="a-center" data-label="**excel-bridge**">✅</td><td class="a-center" data-label="ExcelJS">✅</td><td class="a-center" data-label="SheetJS (`xlsx` de la comunidad)">⚠️ Edición Pro</td></tr>
+<tr><td data-label="">Formato condicional</td><td class="a-center" data-label="**excel-bridge**">✅</td><td class="a-center" data-label="ExcelJS">✅</td><td class="a-center" data-label="SheetJS (`xlsx` de la comunidad)">⚠️ Edición Pro</td></tr>
+<tr><td data-label="">Fórmulas</td><td class="a-center" data-label="**excel-bridge**">✅</td><td class="a-center" data-label="ExcelJS">✅</td><td class="a-center" data-label="SheetJS (`xlsx` de la comunidad)">✅</td></tr>
+<tr><td data-label="">Celdas combinadas</td><td class="a-center" data-label="**excel-bridge**">✅</td><td class="a-center" data-label="ExcelJS">✅</td><td class="a-center" data-label="SheetJS (`xlsx` de la comunidad)">✅</td></tr>
+<tr><td data-label="">Paneles inmovilizados</td><td class="a-center" data-label="**excel-bridge**">✅</td><td class="a-center" data-label="ExcelJS">✅</td><td class="a-center" data-label="SheetJS (`xlsx` de la comunidad)">❌ no está en <code>xlsx</code> 0.18.5</td></tr>
+<tr><td data-label="">Escritor de streaming</td><td class="a-center" data-label="**excel-bridge**">✅</td><td class="a-center" data-label="ExcelJS">✅</td><td class="a-center" data-label="SheetJS (`xlsx` de la comunidad)">⚠️ Edición Pro</td></tr>
+<tr><td data-label="">Tipos de TypeScript de primera clase</td><td class="a-center" data-label="**excel-bridge**">✅</td><td class="a-center" data-label="ExcelJS">✅</td><td class="a-center" data-label="SheetJS (`xlsx` de la comunidad)">✅</td></tr>
+<tr><td data-label="">ESM <strong>y</strong> CJS, con tree-shaking</td><td class="a-center" data-label="**excel-bridge**">✅</td><td class="a-center" data-label="ExcelJS">⚠️ orientado a CJS</td><td class="a-center" data-label="SheetJS (`xlsx` de la comunidad)">✅</td></tr>
+<tr><td data-label="">Dependencias directas en tiempo de ejecución ²</td><td class="a-center" data-label="**excel-bridge**">1</td><td class="a-center" data-label="ExcelJS">9</td><td class="a-center" data-label="SheetJS (`xlsx` de la comunidad)">7</td></tr>
+<tr><td data-label="">Tamaño del paquete para escribir un archivo ¹</td><td class="a-center" data-label="**excel-bridge**"><strong>12.8 KB</strong></td><td class="a-center" data-label="ExcelJS">272.1 KB</td><td class="a-center" data-label="SheetJS (`xlsx` de la comunidad)">95.8 KB</td></tr>
+</tbody></table></div>
+<p>¹ Código minificado y comprimido con gzip que un paquete de navegador necesita para escribir un <code>.xlsx</code>: <code>ExcelWriter</code>, la compilación de navegador predeterminada de ExcelJS (no admite tree-shaking) y <code>utils</code> + <code>write</code> de SheetJS, de <code>xlsx@0.18.5</code> en npm, empaquetados con esbuild. Bundlephobia mide cada paquete completo con su propia cadena de herramientas, así que sus números difieren: <a href="https://bundlephobia.com/package/excel-bridge" rel="noopener">excel-bridge</a>, <a href="https://bundlephobia.com/package/exceljs" rel="noopener">exceljs</a> y <a href="https://bundlephobia.com/package/xlsx" rel="noopener">xlsx</a>.</p>
+<p>² Declaradas en el <code>package.json</code> de cada una (<code>exceljs@4.4.0</code>, <code>xlsx@0.18.5</code> en npm), comprobadas el 2026-10-07. <code>xlsx@0.18.5</code> es la última versión publicada en npm y tiene avisos de seguridad conocidos.</p>
+<h2 id="velocidad-de-escritura">Velocidad de escritura<a class="anchor" href="#velocidad-de-escritura" aria-label="Velocidad de escritura">#</a></h2>
+<p>Escribir 50,000 filas × 10 columnas (Node 24.19, Apple M4, 2026-10-08). Cada tiempo es la mediana de 5 ejecuciones dentro de una invocación, tomada sobre tres invocaciones:</p>
+<div class="table-scroll" role="region" tabindex="0" aria-label="Velocidad de escritura"><table><thead><tr><th scope="col">Biblioteca</th><th scope="col" class="a-right">Tiempo de escritura</th><th scope="col" class="a-right">Tamaño de salida</th></tr></thead><tbody>
+<tr><td data-label="Biblioteca"><strong>excel-bridge</strong></td><td class="a-right" data-label="Tiempo de escritura"><strong>560 ms</strong></td><td class="a-right" data-label="Tamaño de salida"><strong>2.41 MiB</strong></td></tr>
+<tr><td data-label="Biblioteca">excel-bridge (streaming)</td><td class="a-right" data-label="Tiempo de escritura">580 ms</td><td class="a-right" data-label="Tamaño de salida">2.48 MiB</td></tr>
+<tr><td data-label="Biblioteca">hucre</td><td class="a-right" data-label="Tiempo de escritura">390 ms</td><td class="a-right" data-label="Tamaño de salida">2.79 MiB</td></tr>
+<tr><td data-label="Biblioteca">xlsx / SheetJS (predeterminado, sin compresión)</td><td class="a-right" data-label="Tiempo de escritura">510 ms</td><td class="a-right" data-label="Tamaño de salida">18.23 MiB</td></tr>
+<tr><td data-label="Biblioteca">xlsx / SheetJS (<code>compression: true</code>)</td><td class="a-right" data-label="Tiempo de escritura">580 ms</td><td class="a-right" data-label="Tamaño de salida">6.26 MiB</td></tr>
+<tr><td data-label="Biblioteca">exceljs</td><td class="a-right" data-label="Tiempo de escritura">1430 ms</td><td class="a-right" data-label="Tamaño de salida">2.82 MiB</td></tr>
+</tbody></table></div>
+<ul>
+<li><strong>Frente a ExcelJS:</strong> alrededor de 2.6× más rápido.</li>
+<li><strong>Frente a hucre:</strong> hucre escribe esta carga de trabajo más rápido, en unos 390 ms.</li>
+<li><strong>Frente a SheetJS:</strong> un tiempo similar, 510 ms con su salida predeterminada sin comprimir y 580 ms con <code>compression: true</code>. Su archivo es unas 7.5× más grande de forma predeterminada y unas 2.6× más grande con compresión.</li>
+</ul>
+<p>Los tiempos varían 10% o más entre ejecuciones y según la máquina, y las proporciones se mantienen mejor que los tiempos absolutos. Reprodúcelos con <code>pnpm run bench</code> tras instalar las otras bibliotecas (consulta el README de benchmarks).</p>
+<h2 id="velocidad-de-lectura">Velocidad de lectura<a class="anchor" href="#velocidad-de-lectura" aria-label="Velocidad de lectura">#</a></h2>
+<p>Lectura de un archivo que escribió excel-bridge, de 50,000 filas × 10 columnas y de 200,000 filas × 10 columnas (Node 24.19, Apple M4, 2026-10-08, mediana de 7 y 3 ejecuciones):</p>
+<div class="table-scroll" role="region" tabindex="0" aria-label="Velocidad de lectura"><table><thead><tr><th scope="col">Archivo</th><th scope="col" class="a-right">1.6.0</th><th scope="col" class="a-right">2.0</th><th scope="col" class="a-right">Pico de memoria 1.6.0</th><th scope="col" class="a-right">Pico de memoria 2.0</th></tr></thead><tbody>
+<tr><td data-label="Archivo">50,000 × 10</td><td class="a-right" data-label="1.6.0">1503 ms</td><td class="a-right" data-label="2.0">270 ms</td><td class="a-right" data-label="Pico de memoria 1.6.0">859 MiB</td><td class="a-right" data-label="Pico de memoria 2.0">451 MiB</td></tr>
+<tr><td data-label="Archivo">200,000 × 10</td><td class="a-right" data-label="1.6.0">6521 ms</td><td class="a-right" data-label="2.0">1435 ms</td><td class="a-right" data-label="Pico de memoria 1.6.0">2679 MiB</td><td class="a-right" data-label="Pico de memoria 2.0">1611 MiB</td></tr>
+</tbody></table></div>
+<p>La versión 2.0 lee entre 4.5 y 5.6 veces más rápido y alcanza un pico de entre la mitad y dos tercios de la memoria. El lector analiza el XML con su propio tokenizador pequeño en lugar de un analizador de uso general, y esa es también la razón por la que <code>ExcelReader</code> pasó de 28.7 a 9.5 KB.</p>
+<p>El pico de memoria es el del proceso del benchmark, que también construye el archivo que se lee. El lector mantiene todo el archivo en memoria y no tiene modo de streaming. Reproduce las cifras con <code>node --expose-gc benchmarks/bench-read.mjs</code>.</p>
+
+    </article>
+    <nav class="stubs" aria-label="Anterior y siguiente"><a class="stub stub-prev" href="../../es/api/"><span class="field-caption">Anterior</span><span class="stub-title">Referencia de la API</span></a><a class="stub stub-next" href="../../es/limitations/"><span class="field-caption">Siguiente</span><span class="stub-title">Límites y alternativas</span></a></nav>
+    <p class="doc-foot"><a href="https://github.com/KevinArce98/excel-bridge/edit/main/docs-src/es/performance.md" rel="noopener">Editar esta página</a> · Licencia MIT · Microsoft Excel es una marca de Microsoft; este proyecto no está afiliado a Microsoft.</p>
+  </main>
+  <aside class="toc" aria-label="En esta página">
+    <p class="field-caption">En esta página</p>
+    <ul><li><a href="#tamano-del-paquete">Tamaño del paquete</a></li><li><a href="#como-se-compara">Cómo se compara</a></li><li><a href="#velocidad-de-escritura">Velocidad de escritura</a></li><li><a href="#velocidad-de-lectura">Velocidad de lectura</a></li></ul>
+  </aside>
+</div>
+<script src="../../assets/docs.js" defer></script>
+</body>
+</html>

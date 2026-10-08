@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Upgrading | excel-bridge docs</title>
+<meta name="description" content="What changes between excel-bridge versions and what to do about it, from 1.x to 2.0 and earlier." />
+<link rel="canonical" href="https://kevinarce98.github.io/excel-bridge/upgrading/" />
+<link rel="alternate" hreflang="en" href="https://kevinarce98.github.io/excel-bridge/upgrading/" />
+<link rel="alternate" hreflang="es" href="https://kevinarce98.github.io/excel-bridge/es/upgrading/" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="Upgrading | excel-bridge docs" />
+<meta property="og:description" content="What changes between excel-bridge versions and what to do about it, from 1.x to 2.0 and earlier." />
+<meta property="og:url" content="https://kevinarce98.github.io/excel-bridge/upgrading/" />
+<meta name="theme-color" content="#0f172a" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231B2336'/%3E%3Crect x='5' y='6' width='22' height='6' rx='2' fill='%2322C55E'/%3E%3Crect x='5' y='15' width='9' height='4' rx='1.5' fill='%23334155'/%3E%3Crect x='18' y='15' width='9' height='4' rx='1.5' fill='%23334155'/%3E%3Crect x='5' y='22' width='9' height='4' rx='1.5' fill='%23334155'/%3E%3Crect x='18' y='22' width='9' height='4' rx='1.5' fill='%2322C55E' fill-opacity='0.5'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../assets/docs.css" />
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+<header class="waybill">
+  <div class="waybill-in">
+    <a class="wordmark" href="../" aria-label="excel-bridge"><svg class="mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><rect width="32" height="32" rx="7" fill="#1B2336"/><rect x="5" y="6" width="22" height="6" rx="2" fill="#22C55E"/><rect x="5" y="15" width="9" height="4" rx="1.5" fill="#334155"/><rect x="18" y="15" width="9" height="4" rx="1.5" fill="#334155"/><rect x="5" y="22" width="9" height="4" rx="1.5" fill="#334155"/><rect x="18" y="22" width="9" height="4" rx="1.5" fill="#22C55E" fill-opacity="0.5"/></svg><span><span class="w-excel">excel</span><span class="w-dash">-</span><span class="w-bridge">bridge</span></span></a>
+    <span class="field"><span class="field-caption">Docs</span><span class="field-value">2.x</span></span>
+    <nav class="top-links" aria-label="Site">
+      <a href="../#pack">Try it</a>
+      <a href="https://github.com/KevinArce98/excel-bridge" rel="noopener">GitHub</a>
+      <a href="https://www.npmjs.com/package/excel-bridge" rel="noopener">npm</a>
+    </nav>
+    <div class="lang" role="group" aria-label="Language"><span class="lang-current" aria-current="true" lang="en">EN</span><a href="../es/upgrading/" hreflang="es" lang="es" aria-label="Español">ES</a></div>
+  </div>
+</header>
+<div class="shell">
+  <nav class="rail" aria-label="Docs">
+    <details class="rail-fold" open>
+      <summary>Contents</summary>
+      <section><p class="rail-group">Start</p><ul><li><a href="../getting-started/">Getting started</a></li></ul></section>
+<section><p class="rail-group">Guide</p><ul><li><a href="../guide/values/">Write values and formulas</a></li><li><a href="../guide/styling/">Style cells</a></li><li><a href="../guide/layout/">Lay out sheets</a></li><li><a href="../guide/rules/">Add rules</a></li><li><a href="../guide/reading/">Read a workbook</a></li><li><a href="../guide/objects/">Rows as objects</a></li><li><a href="../guide/workbook/">Edit a workbook</a></li><li><a href="../guide/streaming/">Stream big exports</a></li><li><a href="../guide/errors/">Handle errors and limits</a></li></ul></section>
+<section><p class="rail-group">Reference</p><ul><li><a href="../api/">API reference</a></li><li><a href="../performance/">Performance and size</a></li><li><a href="../limitations/">Limits and alternatives</a></li><li><a href="../upgrading/" aria-current="page">Upgrading</a></li><li><a href="../security/">Security</a></li></ul></section>
+    </details>
+  </nav>
+  <main id="content" class="sheet">
+    <div class="sheet-rule" aria-hidden="true"></div>
+    <article class="prose">
+<h1 id="upgrading">Upgrading</h1>
+<p>Notes for changes that can affect code written against an earlier version. The release notes list
+what changed; this file says what to do about it.</p>
+<h2 id="from-1x-to-20">From 1.x to 2.0<a class="anchor" href="#from-1x-to-20" aria-label="From 1.x to 2.0">#</a></h2>
+<p>Version 2.0 changes what a plain string means, what the reader and <code>Workbook</code> return, and what the package exports. Most code needs a search and a few edits. Do the first step on 1.6, before you upgrade.</p>
+<h3 id="before-you-upgrade-write-formulas-as-objects">Before you upgrade: write formulas as objects<a class="anchor" href="#before-you-upgrade-write-formulas-as-objects" aria-label="Before you upgrade: write formulas as objects">#</a></h3>
+<p>In 1.x a string that starts with <code>=</code> was written as a formula. In 2.0 it is text. The change fails silently: a cell that held <code>=SUM(A1:A3)</code> as a formula now shows those characters as text.</p>
+<div class="table-scroll" role="region" tabindex="0" aria-label="Before you upgrade: write formulas as objects"><table><thead><tr><th scope="col">You write</th><th scope="col">1.x</th><th scope="col">2.0</th></tr></thead><tbody>
+<tr><td data-label="You write"><code>'=SUM(A1:A3)'</code></td><td data-label="1.x">a formula</td><td data-label="2.0">the text <code>=SUM(A1:A3)</code></td></tr>
+<tr><td data-label="You write"><code>{ formula: 'SUM(A1:A3)' }</code></td><td data-label="1.x">a formula</td><td data-label="2.0">a formula, same bytes</td></tr>
+<tr><td data-label="You write"><code>{ formula: 'x', result: 4 }</code></td><td data-label="1.x">a formula with a stored value</td><td data-label="2.0">the same</td></tr>
+<tr><td data-label="You write"><code>{ text: '=SUM(A1:A3)' }</code></td><td data-label="1.x">text</td><td data-label="2.0">text, same bytes as the plain string</td></tr>
+</tbody></table></div>
+<p><code>{ formula }</code> and <code>{ text }</code> already exist in 1.6 and mean the same there, so you can migrate first and upgrade after. The files do not change.</p>
+<p>Find the strings with this ESLint rule:</p>
+<figure class="code"><figcaption><span class="code-name">JS</span><button type="button" class="copy" data-copy="Copy" data-copied="Copied">Copy</button></figcaption><pre tabindex="0"><code>{
+  rules: {
+    <span class="tk-s">'no-restricted-syntax'</span>: [
+      <span class="tk-s">'error'</span>,
+      {
+        selector: <span class="tk-s">'Literal[value=/^=/]:not(Property[key.name=&quot;text&quot;] &gt; Literal)'</span>,
+        message: <span class="tk-s">&quot;A string that starts with '=' is text in excel-bridge 2.0. Use { formula: '...' } for a formula.&quot;</span>,
+      },
+      {
+        selector: <span class="tk-s">'TemplateLiteral &gt; TemplateElement.quasis:first-child[value.raw=/^=/]'</span>,
+        message: <span class="tk-s">&quot;A string that starts with '=' is text in excel-bridge 2.0. Use { formula: '...' } for a formula.&quot;</span>,
+      },
+    ],
+  },
+}</code></pre></figure>
+<p>If formulas reach you as strings from a config file, a database or an API, convert them at the boundary. This turns formula injection back on for that data, so do it only for data you trust.</p>
+<figure class="code"><figcaption><span class="code-name">TS</span><button type="button" class="copy" data-copy="Copy" data-copied="Copied">Copy</button></figcaption><pre tabindex="0"><code><span class="tk-k">import</span> <span class="tk-k">type</span> { <span class="tk-t">CellValue</span> } <span class="tk-k">from</span> <span class="tk-s">'excel-bridge'</span>;
+
+<span class="tk-k">const</span> asFormulas = (rows: <span class="tk-t">CellValue</span>[][]): <span class="tk-t">CellValue</span>[][] =&gt;
+  rows.map(row =&gt;
+    row.map(cell =&gt;
+      <span class="tk-k">typeof</span> cell === <span class="tk-s">'string'</span> &amp;&amp; cell.startsWith('=') ? { formula: cell.slice(<span class="tk-n">1</span>) } : cell
+    )
+  );</code></pre></figure>
+<p>The benefit is that exporting user data can no longer create a formula by accident. Text such as <code>=== Summary ===</code> needs no wrapper any more.</p>
+<h3 id="writing">Writing<a class="anchor" href="#writing" aria-label="Writing">#</a></h3>
+<ul>
+<li><strong><code>CellValidation.options</code> is gone</strong>, in the rules you write and in <code>ParsedSheet.validations</code>. A list rule uses <code>formula1</code>. <code>dataValidation.list(range, values)</code> is unchanged for callers. A hand-written list needs <code>formula1: '&quot;a,b&quot;'</code>, and a list without <code>formula1</code> throws <code>Validation at A2:A5 needs formula1</code>. To read the values of an inline list: <code>rule.formula1?.match(/^&quot;(.*)&quot;$/s)?.[1].replace(/&quot;&quot;/g, '&quot;').split(',')</code>.</li>
+<li><strong><code>ExcelWriter.addValidation</code>, <code>addStyle</code>, <code>createSimple</code> and <code>createSimpleBuffer</code> are removed.</strong> Set <code>data[data.length - 1].validations</code> and <code>.styles</code> yourself, or use <code>dataValidation</code>, and use <code>createExcelFile</code> or <code>createExcelFileBuffer</code> for one sheet.</li>
+<li><strong><code>SheetLayout</code> is complete.</strong> It now holds <code>freezePane</code> and <code>columnWidths</code> as well as <code>rowHeights</code>, <code>hiddenRows</code> and <code>hiddenColumns</code>. <code>calculateColumnWidths</code> takes <code>CellValue[][]</code>.</li>
+</ul>
+<h3 id="reading">Reading<a class="anchor" href="#reading" aria-label="Reading">#</a></h3>
+<ul>
+<li><strong><code>ParsedCell</code> is a union on <code>type</code>.</strong> <code>cell.value</code> is no longer <code>any</code>. Narrow on <code>cell.type</code> and <code>value</code> has the right type. An <code>'error'</code> cell has <code>ExcelErrorValue | string</code>. A formula cell has the type and value of its stored result, and <code>formula</code> is absent or non-empty.</li>
+<li><strong><code>ParsedSheet.data</code> is indexed by row index.</strong> <code>data[4]</code> is row 5. A row that is not in the file is a hole, <code>data.length</code> is the last row plus one, and an empty <code>&lt;row&gt;</code> element is a hole too, so a round trip no longer adds rows. Use <code>forEach</code>, <code>Object.values</code> or <code>flat()</code>. A <code>for...of</code> yields <code>undefined</code> for a hole, spreading the array turns each hole into <code>undefined</code>, and <code>JSON.stringify</code> writes <code>null</code> for each one: a file whose only row is at index 1,000,000 produces over 5 million characters (5,000,090 for one numeric cell).</li>
+<li><strong>Rows and cells without an <code>r</code> attribute</strong> get the position after the previous one, so <code>rowIndex</code> is never <code>NaN</code>. Duplicate rows merge, and the later cell wins.</li>
+<li><strong>A shared-formula follower has no <code>formula</code>.</strong> It reads as its stored value, which <code>Workbook</code> saves as a plain value.</li>
+<li><strong><code>ParsedCellStyle</code> is replaced by <code>CellStyle</code>.</strong> A style read from a file can be written back as it is. <code>CellStyle</code> takes an optional type argument for the border, with a default, so existing uses keep working.</li>
+</ul>
+<h3 id="workbook">Workbook<a class="anchor" href="#workbook" aria-label="Workbook">#</a></h3>
+<ul>
+<li><strong><code>getCellValue</code> and <code>getSheetData</code> return what they load.</strong> A loaded formula is <code>{ formula, result? }</code> and a loaded error is <code>{ error }</code>. Text stays text, including text that starts with <code>=</code>. Code that compared a value with <code>'#N/A'</code> or printed <code>String(value)</code> for a formula cell now sees an object. <code>typeof value === 'object' &amp;&amp; value !== null &amp;&amp; 'formula' in value</code> narrows to a formula, and <code>'error' in value</code> to an error.</li>
+<li><strong>Stored formula results are kept.</strong> 1.6 dropped them on save. A result does not change when you edit the cells it depends on, so it can go stale until Excel recalculates on open. To drop one, set the cell to <code>{ formula: cell.formula }</code>.</li>
+<li><strong><code>splice</code> and <code>unshift</code> on <code>getSheetData</code> rows are safe.</strong> Nothing is tracked by position any more.</li>
+</ul>
+<h3 id="errors-and-limits">Errors and limits<a class="anchor" href="#errors-and-limits" aria-label="Errors and limits">#</a></h3>
+<ul>
+<li><strong>Everything the library raises on purpose is an <code>ExcelBridgeError</code></strong> with a <code>code</code> (<code>INVALID_INPUT</code>, <code>INVALID_FILE</code>, <code>LIMIT_EXCEEDED</code> or <code>UNSUPPORTED</code>). Messages are unchanged, apart from the cell budget one below. <code>error.name</code> is now <code>ExcelBridgeError</code>, so code that compared it with <code>'Error'</code> should use <code>isExcelBridgeError(error)</code> or <code>error instanceof Error</code>. A <code>parseFromBuffer</code> error keeps the <code>Failed to parse Excel file:</code> prefix and puts the original error on <code>cause</code>.</li>
+<li><strong><code>new ExcelReader()</code> has limits.</strong> It refuses files above <code>maxCells: 5_000_000</code> (now every cell, not only padding), <code>maxPartBytes: 268_435_456</code> and <code>maxTotalBytes: 536_870_912</code>, with <code>LIMIT_EXCEEDED</code>. A part that declares a size over its limit is refused before it is inflated. Pass <code>Infinity</code> for each to remove the caps. The message <code>Workbook pads more than 5000000 empty cells to keep rows rectangular</code> is now <code>Workbook has at least N cells, counting the empty cells that pad rows, over the limit maxCells of 5000000</code>.</li>
+<li><strong>The XML reader is stricter.</strong> A mismatched or unclosed tag, an unquoted attribute and a document that ends early now throw <code>INVALID_FILE</code>, where 1.x read what it could. A part with a <code>DOCTYPE</code> or in UTF-16 is rejected. A malformed <code>docProps</code> part is skipped, so its metadata is empty. A numeric character reference such as <code>&amp;#233;</code> is decoded.</li>
+<li><strong>Files with prefixed XML namespaces read correctly.</strong> A sheet written as <code>&lt;x:worksheet&gt;</code> no longer reads as empty.</li>
+<li><strong><code>t=&quot;str&quot;</code> cells with <code>xml:space=&quot;preserve&quot;</code></strong>, as SheetJS writes them, read as their text instead of <code>[object Object]</code>.</li>
+</ul>
+<h3 id="removed-exports">Removed exports<a class="anchor" href="#removed-exports" aria-label="Removed exports">#</a></h3>
+<div class="table-scroll" role="region" tabindex="0" aria-label="Removed exports"><table><thead><tr><th scope="col">Removed</th><th scope="col">Use instead</th></tr></thead><tbody>
+<tr><td data-label="Removed"><code>StyleManager</code></td><td data-label="Use instead">Nothing: it only served the XML generators.</td></tr>
+<tr><td data-label="Removed"><code>generateSheetXml</code>, <code>generateSharedStringsXml</code>, <code>generateStylesXml</code>, <code>generateContentTypesXml</code>, <code>generateWorkbookXml</code>, <code>generateWorkbookRelsXml</code>, <code>generateRootRelsXml</code>, <code>generateCorePropsXml</code>, <code>generateAppPropsXml</code>, <code>generateSheetRelsXml</code>, <code>generateColsXml</code></td><td data-label="Use instead"><code>ExcelWriter</code> or <code>createExcelWorkbookStream</code> for whole files. The parts cannot be used alone.</td></tr>
+<tr><td data-label="Removed"><code>createExcelBlob</code>, <code>createExcelBuffer</code>, <code>extractExcelFiles</code>, <code>validateExcelStructure</code></td><td data-label="Use instead"><code>fflate</code> directly (<code>zipSync</code>, <code>unzipSync</code>, <code>strToU8</code>, <code>strFromU8</code>). It is already a dependency.</td></tr>
+<tr><td data-label="Removed"><code>XML_NS</code>, <code>CONTENT_TYPES</code>, <code>RELATIONSHIP_TYPES</code>, <code>CELL_TYPES</code></td><td data-label="Use instead">Nothing: the library hard-codes them.</td></tr>
+<tr><td data-label="Removed"><code>isDateNumFmtId</code>, <code>isDateFormatCode</code>, <code>validateRowIndex</code>, <code>validateColIndex</code>, <code>validateCellValue</code></td><td data-label="Use instead">Nothing: reader and writer internals.</td></tr>
+<tr><td data-label="Removed">Types <code>ParsedCellStyle</code>, <code>Font</code>, <code>Fill</code>, <code>Border</code>, <code>ExcelStyle</code>, <code>CellAlignment</code>, <code>ExcelFiles</code>, <code>SheetGenerationOptions</code>, <code>DefinedName</code></td><td data-label="Use instead"><code>CellStyle</code> for styles. The others have no replacement.</td></tr>
+</tbody></table></div>
+<p><code>parseExcel</code>, <code>createExcelFile</code>, <code>createExcelFileBuffer</code> and <code>ExcelBridge</code> stay. <code>isExcelError</code> is new.</p>
+<h3 id="new">New<a class="anchor" href="#new" aria-label="New">#</a></h3>
+<ul>
+<li><code>sheetToObjects</code>, <code>objectsToSheet</code> and <code>objectsToStreamingSheet</code>: rows as typed objects.</li>
+<li><code>downloadXlsx</code>, <code>toReadableStream</code>, <code>xlsxResponse</code> and <code>XLSX_CONTENT_TYPE</code>: send a file to a browser or from a server.</li>
+<li><code>ExcelBridgeError</code>, <code>isExcelBridgeError</code> and <code>isExcelError</code>.</li>
+<li>Reader options on <code>ExcelReader</code>, <code>parseExcel</code>, <code>ExcelBridge.read</code>, <code>ExcelBridge.readFromFile</code>, <code>Workbook.fromBuffer</code> and <code>Workbook.fromFile</code>.</li>
+</ul>
+<h3 id="size-and-speed">Size and speed<a class="anchor" href="#size-and-speed" aria-label="Size and speed">#</a></h3>
+<p>Bundle size, min+gzip, measured with the same esbuild call on both versions:</p>
+<div class="table-scroll" role="region" tabindex="0" aria-label="Size and speed"><table><thead><tr><th scope="col">Entry</th><th scope="col" class="a-right">1.6.0</th><th scope="col" class="a-right">2.0</th></tr></thead><tbody>
+<tr><td data-label="Entry"><code>createExcelWorkbookStream</code></td><td class="a-right" data-label="1.6.0">12.3 KB</td><td class="a-right" data-label="2.0">12.3 KB</td></tr>
+<tr><td data-label="Entry"><code>ExcelWriter</code></td><td class="a-right" data-label="1.6.0">12.9 KB</td><td class="a-right" data-label="2.0">12.8 KB</td></tr>
+<tr><td data-label="Entry"><code>ExcelReader</code></td><td class="a-right" data-label="1.6.0">28.8 KB</td><td class="a-right" data-label="2.0">9.5 KB</td></tr>
+<tr><td data-label="Entry"><code>Workbook</code></td><td class="a-right" data-label="1.6.0">41.0 KB</td><td class="a-right" data-label="2.0">21.5 KB</td></tr>
+<tr><td data-label="Entry"><code>ExcelBridge</code></td><td class="a-right" data-label="1.6.0">41.2 KB</td><td class="a-right" data-label="2.0">21.6 KB</td></tr>
+<tr><td data-label="Entry">Everything</td><td class="a-right" data-label="1.6.0">43.7 KB</td><td class="a-right" data-label="2.0">25.1 KB</td></tr>
+</tbody></table></div>
+<p>Reading a 50,000 × 10 file takes about 0.27 s instead of 1.5 s, and the peak memory of the benchmark process drops from 859 to 451 MiB (Node 24.19, Apple M4). The reader is faster because it parses the XML with its own tokenizer, and the package now depends on <code>fflate</code> alone. Writing is as fast as before.</p>
+<h2 id="from-15-to-16">From 1.5 to 1.6<a class="anchor" href="#from-15-to-16" aria-label="From 1.5 to 1.6">#</a></h2>
+<p>Everything you could write in 1.5 still writes the same file, apart from the output notes below.
+New features are additive. Four kinds of change can affect code: TypeScript types that widen, a few
+calls that now throw, output and reader values that differ, and <code>Workbook</code> round trips that keep more.</p>
+<h3 id="types-that-widen-typescript-only">Types that widen (TypeScript only)<a class="anchor" href="#types-that-widen-typescript-only" aria-label="Types that widen (TypeScript only)">#</a></h3>
+<p>The runtime values of these do not change, except <code>ParsedSheet.styles[...].border</code> (see &quot;Values the
+reader returns&quot;), but code that narrows the old types can stop compiling.</p>
+<ul>
+<li><strong><code>CellValue</code></strong> also covers <code>FormulaCell</code>, <code>TextCell</code> and <code>ErrorCell</code>. Code that reads values
+(<code>getCellValue</code>, <code>getSheetData</code>) and checks <code>typeof value === 'object'</code> to find a <code>Date</code> needs
+<code>value instanceof Date</code>. Assigning <code>getSheetData()</code> to an array of the old union (<code>string | number | boolean | Date | null | undefined</code>) needs <code>CellValue</code>.</li>
+<li><strong>Array literals of cell objects</strong> such as <code>[[{ error: '#N/A' }]]</code> infer <code>string</code> for the error.
+Annotate the array as <code>CellValue[][]</code>, or write <code>{ error: '#N/A' as const }</code>.</li>
+<li><strong><code>CellStyle.border</code></strong> is <code>CellBorder</code>: <code>boolean</code>, a line style, <code>{ style, color? }</code> or per-side
+entries. <code>ParsedSheet.styles[...].border</code> is <code>true</code> for the plain thin box and an object with one
+entry per side otherwise, so <code>const border: boolean | undefined = style.border</code> no longer
+compiles. Truthiness checks still work.</li>
+<li><strong><code>ParsedSheet</code>, <code>SheetOptions</code> and <code>StreamingSheetInput</code></strong> gain <code>rowHeights</code>, <code>hiddenRows</code> and
+<code>hiddenColumns</code>. An exhaustive check over their keys needs the new ones.</li>
+<li><strong><code>generateColsXml(widths, layout?)</code></strong> takes a layout object as its second argument and ignores a
+number, so passing it straight to <code>Array.prototype.map</code> still runs but no longer type-checks.
+A subclass of <code>StyleManager</code> that declares its own private <code>registerStyle</code>, <code>styleIds</code> or
+<code>internXf</code> conflicts with the new private members.</li>
+</ul>
+<h3 id="calls-that-now-throw">Calls that now throw<a class="anchor" href="#calls-that-now-throw" aria-label="Calls that now throw">#</a></h3>
+<div class="table-scroll" role="region" tabindex="0" aria-label="Calls that now throw"><table><thead><tr><th scope="col">Input</th><th scope="col">What to do</th></tr></thead><tbody>
+<tr><td data-label="Input"><code>{ formula: '' }</code> (or <code>{ formula: '=' }</code>)</td><td data-label="What to do">Pass a formula. The string shorthand <code>'='</code> is unchanged.</td></tr>
+<tr><td data-label="Input"><code>{ error: '#SPILL!' }</code> or any error outside the seven classic ones</td><td data-label="What to do">Use <code>#NULL!</code>, <code>#DIV/0!</code>, <code>#VALUE!</code>, <code>#REF!</code>, <code>#NAME?</code>, <code>#NUM!</code> or <code>#N/A</code>, or write the text with <code>{ text }</code>.</td></tr>
+<tr><td data-label="Input">A row height of 0 or above 409.5, or a hidden row or column index that is not a whole number (rows 0 to 1,048,575, columns 0 to 16,383)</td><td data-label="What to do">Fix the value.</td></tr>
+<tr><td data-label="Input">A border line style other than the 13 names, a colour that is not hex, or a truthy value that is not a border (<code>1</code>, <code>'true'</code>, <code>{ left: true }</code>)</td><td data-label="What to do">Use <code>true</code>, a line style, <code>{ style, color? }</code> or per-side entries.</td></tr>
+<tr><td data-label="Input">A border object that mixes <code>color</code> with side keys (<code>{ left: 'thin', color: '#000000' }</code>)</td><td data-label="What to do">Put the colour inside each side. TypeScript also rejects <code>{ left: 'thin', style: 'thin' }</code>; at runtime its side keys are ignored.</td></tr>
+</tbody></table></div>
+<p>An object with <code>formula</code>, <code>text</code> or <code>error</code> keys used to be written as the text <code>[object Object]</code>, and
+<code>{ formula: 1 }</code> or <code>{ text: 1 }</code> now throw <code>Cell A1 needs a string formula or text</code>.
+<code>{}</code> and <code>[]</code> as a <code>border</code> (not typed, JavaScript only) used to draw a box and now mean no border.</p>
+<h3 id="output">Output<a class="anchor" href="#output" aria-label="Output">#</a></h3>
+<ul>
+<li><strong>Equal styles share one entry.</strong> Redundant styles (explicit <code>false</code> flags, <code>#f00</code> next to
+<code>#FF0000</code>, <code>fontName: 'Calibri'</code> spelled out, equal conditional-format styles) now collapse, so the
+counts in <code>styles.xml</code> and the <code>s=</code> indexes can shift. <code>ExcelReader</code> returns the same values and
+styles. <code>border: false</code> (or <code>null</code>, <code>0</code>, <code>''</code>) no longer adds a second empty border.</li>
+<li><strong><code>generateStylesXml()</code> without an argument</strong> returns what <code>generateStylesXml(new StyleManager())</code>
+returns, which is the <code>styles.xml</code> of an <code>ExcelWriter</code> file with no styles.</li>
+<li><strong>A style on a <code>Date</code> cell is written.</strong> Bold, fill, border, alignment and a date <code>numberFormat</code>
+used to be ignored. A <code>numberFormat</code> that is not a date format is still ignored on a <code>Date</code> cell,
+and a hyperlink over a <code>Date</code> cell now gives it the hyperlink font.</li>
+<li><strong>A hidden column without a width</strong> is written with width <code>9.140625</code>, the default column width in Excel files.</li>
+<li><strong>Size:</strong> <code>ExcelWriter</code> goes from 12.5 to 12.9 KB min+gzip, the streaming writer from 11.9 to
+12.3 KB, <code>ExcelReader</code> from 28.2 to 28.7 KB and <code>Workbook</code> from 39.9 to 41.0 KB.</li>
+</ul>
+<h3 id="values-the-reader-returns">Values the reader returns<a class="anchor" href="#values-the-reader-returns" aria-label="Values the reader returns">#</a></h3>
+<ul>
+<li><strong>Cells with a date number format report their style</strong> when it also has a custom number format,
+font, fill, border or alignment, whatever the cell type (a string or an empty cell can carry one),
+and <code>numberFormat</code> carries the code for the built-in ids 15 to 22 and 45 to 47. A plain short-date
+cell still reports none, and <code>Workbook.getCellStyle</code> changes the same way.</li>
+<li><strong><code>border</code> on a read style</strong> used to be <code>true</code> for any border. It is now <code>true</code> only for a thin
+black line on all four sides, and otherwise an object with a <code>{ style, color? }</code> entry for each
+side that has a line, for example <code>{ left: { style: 'thin' } }</code>. Replace <code>style.border === true</code>
+with a truthiness check.</li>
+<li><strong>An empty numeric value</strong> (<code>&lt;v&gt;&lt;/v&gt;</code>) reads as an empty cell instead of <code>#NUM!</code>. A <code>&lt;col&gt;</code>
+without a width no longer reads as <code>NaN</code>, and a border with <code>style=&quot;none&quot;</code> no longer reads as a
+border.</li>
+<li><strong><code>rowHeights</code>, <code>hiddenRows</code> and <code>hiddenColumns</code></strong> appear on <code>ParsedSheet</code> only for files that
+have them.</li>
+</ul>
+<h3 id="workbook-2">Workbook<a class="anchor" href="#workbook-2" aria-label="Workbook">#</a></h3>
+<ul>
+<li><strong>A round trip now keeps</strong> per-side borders, row heights, hidden rows and hidden columns, date
+cell styles and custom date formats, the seven classic error cells, and text that starts with
+<code>=</code>. A file that relied on a save un-hiding rows or columns now keeps them hidden.</li>
+<li><strong>Loaded errors and <code>=</code> text keep their kind when saved.</strong> <code>getCellValue</code> and <code>getSheetData</code>
+still return the same strings (<code>'#N/A'</code>, <code>'=== Summary ==='</code>), so code that only reads values is
+unaffected. Writing those strings back with <code>setCellValue</code> or <code>addSheet</code> stores <code>'=== Summary ==='</code>
+as a formula and <code>'#N/A'</code> as text, so wrap them in <code>{ text }</code> and <code>{ error }</code>. Before, a loaded <code>=== Summary ===</code> was saved as a
+formula.</li>
+<li><strong><code>removeAutoFilter</code> shows the rows under the removed range.</strong> Rows hidden by a filter stay
+hidden when you load and save, because the criteria are not kept.</li>
+<li><strong>Cached formula results are not kept.</strong> Formulas still load as <code>'=…'</code> strings and save without a
+result.</li>
+<li><strong>New:</strong> <code>setRowHeight</code>, <code>getRowHeight</code>, <code>setRowHidden</code>, <code>isRowHidden</code>, <code>setColumnHidden</code> and
+<code>isColumnHidden</code>.</li>
+</ul>
+<h3 id="new-and-recommended">New and recommended<a class="anchor" href="#new-and-recommended" aria-label="New and recommended">#</a></h3>
+<p><code>{ formula, result? }</code>, <code>{ text }</code> and <code>{ error }</code> cells; per-side borders with 13 line styles and
+RGB colours; styles on <code>Date</code> cells; <code>rowHeights</code>, <code>hiddenRows</code> and <code>hiddenColumns</code> on
+<code>ExcelWriter</code>, the streaming writer and <code>Workbook</code>. Prefer <code>{ formula }</code> and <code>{ text }</code> in new code:
+the <code>'='</code> string shorthand stays a formula for all of 1.x, and <code>{ text }</code> is the way to store text
+that starts with <code>=</code>. The exported types <code>Font</code>, <code>Fill</code>, <code>Border</code>, <code>ExcelStyle</code> and <code>CellAlignment</code>
+are no longer used by the library and will be removed in 2.0.</p>
+<h2 id="from-14-to-15">From 1.4 to 1.5<a class="anchor" href="#from-14-to-15" aria-label="From 1.4 to 1.5">#</a></h2>
+<h3 id="calls-that-now-throw-2">Calls that now throw<a class="anchor" href="#calls-that-now-throw-2" aria-label="Calls that now throw">#</a></h3>
+<p>The writers used to produce a file for these inputs. A file Excel repairs, or that other readers
+reject, is worse than an error at the call.</p>
+<div class="table-scroll" role="region" tabindex="0" aria-label="Calls that now throw"><table><thead><tr><th scope="col">Input</th><th scope="col">What to do</th></tr></thead><tbody>
+<tr><td data-label="Input">A sheet name over 31 characters, with <code>\ / ? * [ ] :</code>, a control character or an apostrophe at either end, or two names equal ignoring case</td><td data-label="What to do">Shorten or rename it.</td></tr>
+<tr><td data-label="Input">A workbook with no sheets, or with every sheet hidden</td><td data-label="What to do">Add a sheet, or leave one visible.</td></tr>
+<tr><td data-label="Input">A colour that is not <code>#RGB</code>, <code>#RRGGBB</code> or <code>#AARRGGBB</code> (<code>red</code>, <code>rgb(…)</code>)</td><td data-label="What to do">Convert it to hex.</td></tr>
+<tr><td data-label="Input"><code>NaN</code>, <code>Infinity</code> or an invalid <code>Date</code> in a cell</td><td data-label="What to do">Replace it before writing, for example <code>Number.isFinite(value) ? value : null</code>. The error names the cell.</td></tr>
+</tbody></table></div>
+<p>This applies to <code>ExcelWriter</code>, <code>createExcelWorkbookStream</code>, <code>Workbook.toBuffer</code>/<code>toBlob</code>, and to
+<code>Workbook.addSheet</code>, which now also compares names ignoring case.</p>
+<p>A workbook loaded with <code>Workbook.fromBuffer</code> keeps the names it had. If one is longer than 31
+characters, loading works and saving throws; call <code>workbook.renameSheet(from, to)</code> first. Formulas
+that mention the old name are not rewritten.</p>
+<p>The reader throws for a cell or row outside Excel&#39;s grid (past column <code>XFD</code> or row 1,048,576) and
+for a workbook that needs more than 5,000,000 empty cells of padding to keep rows rectangular. Both
+used to risk exhausting memory.</p>
+<h3 id="values-the-reader-returns-2">Values the reader returns<a class="anchor" href="#values-the-reader-returns-2" aria-label="Values the reader returns">#</a></h3>
+<ul>
+<li><strong>Error cells</strong> (<code>#DIV/0!</code>) used to read as the number <code>NaN</code>. They now read as <code>type: 'error'</code>
+with the text as the value, so a <code>switch</code> over <code>ParsedCell['type']</code> needs a case for <code>'error'</code>.
+A number that is not finite (<code>1e999</code>) reads as the error <code>#NUM!</code>.</li>
+<li><strong>No numeric conversion.</strong> Attribute and text values are returned as they are written. A number
+format <code>0.00</code> used to read as <code>0</code>, and a sheet name or title <code>007</code> as <code>7</code>. If you relied on a
+number there, convert it yourself.</li>
+<li><strong><code>ParsedSheet.validations</code></strong> holds full rules (<code>type</code>, <code>operator</code>, <code>formula1</code>, <code>formula2</code>,
+<code>allowBlank</code>) instead of <code>{ range, options }</code>. <code>options</code> still holds the values of an inline list.
+For other types it is now the first formula with its quotes intact (they used to be stripped), and
+rules of type <code>none</code> are no longer returned.</li>
+<li><strong><code>ParsedSheet.state</code></strong> is <code>'hidden'</code> or <code>'veryHidden'</code> for hidden sheets and absent otherwise.</li>
+<li><strong><code>DataValidationType</code></strong> gains <code>'time'</code> and <code>'custom'</code>; an exhaustive <code>switch</code> needs both.</li>
+</ul>
+<p><code>ParsedSheet.data</code> is unchanged: the rows present in the file, in order. Use <code>cell.rowIndex</code> for the
+position.</p>
+<h3 id="workbook-3">Workbook<a class="anchor" href="#workbook-3" aria-label="Workbook">#</a></h3>
+<ul>
+<li><strong>Rows stay where they were.</strong> Loading a file with blank rows and saving it used to move every
+later row up while styles and merges stayed put. Rows now keep their position.</li>
+<li><strong><code>getSheetData(name)</code> can have holes.</strong> For a file with blank rows it is sparse: <code>length</code> is the
+last row plus one, <code>for...of</code> yields <code>undefined</code> for a missing row and <code>JSON.stringify</code> writes
+<code>null</code>. Use index loops with <code>?.</code>, or <code>forEach</code>, which skips holes. <code>getCellValue(sheet, row, col)</code>
+now agrees with the row in the file.</li>
+<li><strong>Validations, number formats and hidden sheets survive a save.</strong> Validation messages and the
+error style do not; see the round trip note in the README.</li>
+<li><strong>New:</strong> <code>renameSheet</code>, <code>getSheetState</code>, <code>setSheetState</code>.</li>
+</ul>
+<h3 id="packaging">Packaging<a class="anchor" href="#packaging" aria-label="Packaging">#</a></h3>
+<ul>
+<li>The <code>exports</code> map gives ESM importers <code>index.d.mts</code> and CommonJS importers <code>index.d.ts</code>, exports
+<code>./package.json</code>, and the package declares <code>&quot;sideEffects&quot;: false</code> and <code>&quot;type&quot;: &quot;commonjs&quot;</code>.</li>
+<li>The low-level exports (<code>generate*Xml</code>, the zip helpers) are no longer called stable.</li>
+</ul>
+<h3 id="output-and-size">Output and size<a class="anchor" href="#output-and-size" aria-label="Output and size">#</a></h3>
+<ul>
+<li>The streaming writer deflates every zip entry, so SheetJS 0.18.5 and Java&#39;s <code>ZipInputStream</code> can
+read its output.</li>
+<li><code>ExcelWriter</code> grows from 12.0 to 12.5 KB min+gzip and <code>ExcelReader</code> from 27.6 to 28.2 KB.</li>
+</ul>
+
+    </article>
+    <nav class="stubs" aria-label="Previous and next"><a class="stub stub-prev" href="../limitations/"><span class="field-caption">Previous</span><span class="stub-title">Limits and alternatives</span></a><a class="stub stub-next" href="../security/"><span class="field-caption">Next</span><span class="stub-title">Security</span></a></nav>
+    <p class="doc-foot"><a href="https://github.com/KevinArce98/excel-bridge/edit/main/docs-src/en/upgrading.md" rel="noopener">Edit this page</a> · MIT licence · Microsoft Excel is a trademark of Microsoft; this project is not affiliated with Microsoft.</p>
+  </main>
+  <aside class="toc" aria-label="On this page">
+    <p class="field-caption">On this page</p>
+    <ul><li><a href="#from-1x-to-20">From 1.x to 2.0</a></li><li><a href="#from-15-to-16">From 1.5 to 1.6</a></li><li><a href="#from-14-to-15">From 1.4 to 1.5</a></li></ul>
+  </aside>
+</div>
+<script src="../assets/docs.js" defer></script>
+</body>
+</html>

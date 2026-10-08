@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Lee un libro | excel-bridge docs</title>
+<meta name="description" content="Analiza un .xlsx desde un Buffer o un File en celdas con tipo, estilos y diseño, y maneja las filas que faltan." />
+<link rel="canonical" href="https://kevinarce98.github.io/excel-bridge/es/guide/reading/" />
+<link rel="alternate" hreflang="en" href="https://kevinarce98.github.io/excel-bridge/guide/reading/" />
+<link rel="alternate" hreflang="es" href="https://kevinarce98.github.io/excel-bridge/es/guide/reading/" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="Lee un libro | excel-bridge docs" />
+<meta property="og:description" content="Analiza un .xlsx desde un Buffer o un File en celdas con tipo, estilos y diseño, y maneja las filas que faltan." />
+<meta property="og:url" content="https://kevinarce98.github.io/excel-bridge/es/guide/reading/" />
+<meta name="theme-color" content="#0f172a" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231B2336'/%3E%3Crect x='5' y='6' width='22' height='6' rx='2' fill='%2322C55E'/%3E%3Crect x='5' y='15' width='9' height='4' rx='1.5' fill='%23334155'/%3E%3Crect x='18' y='15' width='9' height='4' rx='1.5' fill='%23334155'/%3E%3Crect x='5' y='22' width='9' height='4' rx='1.5' fill='%23334155'/%3E%3Crect x='18' y='22' width='9' height='4' rx='1.5' fill='%2322C55E' fill-opacity='0.5'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../../../assets/docs.css" />
+</head>
+<body>
+<a class="skip" href="#content">Saltar al contenido</a>
+<header class="waybill">
+  <div class="waybill-in">
+    <a class="wordmark" href="../../../" aria-label="excel-bridge"><svg class="mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><rect width="32" height="32" rx="7" fill="#1B2336"/><rect x="5" y="6" width="22" height="6" rx="2" fill="#22C55E"/><rect x="5" y="15" width="9" height="4" rx="1.5" fill="#334155"/><rect x="18" y="15" width="9" height="4" rx="1.5" fill="#334155"/><rect x="5" y="22" width="9" height="4" rx="1.5" fill="#334155"/><rect x="18" y="22" width="9" height="4" rx="1.5" fill="#22C55E" fill-opacity="0.5"/></svg><span><span class="w-excel">excel</span><span class="w-dash">-</span><span class="w-bridge">bridge</span></span></a>
+    <span class="field"><span class="field-caption">Docs</span><span class="field-value">2.x</span></span>
+    <nav class="top-links" aria-label="Sitio">
+      <a href="../../../#pack">Probar</a>
+      <a href="https://github.com/KevinArce98/excel-bridge" rel="noopener">GitHub</a>
+      <a href="https://www.npmjs.com/package/excel-bridge" rel="noopener">npm</a>
+    </nav>
+    <div class="lang" role="group" aria-label="Idioma"><a href="../../../guide/reading/" hreflang="en" lang="en" aria-label="English">EN</a><span class="lang-current" aria-current="true" lang="es">ES</span></div>
+  </div>
+</header>
+<div class="shell">
+  <nav class="rail" aria-label="Docs">
+    <details class="rail-fold" open>
+      <summary>Contenido</summary>
+      <section><p class="rail-group">Inicio</p><ul><li><a href="../../../es/getting-started/">Primeros pasos</a></li></ul></section>
+<section><p class="rail-group">Guía</p><ul><li><a href="../../../es/guide/values/">Escribe valores y fórmulas</a></li><li><a href="../../../es/guide/styling/">Da estilo a las celdas</a></li><li><a href="../../../es/guide/layout/">Define el diseño de las hojas</a></li><li><a href="../../../es/guide/rules/">Agrega reglas</a></li><li><a href="../../../es/guide/reading/" aria-current="page">Lee un libro</a></li><li><a href="../../../es/guide/objects/">Filas como objetos</a></li><li><a href="../../../es/guide/workbook/">Edita un libro</a></li><li><a href="../../../es/guide/streaming/">Exporta archivos grandes con streaming</a></li><li><a href="../../../es/guide/errors/">Maneja errores y límites</a></li></ul></section>
+<section><p class="rail-group">Referencia</p><ul><li><a href="../../../es/api/">Referencia de la API</a></li><li><a href="../../../es/performance/">Rendimiento y tamaño</a></li><li><a href="../../../es/limitations/">Límites y alternativas</a></li><li><a href="../../../es/upgrading/">Actualización</a></li><li><a href="../../../es/security/">Seguridad</a></li></ul></section>
+    </details>
+  </nav>
+  <main id="content" class="sheet">
+    <div class="sheet-rule" aria-hidden="true"></div>
+    <article class="prose">
+<h1 id="lee-un-libro">Lee un libro</h1>
+<p><code>ExcelReader</code> convierte un <code>.xlsx</code> en objetos simples: cada hoja con sus celdas con tipo, sus estilos y su diseño. La lectura es síncrona para los bytes que ya tienes y asíncrona para un <code>File</code> del navegador.</p>
+<figure class="code"><figcaption><span class="code-name">read.ts</span><button type="button" class="copy" data-copy="Copiar" data-copied="Copiado">Copiar</button></figcaption><pre tabindex="0"><code><span class="tk-k">import</span> fs <span class="tk-k">from</span> <span class="tk-s">'node:fs'</span>;
+<span class="tk-k">import</span> { <span class="tk-t">ExcelReader</span> } <span class="tk-k">from</span> <span class="tk-s">'excel-bridge'</span>;
+
+<span class="tk-k">const</span> reader = <span class="tk-k">new</span> <span class="tk-t">ExcelReader</span>();
+
+<span class="tk-k">const</span> workbook = reader.parseFromBuffer(fs.readFileSync('data.xlsx'));
+
+<span class="tk-k">const</span> [sheet] = workbook.sheets;
+console.log(sheet.name, sheet.data.length);</code></pre></figure>
+<p>En el navegador, pasa el <code>File</code> de un <code>&lt;input type=&quot;file&quot;&gt;</code> a <code>await reader.parseFromFile(file)</code>. <code>ExcelBridge.read(buffer)</code> y <code>parseExcel(buffer)</code> hacen lo mismo que <code>parseFromBuffer</code>.</p>
+<h2 id="las-celdas-se-tipan-con-type">Las celdas se tipan con <code>type</code><a class="anchor" href="#las-celdas-se-tipan-con-type" aria-label="Las celdas se tipan con type">#</a></h2>
+<p>Cada celda tiene una de seis formas, que se distinguen por <code>type</code>. Comprueba <code>type</code> y TypeScript acota <code>value</code> por ti.</p>
+<figure class="code"><figcaption><span class="code-name">narrow.ts</span><button type="button" class="copy" data-copy="Copiar" data-copied="Copiado">Copiar</button></figcaption><pre tabindex="0"><code><span class="tk-k">import</span> fs <span class="tk-k">from</span> <span class="tk-s">'node:fs'</span>;
+<span class="tk-k">import</span> { <span class="tk-t">ExcelReader</span> } <span class="tk-k">from</span> <span class="tk-s">'excel-bridge'</span>;
+
+<span class="tk-k">const</span> workbook = <span class="tk-k">new</span> <span class="tk-t">ExcelReader</span>().parseFromBuffer(fs.readFileSync('data.xlsx'));
+
+workbook.sheets[<span class="tk-n">0</span>].data.forEach(row =&gt; {
+  row.forEach(cell =&gt; {
+    switch (cell.<span class="tk-k">type</span>) {
+      case <span class="tk-s">'number'</span>:
+        console.log(cell.coordinate, cell.value.toFixed(<span class="tk-n">2</span>));
+        break;
+      case <span class="tk-s">'date'</span>:
+        console.log(cell.coordinate, cell.value.toISOString());
+        break;
+      case <span class="tk-s">'error'</span>:
+        console.log(cell.coordinate, <span class="tk-s">'error'</span>, cell.value);
+        break;
+      case <span class="tk-s">'empty'</span>:
+        break;
+      <span class="tk-k">default</span>:
+        console.log(cell.coordinate, cell.value);
+    }
+  });
+});</code></pre></figure>
+<div class="table-scroll" role="region" tabindex="0" aria-label="Las celdas se tipan con type"><table><thead><tr><th scope="col"><code>type</code></th><th scope="col"><code>value</code></th><th scope="col">Notas</th></tr></thead><tbody>
+<tr><td data-label="`type`"><code>'string'</code></td><td data-label="`value`"><code>string</code></td><td data-label="Notas"></td></tr>
+<tr><td data-label="`type`"><code>'number'</code></td><td data-label="`value`"><code>number</code></td><td data-label="Notas"></td></tr>
+<tr><td data-label="`type`"><code>'boolean'</code></td><td data-label="`value`"><code>boolean</code></td><td data-label="Notas"></td></tr>
+<tr><td data-label="`type`"><code>'date'</code></td><td data-label="`value`"><code>Date</code></td><td data-label="Notas">Una celda cuyo formato de número es de fecha. Hora local de reloj.</td></tr>
+<tr><td data-label="`type`"><code>'error'</code></td><td data-label="`value`"><code>string</code></td><td data-label="Notas">El texto del error, como <code>#DIV/0!</code>.</td></tr>
+<tr><td data-label="`type`"><code>'empty'</code></td><td data-label="`value`"><code>null</code></td><td data-label="Notas">Una celda con estilo pero sin valor, o relleno de un hueco entre celdas de una fila.</td></tr>
+</tbody></table></div>
+<p>Cada celda también tiene <code>coordinate</code> (<code>&quot;B2&quot;</code>), <code>rowIndex</code> y <code>columnIndex</code>, ambos base cero. Una celda con fórmula guarda su fórmula en <code>formula</code>, sin el <code>=</code> inicial, y su valor en caché en <code>value</code>. Una fórmula sin valor en caché es una celda <code>'empty'</code> con una <code>formula</code>.</p>
+<h2 id="las-filas-se-indexan-por-posicion">Las filas se indexan por posición<a class="anchor" href="#las-filas-se-indexan-por-posicion" aria-label="Las filas se indexan por posición">#</a></h2>
+<p><code>sheet.data</code> se indexa por la posición de la fila en la hoja, así que <code>sheet.data[4]</code> es la fila 5. Las filas que no están en el archivo son huecos en el arreglo.</p>
+<figure class="code"><figcaption><span class="code-name">holes.ts</span><button type="button" class="copy" data-copy="Copiar" data-copied="Copiado">Copiar</button></figcaption><pre tabindex="0"><code><span class="tk-k">import</span> fs <span class="tk-k">from</span> <span class="tk-s">'node:fs'</span>;
+<span class="tk-k">import</span> { <span class="tk-t">ExcelReader</span> } <span class="tk-k">from</span> <span class="tk-s">'excel-bridge'</span>;
+
+<span class="tk-k">const</span> workbook = <span class="tk-k">new</span> <span class="tk-t">ExcelReader</span>().parseFromBuffer(fs.readFileSync('data.xlsx'));
+<span class="tk-k">const</span> { data } = workbook.sheets[<span class="tk-n">0</span>];
+
+data.forEach((row, index) =&gt; console.log(index + <span class="tk-n">1</span>, row.length));
+
+<span class="tk-k">for</span> (<span class="tk-k">const</span> row <span class="tk-k">of</span> data) {
+  <span class="tk-k">if</span> (!row) continue;
+  console.log(row.map(cell =&gt; cell.value).join(' | '));
+}</code></pre></figure>
+<aside class="callout callout-note"><p class="callout-name">Nota</p><p><code>forEach</code>, <code>map</code> y <code>Object.values</code> omiten los huecos. Un bucle <code>for...of</code> visita cada índice y produce <code>undefined</code> en un hueco, así que añade una cláusula de guarda. <code>data.length</code> es la última fila más uno.</p>
+</aside>
+<h2 id="estilos-combinaciones-y-diseno">Estilos, combinaciones y diseño<a class="anchor" href="#estilos-combinaciones-y-diseno" aria-label="Estilos, combinaciones y diseño">#</a></h2>
+<p>Además de las celdas, un <code>ParsedSheet</code> expone lo que el archivo dice sobre la hoja.</p>
+<figure class="code"><figcaption><span class="code-name">sheet-details.ts</span><button type="button" class="copy" data-copy="Copiar" data-copied="Copiado">Copiar</button></figcaption><pre tabindex="0"><code><span class="tk-k">import</span> fs <span class="tk-k">from</span> <span class="tk-s">'node:fs'</span>;
+<span class="tk-k">import</span> { <span class="tk-t">ExcelReader</span> } <span class="tk-k">from</span> <span class="tk-s">'excel-bridge'</span>;
+
+<span class="tk-k">const</span> { sheets, metadata } = <span class="tk-k">new</span> <span class="tk-t">ExcelReader</span>().parseFromBuffer(fs.readFileSync('data.xlsx'));
+<span class="tk-k">const</span> sheet = sheets[<span class="tk-n">0</span>];
+
+sheet.name;
+sheet.state;
+sheet.styles;
+sheet.mergeCells;
+sheet.freezePane;
+sheet.columnWidths;
+sheet.rowHeights;
+sheet.hiddenRows;
+sheet.hiddenColumns;
+sheet.validations;
+sheet.conditionalFormats;
+sheet.autoFilter;
+sheet.hyperlinks;
+metadata.creator;</code></pre></figure>
+<ul>
+<li><strong><code>state</code></strong> es <code>'hidden'</code> o <code>'veryHidden'</code> para una hoja oculta, y <code>undefined</code> en caso contrario.</li>
+<li><strong><code>styles</code></strong> asocia <code>&quot;row-col&quot;</code> con un <code>CellStyle</code>, el mismo tipo que recibe el escritor. En un estilo leído, <code>border</code> es <code>true</code> para un recuadro negro delgado en los cuatro lados y, en cualquier otro caso, un objeto con una entrada <code>{ style, color? }</code> por cada lado que tiene línea. Solo se leen los colores RGB y los formatos de número personalizados, además de los formatos integrados de fecha y hora.</li>
+<li><strong><code>rowHeights</code>, <code>hiddenRows</code> y <code>hiddenColumns</code></strong> aparecen solo en los archivos que los tienen.</li>
+<li><strong><code>hyperlinks</code></strong> se devuelven tal como están guardados, sea cual sea su esquema. Comprueba <code>url</code> antes de mostrarlo como un <code>&lt;a href&gt;</code>.</li>
+</ul>
+<h2 id="limites-para-archivos-que-no-creaste-tu">Límites para archivos que no creaste tú<a class="anchor" href="#limites-para-archivos-que-no-creaste-tu" aria-label="Límites para archivos que no creaste tú">#</a></h2>
+<p><code>new ExcelReader({ maxCells, maxPartBytes, maxTotalBytes, maxSheets })</code> define límites para archivos que no creaste tú. Los límites de tamaño y <code>maxSheets</code> se comprueban antes de descomprimir las hojas. <code>maxCells</code> se comprueba mientras se analiza una hoja, después de descomprimir su XML, así que usa <code>maxPartBytes</code> para acotar la memoria. Consulta <a href="../errors/">Maneja errores y límites</a>.</p>
+<h2 id="filas-como-objetos">Filas como objetos<a class="anchor" href="#filas-como-objetos" aria-label="Filas como objetos">#</a></h2>
+<p>Para leer una tabla como un arreglo de objetos en lugar de celdas, consulta <a href="../objects/">Filas como objetos</a>.</p>
+
+    </article>
+    <nav class="stubs" aria-label="Anterior y siguiente"><a class="stub stub-prev" href="../../../es/guide/rules/"><span class="field-caption">Anterior</span><span class="stub-title">Agrega reglas</span></a><a class="stub stub-next" href="../../../es/guide/objects/"><span class="field-caption">Siguiente</span><span class="stub-title">Filas como objetos</span></a></nav>
+    <p class="doc-foot"><a href="https://github.com/KevinArce98/excel-bridge/edit/main/docs-src/es/guide/reading.md" rel="noopener">Editar esta página</a> · Licencia MIT · Microsoft Excel es una marca de Microsoft; este proyecto no está afiliado a Microsoft.</p>
+  </main>
+  <aside class="toc" aria-label="En esta página">
+    <p class="field-caption">En esta página</p>
+    <ul><li><a href="#las-celdas-se-tipan-con-type">Las celdas se tipan con type</a></li><li><a href="#las-filas-se-indexan-por-posicion">Las filas se indexan por posición</a></li><li><a href="#estilos-combinaciones-y-diseno">Estilos, combinaciones y diseño</a></li><li><a href="#limites-para-archivos-que-no-creaste-tu">Límites para archivos que no creaste tú</a></li><li><a href="#filas-como-objetos">Filas como objetos</a></li></ul>
+  </aside>
+</div>
+<script src="../../../assets/docs.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Límites y alternativas | excel-bridge docs</title>
+<meta name="description" content="Lo que excel-bridge no hace, los casos que lee mal, dónde se ha probado y cuándo conviene otra biblioteca." />
+<link rel="canonical" href="https://kevinarce98.github.io/excel-bridge/es/limitations/" />
+<link rel="alternate" hreflang="en" href="https://kevinarce98.github.io/excel-bridge/limitations/" />
+<link rel="alternate" hreflang="es" href="https://kevinarce98.github.io/excel-bridge/es/limitations/" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="Límites y alternativas | excel-bridge docs" />
+<meta property="og:description" content="Lo que excel-bridge no hace, los casos que lee mal, dónde se ha probado y cuándo conviene otra biblioteca." />
+<meta property="og:url" content="https://kevinarce98.github.io/excel-bridge/es/limitations/" />
+<meta name="theme-color" content="#0f172a" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231B2336'/%3E%3Crect x='5' y='6' width='22' height='6' rx='2' fill='%2322C55E'/%3E%3Crect x='5' y='15' width='9' height='4' rx='1.5' fill='%23334155'/%3E%3Crect x='18' y='15' width='9' height='4' rx='1.5' fill='%23334155'/%3E%3Crect x='5' y='22' width='9' height='4' rx='1.5' fill='%23334155'/%3E%3Crect x='18' y='22' width='9' height='4' rx='1.5' fill='%2322C55E' fill-opacity='0.5'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../../assets/docs.css" />
+</head>
+<body>
+<a class="skip" href="#content">Saltar al contenido</a>
+<header class="waybill">
+  <div class="waybill-in">
+    <a class="wordmark" href="../../" aria-label="excel-bridge"><svg class="mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><rect width="32" height="32" rx="7" fill="#1B2336"/><rect x="5" y="6" width="22" height="6" rx="2" fill="#22C55E"/><rect x="5" y="15" width="9" height="4" rx="1.5" fill="#334155"/><rect x="18" y="15" width="9" height="4" rx="1.5" fill="#334155"/><rect x="5" y="22" width="9" height="4" rx="1.5" fill="#334155"/><rect x="18" y="22" width="9" height="4" rx="1.5" fill="#22C55E" fill-opacity="0.5"/></svg><span><span class="w-excel">excel</span><span class="w-dash">-</span><span class="w-bridge">bridge</span></span></a>
+    <span class="field"><span class="field-caption">Docs</span><span class="field-value">2.x</span></span>
+    <nav class="top-links" aria-label="Sitio">
+      <a href="../../#pack">Probar</a>
+      <a href="https://github.com/KevinArce98/excel-bridge" rel="noopener">GitHub</a>
+      <a href="https://www.npmjs.com/package/excel-bridge" rel="noopener">npm</a>
+    </nav>
+    <div class="lang" role="group" aria-label="Idioma"><a href="../../limitations/" hreflang="en" lang="en" aria-label="English">EN</a><span class="lang-current" aria-current="true" lang="es">ES</span></div>
+  </div>
+</header>
+<div class="shell">
+  <nav class="rail" aria-label="Docs">
+    <details class="rail-fold" open>
+      <summary>Contenido</summary>
+      <section><p class="rail-group">Inicio</p><ul><li><a href="../../es/getting-started/">Primeros pasos</a></li></ul></section>
+<section><p class="rail-group">Guía</p><ul><li><a href="../../es/guide/values/">Escribe valores y fórmulas</a></li><li><a href="../../es/guide/styling/">Da estilo a las celdas</a></li><li><a href="../../es/guide/layout/">Define el diseño de las hojas</a></li><li><a href="../../es/guide/rules/">Agrega reglas</a></li><li><a href="../../es/guide/reading/">Lee un libro</a></li><li><a href="../../es/guide/objects/">Filas como objetos</a></li><li><a href="../../es/guide/workbook/">Edita un libro</a></li><li><a href="../../es/guide/streaming/">Exporta archivos grandes con streaming</a></li><li><a href="../../es/guide/errors/">Maneja errores y límites</a></li></ul></section>
+<section><p class="rail-group">Referencia</p><ul><li><a href="../../es/api/">Referencia de la API</a></li><li><a href="../../es/performance/">Rendimiento y tamaño</a></li><li><a href="../../es/limitations/" aria-current="page">Límites y alternativas</a></li><li><a href="../../es/upgrading/">Actualización</a></li><li><a href="../../es/security/">Seguridad</a></li></ul></section>
+    </details>
+  </nav>
+  <main id="content" class="sheet">
+    <div class="sheet-rule" aria-hidden="true"></div>
+    <article class="prose">
+<h1 id="limites-y-alternativas">Límites y alternativas</h1>
+<p>excel-bridge escribe informes y los lee de vuelta. No lo cubre todo, y esta página dice dónde se detiene.</p>
+<h2 id="cuando-conviene-otra-biblioteca">Cuándo conviene otra biblioteca<a class="anchor" href="#cuando-conviene-otra-biblioteca" aria-label="Cuándo conviene otra biblioteca">#</a></h2>
+<ul>
+<li><strong>Imágenes, gráficos, comentarios, tablas de Excel, tablas dinámicas, configuración de impresión, texto enriquecido, bordes diagonales.</strong> Ninguno de estos está soportado. ExcelJS y hucre cubren muchos de ellos.</li>
+<li><strong>Editar un archivo y conservar todo lo que no tocaste</strong>, como las plantillas con gráficos o macros. <code>Workbook</code> reconstruye el archivo a partir de lo que modela, así que todo lo demás se descarta. <code>openXlsx</code> y <code>saveXlsx</code> de hucre conservan las partes que no modelan.</li>
+<li><strong>Leer archivos muy grandes sin cargarlos completos.</strong> <code>ExcelReader</code> no tiene modo de streaming. hucre tiene <code>streamXlsxRows</code>.</li>
+<li><strong>CSV, ODS o los antiguos <code>.xls</code> y <code>.xlsb</code>.</strong> Usa hucre o SheetJS.</li>
+<li><strong>Importaciones validadas con un esquema</strong> que asignan filas a objetos con tipo y con listas de errores. Usa read-excel-file.</li>
+</ul>
+<h2 id="donde-se-ha-probado">Dónde se ha probado<a class="anchor" href="#donde-se-ha-probado" aria-label="Dónde se ha probado">#</a></h2>
+<div class="table-scroll" role="region" tabindex="0" aria-label="Dónde se ha probado"><table><thead><tr><th scope="col">Entorno</th><th scope="col">Soporte</th></tr></thead><tbody>
+<tr><td data-label="Entorno">Node.js</td><td data-label="Soporte"><code>^20.19.0</code>, <code>^22.13.0</code> o <code>&gt;=24</code>, igual que <code>engines</code>. La suite de pruebas se ejecuta en Node 20, 22 y 24.</td></tr>
+<tr><td data-label="Entorno">Navegadores</td><td data-label="Soporte">No se ejecutan en CI. El código apunta a ES2022 y necesita <code>File</code> y <code>Blob</code>. <code>downloadXlsx</code> se prueba con un <code>document</code> simulado.</td></tr>
+<tr><td data-label="Entorno">Formatos de módulo</td><td data-label="Soporte">ESM (<code>import</code>) y CommonJS (<code>require</code>).</td></tr>
+<tr><td data-label="Entorno">Bun y Deno</td><td data-label="Soporte">El paquete empaquetado se somete a una prueba de humo en Node 22, Bun 1.x y Deno 2.x en CI.</td></tr>
+<tr><td data-label="Entorno">Excel</td><td data-label="Soporte">Escrito para Excel 2016 y posteriores, pero CI no abre el resultado en Excel, LibreOffice ni Google Sheets. El lector se prueba con archivos escritos por ExcelJS, SheetJS y hucre.</td></tr>
+</tbody></table></div>
+<h2 id="escritura">Escritura<a class="anchor" href="#escritura" aria-label="Escritura">#</a></h2>
+<ul>
+<li><strong>Las fórmulas se recalculan al abrir.</strong> El libro le pide a Excel que recalcule todas las fórmulas al cargarlo. Una fórmula sin <code>result</code> no lleva ningún valor almacenado, así que un lector que no calcula la muestra vacía: SheetJS con las opciones predeterminadas omite la celda, y openpyxl con <code>data_only</code> devuelve <code>None</code>.</li>
+<li><strong>Las fechas son valores de hora local de reloj.</strong> <code>new Date(2024, 0, 15)</code> se escribe como el 15 de enero en cualquier zona horaria, con el formato de fecha corta integrado, a menos que el estilo de la celda tenga un <code>numberFormat</code> de fecha. Una fecha a medianoche UTC cae en el día anterior con desfases negativos, y una hora local dentro de un salto por horario de verano se adelanta.</li>
+<li><strong>Los bordes cubren los cuatro lados</strong>, con 13 estilos de línea y colores RGB. No hay bordes diagonales ni bordes en los formatos condicionales.</li>
+<li><strong>Valores predeterminados de diseño.</strong> Una fila sin altura usa el valor predeterminado de Excel. Los valores predeterminados de la hoja (altura de fila y ancho de columna predeterminados, niveles de esquema) no se escriben ni se conservan.</li>
+<li><strong>Solo rangos de AutoFilter.</strong> Los criterios de filtro y el estado de ordenación no se escriben ni se leen.</li>
+<li><strong>Esquemas de hipervínculo.</strong> El escritor acepta <code>http:</code>, <code>https:</code>, <code>mailto:</code> y ubicaciones dentro del libro.</li>
+<li><strong>El escritor de streaming</strong> no admite <code>autoWidth</code>, <code>validations</code>, <code>conditionalFormats</code>, <code>sharedStrings</code> ni un <code>state</code> de hoja, y siempre escribe las cadenas en línea.</li>
+</ul>
+<h2 id="lectura">Lectura<a class="anchor" href="#lectura" aria-label="Lectura">#</a></h2>
+<p>El lector no está reforzado para archivos no confiables más allá de sus <a href="../guide/errors/">límites</a>. Mantiene todo el archivo en memoria.</p>
+<p>Estos casos todavía no se leen correctamente:</p>
+<ul>
+<li>el sistema de fechas 1904</li>
+<li>una celda de fecha ISO-8601 <code>t=&quot;d&quot;</code>, que se lee como un año cercano a 1905</li>
+<li>secuencias de escape de caracteres como <code>_x000D_</code>, que se quedan en el texto</li>
+<li>paneles divididos, cuyos twips se leen como un panel inmovilizado de esa cantidad de filas y columnas</li>
+<li>un seguidor de fórmula compartida, que se lee como su valor en caché sin fórmula</li>
+</ul>
+<h2 id="lo-que-no-afirma">Lo que no afirma<a class="anchor" href="#lo-que-no-afirma" aria-label="Lo que no afirma">#</a></h2>
+<ul>
+<li>No es el más pequeño en cada fila de la comparación. Consulta <a href="../performance/">Rendimiento y tamaño</a>.</li>
+<li>No es el más rápido: hucre escribe la carga de trabajo del benchmark más rápido (unos 390 ms frente a 560 ms).</li>
+<li>Nada de lo que se dice aquí afirma que un archivo se haya probado en Excel, LibreOffice o Google Sheets, porque CI no abre ninguno.</li>
+</ul>
+
+    </article>
+    <nav class="stubs" aria-label="Anterior y siguiente"><a class="stub stub-prev" href="../../es/performance/"><span class="field-caption">Anterior</span><span class="stub-title">Rendimiento y tamaño</span></a><a class="stub stub-next" href="../../es/upgrading/"><span class="field-caption">Siguiente</span><span class="stub-title">Actualización</span></a></nav>
+    <p class="doc-foot"><a href="https://github.com/KevinArce98/excel-bridge/edit/main/docs-src/es/limitations.md" rel="noopener">Editar esta página</a> · Licencia MIT · Microsoft Excel es una marca de Microsoft; este proyecto no está afiliado a Microsoft.</p>
+  </main>
+  <aside class="toc" aria-label="En esta página">
+    <p class="field-caption">En esta página</p>
+    <ul><li><a href="#cuando-conviene-otra-biblioteca">Cuándo conviene otra biblioteca</a></li><li><a href="#donde-se-ha-probado">Dónde se ha probado</a></li><li><a href="#escritura">Escritura</a></li><li><a href="#lectura">Lectura</a></li><li><a href="#lo-que-no-afirma">Lo que no afirma</a></li></ul>
+  </aside>
+</div>
+<script src="../../assets/docs.js" defer></script>
+</body>
+</html>

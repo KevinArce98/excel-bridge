@@ -82,8 +82,14 @@ jobs:
       - name: Check package metadata
         run: pnpm run check:package
 
-      - name: Check bundle size against the README
+      - name: Check bundle size against the docs
         run: pnpm run size:check
+
+      - name: Check the generated docs are up to date
+        run: pnpm run docs:check
+
+      - name: Check the documentation examples
+        run: pnpm run docs:examples
 
   smoke:
     name: smoke (packed tarball on node, bun, deno)

@@ -3,6 +3,121 @@
 Notes for changes that can affect code written against an earlier version. The release notes list
 what changed; this file says what to do about it.
 
+## From 1.x to 2.0
+
+Version 2.0 changes what a plain string means, what the reader and `Workbook` return, and what the package exports. Most code needs a search and a few edits. Do the first step on 1.6, before you upgrade.
+
+### Before you upgrade: write formulas as objects
+
+In 1.x a string that starts with `=` was written as a formula. In 2.0 it is text. The change fails silently: a cell that held `=SUM(A1:A3)` as a formula now shows those characters as text.
+
+| You write | 1.x | 2.0 |
+| --- | --- | --- |
+| `'=SUM(A1:A3)'` | a formula | the text `=SUM(A1:A3)` |
+| `{ formula: 'SUM(A1:A3)' }` | a formula | a formula, same bytes |
+| `{ formula: 'x', result: 4 }` | a formula with a stored value | the same |
+| `{ text: '=SUM(A1:A3)' }` | text | text, same bytes as the plain string |
+
+`{ formula }` and `{ text }` already exist in 1.6 and mean the same there, so you can migrate first and upgrade after. The files do not change.
+
+Find the strings with this ESLint rule:
+
+```js
+{
+  rules: {
+    'no-restricted-syntax': [
+      'error',
+      {
+        selector: 'Literal[value=/^=/]:not(Property[key.name="text"] > Literal)',
+        message: "A string that starts with '=' is text in excel-bridge 2.0. Use { formula: '...' } for a formula.",
+      },
+      {
+        selector: 'TemplateLiteral > TemplateElement.quasis:first-child[value.raw=/^=/]',
+        message: "A string that starts with '=' is text in excel-bridge 2.0. Use { formula: '...' } for a formula.",
+      },
+    ],
+  },
+}
+```
+
+If formulas reach you as strings from a config file, a database or an API, convert them at the boundary. This turns formula injection back on for that data, so do it only for data you trust.
+
+```ts
+import type { CellValue } from 'excel-bridge';
+
+const asFormulas = (rows: CellValue[][]): CellValue[][] =>
+  rows.map(row =>
+    row.map(cell =>
+      typeof cell === 'string' && cell.startsWith('=') ? { formula: cell.slice(1) } : cell
+    )
+  );
+```
+
+The benefit is that exporting user data can no longer create a formula by accident. Text such as `=== Summary ===` needs no wrapper any more.
+
+### Writing
+
+- **`CellValidation.options` is gone**, in the rules you write and in `ParsedSheet.validations`. A list rule uses `formula1`. `dataValidation.list(range, values)` is unchanged for callers. A hand-written list needs `formula1: '"a,b"'`, and a list without `formula1` throws `Validation at A2:A5 needs formula1`. To read the values of an inline list: `rule.formula1?.match(/^"(.*)"$/s)?.[1].replace(/""/g, '"').split(',')`.
+- **`ExcelWriter.addValidation`, `addStyle`, `createSimple` and `createSimpleBuffer` are removed.** Set `data[data.length - 1].validations` and `.styles` yourself, or use `dataValidation`, and use `createExcelFile` or `createExcelFileBuffer` for one sheet.
+- **`SheetLayout` is complete.** It now holds `freezePane` and `columnWidths` as well as `rowHeights`, `hiddenRows` and `hiddenColumns`. `calculateColumnWidths` takes `CellValue[][]`.
+
+### Reading
+
+- **`ParsedCell` is a union on `type`.** `cell.value` is no longer `any`. Narrow on `cell.type` and `value` has the right type. An `'error'` cell has `ExcelErrorValue | string`. A formula cell has the type and value of its stored result, and `formula` is absent or non-empty.
+- **`ParsedSheet.data` is indexed by row index.** `data[4]` is row 5. A row that is not in the file is a hole, `data.length` is the last row plus one, and an empty `<row>` element is a hole too, so a round trip no longer adds rows. Use `forEach`, `Object.values` or `flat()`. A `for...of` yields `undefined` for a hole, spreading the array turns each hole into `undefined`, and `JSON.stringify` writes `null` for each one: a file whose only row is at index 1,000,000 produces over 5 million characters (5,000,090 for one numeric cell).
+- **Rows and cells without an `r` attribute** get the position after the previous one, so `rowIndex` is never `NaN`. Duplicate rows merge, and the later cell wins.
+- **A shared-formula follower has no `formula`.** It reads as its stored value, which `Workbook` saves as a plain value.
+- **`ParsedCellStyle` is replaced by `CellStyle`.** A style read from a file can be written back as it is. `CellStyle` takes an optional type argument for the border, with a default, so existing uses keep working.
+
+### Workbook
+
+- **`getCellValue` and `getSheetData` return what they load.** A loaded formula is `{ formula, result? }` and a loaded error is `{ error }`. Text stays text, including text that starts with `=`. Code that compared a value with `'#N/A'` or printed `String(value)` for a formula cell now sees an object. `typeof value === 'object' && value !== null && 'formula' in value` narrows to a formula, and `'error' in value` to an error.
+- **Stored formula results are kept.** 1.6 dropped them on save. A result does not change when you edit the cells it depends on, so it can go stale until Excel recalculates on open. To drop one, set the cell to `{ formula: cell.formula }`.
+- **`splice` and `unshift` on `getSheetData` rows are safe.** Nothing is tracked by position any more.
+
+### Errors and limits
+
+- **Everything the library raises on purpose is an `ExcelBridgeError`** with a `code` (`INVALID_INPUT`, `INVALID_FILE`, `LIMIT_EXCEEDED` or `UNSUPPORTED`). Messages are unchanged, apart from the cell budget one below. `error.name` is now `ExcelBridgeError`, so code that compared it with `'Error'` should use `isExcelBridgeError(error)` or `error instanceof Error`. A `parseFromBuffer` error keeps the `Failed to parse Excel file:` prefix and puts the original error on `cause`.
+- **`new ExcelReader()` has limits.** It refuses files above `maxCells: 5_000_000` (now every cell, not only padding), `maxPartBytes: 268_435_456` and `maxTotalBytes: 536_870_912`, with `LIMIT_EXCEEDED`. A part that declares a size over its limit is refused before it is inflated. Pass `Infinity` for each to remove the caps. The message `Workbook pads more than 5000000 empty cells to keep rows rectangular` is now `Workbook has at least N cells, counting the empty cells that pad rows, over the limit maxCells of 5000000`.
+- **The XML reader is stricter.** A mismatched or unclosed tag, an unquoted attribute and a document that ends early now throw `INVALID_FILE`, where 1.x read what it could. A part with a `DOCTYPE` or in UTF-16 is rejected. A malformed `docProps` part is skipped, so its metadata is empty. A numeric character reference such as `&#233;` is decoded.
+- **Files with prefixed XML namespaces read correctly.** A sheet written as `<x:worksheet>` no longer reads as empty.
+- **`t="str"` cells with `xml:space="preserve"`**, as SheetJS writes them, read as their text instead of `[object Object]`.
+
+### Removed exports
+
+| Removed | Use instead |
+| --- | --- |
+| `StyleManager` | Nothing: it only served the XML generators. |
+| `generateSheetXml`, `generateSharedStringsXml`, `generateStylesXml`, `generateContentTypesXml`, `generateWorkbookXml`, `generateWorkbookRelsXml`, `generateRootRelsXml`, `generateCorePropsXml`, `generateAppPropsXml`, `generateSheetRelsXml`, `generateColsXml` | `ExcelWriter` or `createExcelWorkbookStream` for whole files. The parts cannot be used alone. |
+| `createExcelBlob`, `createExcelBuffer`, `extractExcelFiles`, `validateExcelStructure` | `fflate` directly (`zipSync`, `unzipSync`, `strToU8`, `strFromU8`). It is already a dependency. |
+| `XML_NS`, `CONTENT_TYPES`, `RELATIONSHIP_TYPES`, `CELL_TYPES` | Nothing: the library hard-codes them. |
+| `isDateNumFmtId`, `isDateFormatCode`, `validateRowIndex`, `validateColIndex`, `validateCellValue` | Nothing: reader and writer internals. |
+| Types `ParsedCellStyle`, `Font`, `Fill`, `Border`, `ExcelStyle`, `CellAlignment`, `ExcelFiles`, `SheetGenerationOptions`, `DefinedName` | `CellStyle` for styles. The others have no replacement. |
+
+`parseExcel`, `createExcelFile`, `createExcelFileBuffer` and `ExcelBridge` stay. `isExcelError` is new.
+
+### New
+
+- `sheetToObjects`, `objectsToSheet` and `objectsToStreamingSheet`: rows as typed objects.
+- `downloadXlsx`, `toReadableStream`, `xlsxResponse` and `XLSX_CONTENT_TYPE`: send a file to a browser or from a server.
+- `ExcelBridgeError`, `isExcelBridgeError` and `isExcelError`.
+- Reader options on `ExcelReader`, `parseExcel`, `ExcelBridge.read`, `ExcelBridge.readFromFile`, `Workbook.fromBuffer` and `Workbook.fromFile`.
+
+### Size and speed
+
+Bundle size, min+gzip, measured with the same esbuild call on both versions:
+
+| Entry | 1.6.0 | 2.0 |
+| --- | ---: | ---: |
+| `createExcelWorkbookStream` | 12.3 KB | 12.3 KB |
+| `ExcelWriter` | 12.9 KB | 12.8 KB |
+| `ExcelReader` | 28.8 KB | 9.5 KB |
+| `Workbook` | 41.0 KB | 21.5 KB |
+| `ExcelBridge` | 41.2 KB | 21.6 KB |
+| Everything | 43.7 KB | 25.1 KB |
+
+Reading a 50,000 × 10 file takes about 0.27 s instead of 1.5 s, and the peak memory of the benchmark process drops from 859 to 451 MiB (Node 24.19, Apple M4). The reader is faster because it parses the XML with its own tokenizer, and the package now depends on `fflate` alone. Writing is as fast as before.
+
 ## From 1.5 to 1.6
 
 Everything you could write in 1.5 still writes the same file, apart from the output notes below.
@@ -83,8 +198,8 @@ An object with `formula`, `text` or `error` keys used to be written as the text 
   `=`. A file that relied on a save un-hiding rows or columns now keeps them hidden.
 - **Loaded errors and `=` text keep their kind when saved.** `getCellValue` and `getSheetData`
   still return the same strings (`'#N/A'`, `'=== Summary ==='`), so code that only reads values is
-  unaffected. Writing those strings back with `setCellValue` or `addSheet` stores a formula and
-  text, so wrap them in `{ text }` and `{ error }`. Before, a loaded `=== Summary ===` was saved as a
+  unaffected. Writing those strings back with `setCellValue` or `addSheet` stores `'=== Summary ==='`
+  as a formula and `'#N/A'` as text, so wrap them in `{ text }` and `{ error }`. Before, a loaded `=== Summary ===` was saved as a
   formula.
 - **`removeAutoFilter` shows the rows under the removed range.** Rows hidden by a filter stay
   hidden when you load and save, because the criteria are not kept.

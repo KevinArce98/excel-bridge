@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Exporta archivos grandes con streaming | excel-bridge docs</title>
+<meta name="description" content="Escribe archivos de un millón de filas sin mantenerlos en memoria y envíalos a un navegador, a un handler de Express o a un servidor de estilo fetch." />
+<link rel="canonical" href="https://kevinarce98.github.io/excel-bridge/es/guide/streaming/" />
+<link rel="alternate" hreflang="en" href="https://kevinarce98.github.io/excel-bridge/guide/streaming/" />
+<link rel="alternate" hreflang="es" href="https://kevinarce98.github.io/excel-bridge/es/guide/streaming/" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="Exporta archivos grandes con streaming | excel-bridge docs" />
+<meta property="og:description" content="Escribe archivos de un millón de filas sin mantenerlos en memoria y envíalos a un navegador, a un handler de Express o a un servidor de estilo fetch." />
+<meta property="og:url" content="https://kevinarce98.github.io/excel-bridge/es/guide/streaming/" />
+<meta name="theme-color" content="#0f172a" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231B2336'/%3E%3Crect x='5' y='6' width='22' height='6' rx='2' fill='%2322C55E'/%3E%3Crect x='5' y='15' width='9' height='4' rx='1.5' fill='%23334155'/%3E%3Crect x='18' y='15' width='9' height='4' rx='1.5' fill='%23334155'/%3E%3Crect x='5' y='22' width='9' height='4' rx='1.5' fill='%23334155'/%3E%3Crect x='18' y='22' width='9' height='4' rx='1.5' fill='%2322C55E' fill-opacity='0.5'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../../../assets/docs.css" />
+</head>
+<body>
+<a class="skip" href="#content">Saltar al contenido</a>
+<header class="waybill">
+  <div class="waybill-in">
+    <a class="wordmark" href="../../../" aria-label="excel-bridge"><svg class="mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><rect width="32" height="32" rx="7" fill="#1B2336"/><rect x="5" y="6" width="22" height="6" rx="2" fill="#22C55E"/><rect x="5" y="15" width="9" height="4" rx="1.5" fill="#334155"/><rect x="18" y="15" width="9" height="4" rx="1.5" fill="#334155"/><rect x="5" y="22" width="9" height="4" rx="1.5" fill="#334155"/><rect x="18" y="22" width="9" height="4" rx="1.5" fill="#22C55E" fill-opacity="0.5"/></svg><span><span class="w-excel">excel</span><span class="w-dash">-</span><span class="w-bridge">bridge</span></span></a>
+    <span class="field"><span class="field-caption">Docs</span><span class="field-value">2.x</span></span>
+    <nav class="top-links" aria-label="Sitio">
+      <a href="../../../#pack">Probar</a>
+      <a href="https://github.com/KevinArce98/excel-bridge" rel="noopener">GitHub</a>
+      <a href="https://www.npmjs.com/package/excel-bridge" rel="noopener">npm</a>
+    </nav>
+    <div class="lang" role="group" aria-label="Idioma"><a href="../../../guide/streaming/" hreflang="en" lang="en" aria-label="English">EN</a><span class="lang-current" aria-current="true" lang="es">ES</span></div>
+  </div>
+</header>
+<div class="shell">
+  <nav class="rail" aria-label="Docs">
+    <details class="rail-fold" open>
+      <summary>Contenido</summary>
+      <section><p class="rail-group">Inicio</p><ul><li><a href="../../../es/getting-started/">Primeros pasos</a></li></ul></section>
+<section><p class="rail-group">Guía</p><ul><li><a href="../../../es/guide/values/">Escribe valores y fórmulas</a></li><li><a href="../../../es/guide/styling/">Da estilo a las celdas</a></li><li><a href="../../../es/guide/layout/">Define el diseño de las hojas</a></li><li><a href="../../../es/guide/rules/">Agrega reglas</a></li><li><a href="../../../es/guide/reading/">Lee un libro</a></li><li><a href="../../../es/guide/objects/">Filas como objetos</a></li><li><a href="../../../es/guide/workbook/">Edita un libro</a></li><li><a href="../../../es/guide/streaming/" aria-current="page">Exporta archivos grandes con streaming</a></li><li><a href="../../../es/guide/errors/">Maneja errores y límites</a></li></ul></section>
+<section><p class="rail-group">Referencia</p><ul><li><a href="../../../es/api/">Referencia de la API</a></li><li><a href="../../../es/performance/">Rendimiento y tamaño</a></li><li><a href="../../../es/limitations/">Límites y alternativas</a></li><li><a href="../../../es/upgrading/">Actualización</a></li><li><a href="../../../es/security/">Seguridad</a></li></ul></section>
+    </details>
+  </nav>
+  <main id="content" class="sheet">
+    <div class="sheet-rule" aria-hidden="true"></div>
+    <article class="prose">
+<h1 id="exporta-archivos-grandes-con-streaming">Exporta archivos grandes con streaming</h1>
+<p>Para exportaciones demasiado grandes para mantenerlas en memoria, <code>createExcelWorkbookStream</code> produce el <code>.xlsx</code> en fragmentos <code>Uint8Array</code>. Las filas provienen de un iterable síncrono o asíncrono, así que nunca están todas en memoria a la vez.</p>
+<figure class="code"><figcaption><span class="code-name">stream-to-disk.ts</span><button type="button" class="copy" data-copy="Copiar" data-copied="Copiado">Copiar</button></figcaption><pre tabindex="0"><code><span class="tk-k">import</span> fs <span class="tk-k">from</span> <span class="tk-s">'node:fs'</span>;
+<span class="tk-k">import</span> { createExcelWorkbookStream, streamToBuffer } <span class="tk-k">from</span> <span class="tk-s">'excel-bridge'</span>;
+
+<span class="tk-k">function</span>* generateRows() {
+  <span class="tk-k">yield</span> ['<span class="tk-t">Id</span><span class="tk-s">', '</span><span class="tk-t">Name</span><span class="tk-s">', '</span><span class="tk-t">Value</span>'];
+  <span class="tk-k">for</span> (<span class="tk-k">let</span> id = <span class="tk-n">1</span>; id &lt;= <span class="tk-n">1_000</span>; id++) <span class="tk-k">yield</span> [id, <span class="tk-s">`Row ${id}`</span>, id * <span class="tk-n">2</span>];
+}
+
+<span class="tk-k">const</span> out = fs.createWriteStream('big.xlsx');
+<span class="tk-k">for</span> <span class="tk-k">await</span> (<span class="tk-k">const</span> chunk <span class="tk-k">of</span> createExcelWorkbookStream([{ name: <span class="tk-s">'Data'</span>, rows: generateRows() }])) {
+  out.write(chunk);
+}
+out.end();
+
+<span class="tk-k">const</span> bytes = <span class="tk-k">await</span> streamToBuffer(createExcelWorkbookStream([{ name: <span class="tk-s">'Data'</span>, rows: generateRows() }]));</code></pre></figure>
+<p>Envía los fragmentos directamente al disco, o recógelos con <code>streamToBuffer</code> cuando aún necesites un solo buffer. El ejemplo genera 1,000 filas. Cambia el bucle a <code>1_000_000</code> para un millón: las filas se producen una a la vez.</p>
+<h2 id="que-admite-una-hoja-de-streaming">Qué admite una hoja de streaming<a class="anchor" href="#que-admite-una-hoja-de-streaming" aria-label="Qué admite una hoja de streaming">#</a></h2>
+<p>Un <code>StreamingSheetInput</code> acepta <code>name</code>, <code>rows</code>, <code>styles</code>, <code>freezePane</code>, <code>columnWidths</code>, <code>rowHeights</code>, <code>hiddenRows</code>, <code>hiddenColumns</code>, <code>mergeCells</code>, <code>autoFilter</code> y <code>hyperlinks</code>. Pasa desde el principio el rango final del filtro y los vínculos: se validan, y el rango se escribe en la parte del libro, antes de la primera fila.</p>
+<p>No admite <code>autoWidth</code>, <code>validations</code>, <code>conditionalFormats</code>, <code>sharedStrings</code> ni un <code>state</code> de hoja. Usa <code>ExcelWriter</code> o <code>Workbook</code> cuando los necesites.</p>
+<p>Para enviar por streaming una lista de objetos con una fila de encabezado, consulta <a href="../objects/">Filas como objetos</a>.</p>
+<h2 id="enviar-un-archivo-al-navegador">Enviar un archivo al navegador<a class="anchor" href="#enviar-un-archivo-al-navegador" aria-label="Enviar un archivo al navegador">#</a></h2>
+<p><code>downloadXlsx(data, filename?)</code> inicia una descarga a partir de un <code>Blob</code> o un <code>Uint8Array</code>. Solo funciona donde hay un <code>document</code>, y en otros entornos lanza un error <code>UNSUPPORTED</code>. No se toca nada al importar el paquete.</p>
+<figure class="code"><figcaption><span class="code-name">download.ts</span><button type="button" class="copy" data-copy="Copiar" data-copied="Copiado">Copiar</button></figcaption><pre tabindex="0"><code><span class="tk-k">import</span> { <span class="tk-t">ExcelWriter</span>, downloadXlsx } <span class="tk-k">from</span> <span class="tk-s">'excel-bridge'</span>;
+
+<span class="tk-k">const</span> sheet = { data: [['<span class="tk-t">Product</span><span class="tk-s">', '</span><span class="tk-t">Price</span><span class="tk-s">'], ['</span><span class="tk-t">Laptop</span>', <span class="tk-n">999.99</span>]] };
+
+document.querySelector('button<span class="tk-s">')!.addEventListener('</span>click', () =&gt; {
+  downloadXlsx(<span class="tk-k">new</span> <span class="tk-t">ExcelWriter</span>().createWorkbook([sheet]), <span class="tk-s">'Sales 2024'</span>);
+});</code></pre></figure>
+<p>El nombre del archivo se hace seguro por ti: los separadores de ruta, <code>: * ? &quot; &lt; &gt; |</code> y los caracteres de control se convierten en <code>_</code> (una secuencia se convierte en un solo <code>_</code>), y <code>.xlsx</code> se agrega una sola vez.</p>
+<h2 id="enviar-un-archivo-desde-un-servidor">Enviar un archivo desde un servidor<a class="anchor" href="#enviar-un-archivo-desde-un-servidor" aria-label="Enviar un archivo desde un servidor">#</a></h2>
+<p>Para servidores de estilo fetch (Cloudflare Workers, Deno, Bun, route handlers de Next.js, Hono), <code>xlsxResponse(body, filename?, init?)</code> devuelve una <code>Response</code> con el <code>Content-Type</code> correcto y un <code>Content-Disposition</code> que maneja nombres con caracteres no ASCII. Pásale el stream y espera el primer fragmento, así que todo lo que el escritor comprueba de antemano, como los nombres de hoja y los estilos, se rechaza antes de que exista la respuesta y aún puedes responder con un código de estado de error.</p>
+<figure class="code"><figcaption><span class="code-name">route-handler.ts</span><button type="button" class="copy" data-copy="Copiar" data-copied="Copiado">Copiar</button></figcaption><pre tabindex="0"><code><span class="tk-k">import</span> { createExcelWorkbookStream, xlsxResponse } <span class="tk-k">from</span> <span class="tk-s">'excel-bridge'</span>;
+
+<span class="tk-k">declare</span> <span class="tk-k">function</span> loadRows(): <span class="tk-t">AsyncIterable</span>&lt;(string | number)[]&gt;;
+
+<span class="tk-k">export</span> <span class="tk-k">async</span> <span class="tk-k">function</span> <span class="tk-t">GET</span>() {
+  <span class="tk-k">return</span> xlsxResponse(createExcelWorkbookStream([{ name: <span class="tk-s">'Data'</span>, rows: loadRows() }]), <span class="tk-s">'report'</span>);
+}</code></pre></figure>
+<aside class="callout callout-note"><p class="callout-name">Nota</p><p>Una vez que la respuesta ha comenzado, un fallo al leer filas posteriores no puede cambiar el código de estado. El cuerpo falla y el cliente ve una descarga interrumpida.</p>
+</aside>
+<p><code>toReadableStream(chunks)</code> convierte cualquier iterable asíncrono de <code>Uint8Array</code> en un <code>ReadableStream</code>, por si construyes tú la <code>Response</code>.</p>
+<h3 id="express-y-node-puro">Express y Node puro<a class="anchor" href="#express-y-node-puro" aria-label="Express y Node puro">#</a></h3>
+<p>El escritor de streaming produce fragmentos <code>Uint8Array</code>, que <code>Readable.from</code> acepta.</p>
+<figure class="code"><figcaption><span class="code-name">express.ts</span><button type="button" class="copy" data-copy="Copiar" data-copied="Copiado">Copiar</button></figcaption><pre tabindex="0"><code><span class="tk-k">import</span> express <span class="tk-k">from</span> <span class="tk-s">'express'</span>;
+<span class="tk-k">import</span> { <span class="tk-t">Readable</span> } <span class="tk-k">from</span> <span class="tk-s">'node:stream'</span>;
+<span class="tk-k">import</span> { <span class="tk-t">XLSX_CONTENT_TYPE</span>, createExcelWorkbookStream } <span class="tk-k">from</span> <span class="tk-s">'excel-bridge'</span>;
+
+<span class="tk-k">declare</span> <span class="tk-k">function</span> loadRows(): <span class="tk-t">AsyncIterable</span>&lt;(string | number)[]&gt;;
+
+<span class="tk-k">const</span> app = express();
+
+app.get('/report.xlsx', (req, res) =&gt; {
+  res.setHeader('<span class="tk-t">Content</span>-<span class="tk-t">Type</span>', <span class="tk-t">XLSX_CONTENT_TYPE</span>);
+  res.attachment('report.xlsx');
+  <span class="tk-t">Readable</span>.<span class="tk-k">from</span>(createExcelWorkbookStream([{ name: <span class="tk-s">'Data'</span>, rows: loadRows() }])).pipe(res);
+});</code></pre></figure>
+<aside class="callout callout-note"><p class="callout-name">Nota</p><p>Los escritores devuelven un <code>Uint8Array</code> simple, no un <code>Buffer</code>. Con un buffer en Express 4, usa <code>res.send(Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength))</code>, porque Express 4 envía un <code>Uint8Array</code> como JSON.</p>
+</aside>
+
+    </article>
+    <nav class="stubs" aria-label="Anterior y siguiente"><a class="stub stub-prev" href="../../../es/guide/workbook/"><span class="field-caption">Anterior</span><span class="stub-title">Edita un libro</span></a><a class="stub stub-next" href="../../../es/guide/errors/"><span class="field-caption">Siguiente</span><span class="stub-title">Maneja errores y límites</span></a></nav>
+    <p class="doc-foot"><a href="https://github.com/KevinArce98/excel-bridge/edit/main/docs-src/es/guide/streaming.md" rel="noopener">Editar esta página</a> · Licencia MIT · Microsoft Excel es una marca de Microsoft; este proyecto no está afiliado a Microsoft.</p>
+  </main>
+  <aside class="toc" aria-label="En esta página">
+    <p class="field-caption">En esta página</p>
+    <ul><li><a href="#que-admite-una-hoja-de-streaming">Qué admite una hoja de streaming</a></li><li><a href="#enviar-un-archivo-al-navegador">Enviar un archivo al navegador</a></li><li><a href="#enviar-un-archivo-desde-un-servidor">Enviar un archivo desde un servidor</a></li></ul>
+  </aside>
+</div>
+<script src="../../../assets/docs.js" defer></script>
+</body>
+</html>

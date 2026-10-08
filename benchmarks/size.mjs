@@ -79,9 +79,9 @@ const toKB = bytes => (bytes / 1000).toFixed(1);
 
 const importLabel = names => (names === '*' ? '* (everything)' : `{ ${names} }`);
 
-const readmeRowPattern = names =>
+const tableRowPattern = names =>
   names === '*'
-    ? /^\| Everything \| ([\d.]+) KB \|$/m
+    ? /^\| (?:Everything|Todo) \| ([\d.]+) KB \|$/m
     : new RegExp(`^\\| \`${names}\`[^|]*\\| ([\\d.]+) KB \\|$`, 'm');
 
 const benchmarkRowPattern = names =>
@@ -92,27 +92,87 @@ const benchmarkRowPattern = names =>
 
 const escapeRegExp = text => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
+const SIZE_TABLES = [
+  ['docs-src/en/performance.md', tableRowPattern],
+  ['docs-src/es/performance.md', tableRowPattern],
+  ['benchmarks/README.md', benchmarkRowPattern],
+];
+
+const SIZE_MENTIONS = [
+  ['README.md', /ExcelWriter-([\d.]+)%20KB/, ['ExcelWriter'], 'the README size badge'],
+  ['README.md', /the writer adds ([\d.]+) KB min\+gzip/, ['ExcelWriter'], 'the README tagline'],
+  [
+    'README.md',
+    /`ExcelWriter` adds ([\d.]+) KB and `ExcelReader` ([\d.]+) KB min\+gzip/,
+    ['ExcelWriter', 'ExcelReader'],
+    'the README highlights',
+  ],
+  [
+    'docs-src/en/getting-started.md',
+    /the writer adds ([\d.]+) KB min\+gzip/,
+    ['ExcelWriter'],
+    'the English getting started page',
+  ],
+  [
+    'docs-src/es/getting-started.md',
+    /el escritor suma ([\d.]+) KB min\+gzip/,
+    ['ExcelWriter'],
+    'the Spanish getting started page',
+  ],
+  [
+    'docs-src/en/performance.md',
+    /`ExcelBridge` is\s+([\d.]+) KB against\s+([\d.]+) KB for `ExcelWriter`/,
+    ['ExcelBridge', 'ExcelWriter'],
+    'the English note on the ExcelBridge object',
+  ],
+  [
+    'docs-src/en/performance.md',
+    /hyperlinks\s+in\s+([\d.]+) KB/,
+    ['ExcelWriter'],
+    'the English paragraph on what ExcelWriter covers',
+  ],
+  [
+    'docs-src/en/performance.md',
+    /\| Bundle size to write a file ¹ \| \*\*([\d.]+) KB\*\*/,
+    ['ExcelWriter'],
+    'the English comparison table',
+  ],
+  [
+    'docs-src/es/performance.md',
+    /`ExcelBridge` pesa\s+([\d.]+) KB frente a\s+([\d.]+) KB/,
+    ['ExcelBridge', 'ExcelWriter'],
+    'the Spanish note on the ExcelBridge object',
+  ],
+  [
+    'docs-src/es/performance.md',
+    /hipervínculos\s+en\s+([\d.]+) KB/,
+    ['ExcelWriter'],
+    'the Spanish paragraph on what ExcelWriter covers',
+  ],
+  [
+    'docs-src/es/performance.md',
+    /\| Tamaño del paquete para escribir un archivo ¹ \| \*\*([\d.]+) KB\*\*/,
+    ['ExcelWriter'],
+    'the Spanish comparison table',
+  ],
+];
+
 const checkReadme = async () => {
-  const readme = readFileSync(join(root, 'README.md'), 'utf8');
-  const benchmarks = readFileSync(join(root, 'benchmarks', 'README.md'), 'utf8');
   const failures = [];
   const documented = {};
 
-  for (const [name, names] of CASES.filter(([name]) => name === SELF)) {
-    const { gzip } = await measure(entryFor(name, names));
+  for (const [, names] of CASES.filter(([name]) => name === SELF)) {
+    const { gzip } = await measure(entryFor(SELF, names));
     const label = names === '*' ? 'everything' : names;
     const measuredKB = toKB(gzip);
+    documented[names] = measuredKB;
 
-    for (const [file, pattern] of [
-      ['README.md bundle size table', readmeRowPattern(names)],
-      ['benchmarks/README.md reference results', benchmarkRowPattern(names)],
-    ]) {
-      const match = pattern.exec(file.startsWith('README') ? readme : benchmarks);
+    for (const [file, rowPattern] of SIZE_TABLES) {
+      const match = rowPattern(names).exec(readFileSync(join(root, file), 'utf8'));
       if (!match) {
-        failures.push(`${label}: no row in the ${file}`);
+        failures.push(`${label}: no row in ${file}`);
         continue;
       }
-      if (file.startsWith('README')) documented[names] = match[1];
 
       const drift = gzip - Number(match[1]) * 1000;
       const status = Math.abs(drift) <= README_TOLERANCE_BYTES ? 'ok' : 'FAIL';
@@ -120,44 +180,22 @@ const checkReadme = async () => {
         `${status.padEnd(4)} ${label.padEnd(28)} measured ${gzip} B, ${file} ${match[1]} KB (${drift >= 0 ? '+' : ''}${Math.round(drift)} B)`
       );
       if (status === 'FAIL') {
-        failures.push(
-          `${label}: the ${file} says ${match[1]} KB, the build measures ${measuredKB} KB (${gzip} B)`
-        );
+        failures.push(`${label}: ${file} says ${match[1]} KB, the build measures ${measuredKB} KB (${gzip} B)`);
       }
     }
   }
 
-  const mentions = [
-    [/ExcelWriter-([\d.]+)%20KB/, ['ExcelWriter'], 'the README size badge'],
-    [/the writer adds ([\d.]+) KB min\+gzip/, ['ExcelWriter'], 'the README tagline'],
-    [/`ExcelWriter` adds ([\d.]+) KB min\+gzip/, ['ExcelWriter'], 'the README highlights'],
-    [
-      /`ExcelBridge` is ([\d.]+) KB min\+gzip, against ([\d.]+) KB for `ExcelWriter`/,
-      ['ExcelBridge', 'ExcelWriter'],
-      'the README note on the ExcelBridge object',
-    ],
-    [
-      /hyperlinks\s+in\s+([\d.]+) KB/,
-      ['ExcelWriter'],
-      'the README paragraph on what ExcelWriter covers',
-    ],
-    [
-      /\| Bundle size to write a file ¹ \| \*\*([\d.]+) KB\*\*/,
-      ['ExcelWriter'],
-      'the README comparison table',
-    ],
-  ];
-
-  for (const [pattern, subjects, where] of mentions) {
-    const match = pattern.exec(readme);
+  for (const [file, pattern, subjects, where] of SIZE_MENTIONS) {
+    const match = pattern.exec(readFileSync(join(root, file), 'utf8'));
     if (!match) {
-      failures.push(`${where}: the sentence with the size was not found`);
+      failures.push(`${where} (${file}): the sentence with the size was not found`);
       continue;
     }
     subjects.forEach((subject, index) => {
-      if (documented[subject] !== undefined && match[index + 1] !== documented[subject]) {
+      const measured = documented[subject];
+      if (measured !== undefined && Math.abs(Number(match[index + 1]) - Number(measured)) > 0.05) {
         failures.push(
-          `${subject}: ${where} says ${match[index + 1]} KB, the bundle size table says ${documented[subject]} KB`
+          `${subject}: ${where} (${file}) says ${match[index + 1]} KB, the build measures ${measured} KB`
         );
       }
     });
