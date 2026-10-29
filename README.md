@@ -21,14 +21,6 @@ Import a class and your bundler ships only that part: the writer adds 12.9 KB mi
 
 </div>
 
-<!-- channel:prerelease -->
-> **This is the 2.0 release candidate.** Install it with `npm install excel-bridge@next`. A plain `npm install excel-bridge` still installs the stable 1.x.
->
-> 2.0 has breaking changes: [what changes and how to adapt](https://github.com/KevinArce98/excel-bridge/blob/next/UPGRADING.md). The documentation website moves to 2.0 when 2.0.0 is released. Until then, read the pages in [docs-src](https://github.com/KevinArce98/excel-bridge/tree/next/docs-src/en).
->
-> Found a problem? [Open an issue](https://github.com/KevinArce98/excel-bridge/issues/new).
-<!-- /channel:prerelease -->
-
 ---
 
 ## Why excel-bridge
