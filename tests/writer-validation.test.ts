@@ -49,6 +49,14 @@ describe('sheet names', () => {
     }
   );
 
+  it.each(['History', 'history', 'HISTORY'])('rejects the name Excel reserves: %s', name => {
+    expect(() => write(named(name))).toThrow(/Excel reserves the name "History"/);
+  });
+
+  it('accepts names that only contain the reserved one', () => {
+    expect(() => write(named('History 2024'), named('Histor'))).not.toThrow();
+  });
+
   it('rejects two sheets with the same name, whatever the case', () => {
     expect(() => write(named('Same'), named('Same'))).toThrow(/used twice/);
     expect(() => write(named('Same'), named('same'))).toThrow(/used twice/);

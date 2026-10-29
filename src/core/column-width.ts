@@ -8,7 +8,7 @@ const displayedText = (cell: CellValue): string => {
   return (typeof shown === 'object' && 'error' in shown ? shown.error : shown)?.toString() || '';
 };
 
-export function calculateColumnWidths(data: any[][]): number[] {
+export function calculateColumnWidths(data: CellValue[][]): number[] {
   const widths: number[] = [];
   let maxCols = 0;
 

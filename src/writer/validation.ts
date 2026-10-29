@@ -3,13 +3,9 @@ import { dateToExcelSerial } from '../core/date-utils';
 
 type RangeOperator = Exclude<DataValidationOperator, never>;
 
-/**
- * Typed builders for cell data validations. Each returns a {@link CellValidation}
- * ready to drop into a sheet's `validations` array or `Workbook.addValidation`.
- */
 export const dataValidation = {
   list(range: string, values: string[]): CellValidation {
-    return { range, type: 'list', options: values.join(',') };
+    return { range, type: 'list', formula1: `"${values.join(',').replace(/"/g, '""')}"` };
   },
 
   wholeNumber(
@@ -41,7 +37,6 @@ export const dataValidation = {
       operator: 'between',
       formula1: String(dateToExcelSerial(start)),
       formula2: String(dateToExcelSerial(end)),
-      options: '',
     };
   },
 };
@@ -58,5 +53,4 @@ const numericRule = (
   operator,
   formula1: String(value),
   ...(value2 !== undefined ? { formula2: String(value2) } : {}),
-  options: '',
 });

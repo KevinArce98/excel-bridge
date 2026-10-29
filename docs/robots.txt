@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://kevinarce98.github.io/excel-bridge/sitemap.xml

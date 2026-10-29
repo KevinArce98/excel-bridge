@@ -1,4 +1,12 @@
 import { zipSync, strToU8, unzipSync, strFromU8 } from 'fflate';
+import { XLSX_CONTENT_TYPE } from './constants';
+import { ExcelBridgeError, limitExceeded } from './errors';
+
+export interface PartBudget {
+  maxPartBytes: number;
+  maxTotalBytes: number;
+  total: number;
+}
 
 export interface ExcelFiles {
   [path: string]: string;
@@ -16,12 +24,11 @@ export const createExcelBlob = (files: ExcelFiles): Blob => {
   const zippedArray = new Uint8Array(zipped);
 
   if (typeof Blob !== 'undefined') {
-    return new Blob([zippedArray], {
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    });
+    return new Blob([zippedArray], { type: XLSX_CONTENT_TYPE });
   }
 
-  throw new Error(
+  throw new ExcelBridgeError(
+    'UNSUPPORTED',
     'Blob is not available in this environment. Use createExcelBuffer() for Node.js.'
   );
 };
@@ -39,12 +46,37 @@ export const createExcelBuffer = (files: ExcelFiles): Uint8Array => {
   return new Uint8Array(result);
 };
 
+const takeFromBudget = (budget: PartBudget, name: string, size: number): void => {
+  if (size > budget.maxPartBytes) {
+    throw limitExceeded(
+      'maxPartBytes',
+      budget.maxPartBytes,
+      `Part "${name}" inflates to ${size} bytes`
+    );
+  }
+  budget.total += size;
+  if (budget.total > budget.maxTotalBytes) {
+    throw limitExceeded(
+      'maxTotalBytes',
+      budget.maxTotalBytes,
+      `The workbook inflates to ${budget.total} bytes`
+    );
+  }
+};
+
 export const extractParts = (
   buffer: Uint8Array,
-  select?: (path: string) => boolean
+  select?: (path: string) => boolean,
+  budget?: PartBudget
 ): ExcelFiles => {
   try {
-    const unzipped = unzipSync(buffer, select ? { filter: ({ name }) => select(name) } : undefined);
+    const unzipped = unzipSync(buffer, {
+      filter: ({ name, originalSize }) => {
+        if (select && !select(name)) return false;
+        if (budget) takeFromBudget(budget, name, originalSize);
+        return true;
+      },
+    });
     const files: ExcelFiles = {};
 
     for (const [path, content] of Object.entries(unzipped)) {
@@ -52,12 +84,14 @@ export const extractParts = (
     }
 
     return files;
-  } catch {
-    throw new Error('Invalid Excel file: Unable to extract ZIP contents');
+  } catch (cause) {
+    throw cause instanceof ExcelBridgeError
+      ? cause
+      : new ExcelBridgeError('INVALID_FILE', 'Invalid Excel file: Unable to extract ZIP contents', {
+          cause,
+        });
   }
 };
-
-export const extractExcelFiles = (buffer: Uint8Array): ExcelFiles => extractParts(buffer);
 
 export const validateExcelStructure = (files: ExcelFiles): boolean => {
   const requiredFiles = ['[Content_Types].xml', '_rels/.rels', 'xl/workbook.xml'];

@@ -53,7 +53,7 @@ describe('Text fidelity on read', () => {
   });
 
   it('keeps formula text and string results exact', () => {
-    const base = new ExcelWriter().createWorkbookBuffer([{ data: [['placeholder', '=1E3']] }]);
+    const base = new ExcelWriter().createWorkbookBuffer([{ data: [['placeholder', { formula: '1E3' }]] }]);
     const withStringResult = replacePart(base, 'xl/worksheets/sheet1.xml', xml =>
       xml.replace(
         /<c r="A1"[^>]*>.*?<\/c>/,

@@ -10,7 +10,7 @@ export const EXCEL_ERRORS = [
   '#N/A',
 ] as const;
 
-export const isExcelError = (value: unknown): value is ExcelErrorValue =>
+export const isExcelErrorValue = (value: unknown): value is ExcelErrorValue =>
   EXCEL_ERRORS.includes(value as ExcelErrorValue);
 
 export interface CellParts {
@@ -19,11 +19,6 @@ export interface CellParts {
 }
 
 export const splitCell = (cell: CellValue): CellParts => {
-  if (typeof cell === 'string') {
-    return cell.startsWith('=')
-      ? { formula: cell.substring(1), value: undefined }
-      : { value: cell };
-  }
   if (typeof cell === 'object' && cell !== null && !(cell instanceof Date)) {
     if (typeof cell.formula === 'string') {
       return { formula: cell.formula.replace(/^=/, ''), value: cell.result };

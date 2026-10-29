@@ -8,6 +8,7 @@ package did not produce.
 | `exceljs-report.xlsx` | ExcelJS 4.4.0 | Header fill and bold, whole-number validation, freeze pane, cached formula value, merged range, hidden second sheet. |
 | `exceljs-text.xlsx` | ExcelJS 4.4.0 | Shared strings with rich text runs, `xml:space="preserve"`, entities, emoji, CJK, Arabic, a leading-zero string and a 300-character string. |
 | `sheetjs-report.xlsx` | SheetJS `xlsx` 0.18.5 | The date is an ISO `t="d"` cell. No styles or freeze pane. |
+| `sheetjs-text.xlsx` | SheetJS `xlsx` 0.18.5 | Seven text cells written as `t="str"`, one with a formula; the padded, tabbed and multi-line ones carry `<v xml:space="preserve">`. Not yet produced by `scripts/generate-fixtures.mjs`. |
 | `hucre-report.xlsx` | hucre 1.2.0 | Header fill and bold, freeze pane, formula without a cached value. |
 
 The three `*-report` files hold the same small report: a header row, a data row, a total row and a

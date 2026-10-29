@@ -1,16 +1,18 @@
-import { ExcelReader, ParsedCell, ParsedWorkbook } from '../reader';
+import { invalidInput } from '../core/errors';
+import { ExcelReader } from '../reader';
+import type { ExcelReaderOptions, ParsedCell, ParsedWorkbook } from '../reader';
+import { rowIndexes } from '../core/rows';
 import { ExcelWriter } from '../writer';
 import { parseRange, formatRange } from '../core/cell-ref';
 import { EXCEL_LIMITS } from '../core/date-utils';
 import { validateSheetName } from '../core/sheet-name';
-import { isExcelError } from '../core/cells';
+import { isExcelErrorValue } from '../core/cells';
 import { prepareLayout } from '../core/sheet-layout';
 import { HYPERLINK_STYLE, prepareHyperlink } from '../core/hyperlinks';
 import {
   AutoFilter,
   CellValue,
-  ErrorCell,
-  TextCell,
+  FormulaResult,
   CellValidation,
   CellStyle,
   ConditionalFormat,
@@ -35,62 +37,39 @@ interface WorkbookSheet {
   hiddenRows: Set<number>;
   hiddenColumns: Set<number>;
   autoWidth?: boolean;
-  literals: Map<string, LiteralCell>;
 }
-
-type LiteralCell = TextCell | ErrorCell;
 
 const setMember = (members: Set<number>, index: number, present: boolean): void => {
   if (present) members.add(index);
   else members.delete(index);
 };
 
+const resultOf = (cell: ParsedCell): FormulaResult | undefined => {
+  switch (cell.type) {
+    case 'empty':
+      return undefined;
+    case 'error':
+      return isExcelErrorValue(cell.value) ? { error: cell.value } : undefined;
+    default:
+      return cell.value;
+  }
+};
+
 const cellToValue = (cell: ParsedCell): CellValue => {
-  if (cell.formula !== undefined) return `=${cell.formula}`;
-  if (cell.type === 'empty') return null;
+  if (cell.formula !== undefined) {
+    const result = resultOf(cell);
+    return result === undefined ? { formula: cell.formula } : { formula: cell.formula, result };
+  }
+  if (cell.type === 'error' && isExcelErrorValue(cell.value)) return { error: cell.value };
   return cell.value;
 };
 
-const literalOf = (cell: ParsedCell): LiteralCell | undefined => {
-  if (cell.formula !== undefined) return undefined;
-  if (cell.type === 'error' && isExcelError(cell.value)) return { error: cell.value };
-  if (typeof cell.value === 'string' && cell.value.startsWith('=')) return { text: cell.value };
-  return undefined;
-};
-
-const loadedText = (literal: LiteralCell): string => literal.error ?? literal.text;
-
-const withLiterals = (sheet: WorkbookSheet): CellValue[][] => {
-  if (sheet.literals.size === 0) return sheet.data;
-  const data = sheet.data.slice();
-  sheet.literals.forEach((literal, key) => {
-    const [row, col] = key.split('-').map(Number);
-    if (data[row]?.[col] !== loadedText(literal)) return;
-    data[row] = data[row].slice();
-    data[row][col] = literal;
+const placeRows = (rows: ParsedCell[][]): CellValue[][] => {
+  const data: CellValue[][] = [];
+  rowIndexes(rows).forEach(index => {
+    data[index] = rows[index].map(cellToValue);
   });
   return data;
-};
-
-const placeRows = (
-  rows: ParsedCell[][]
-): { data: CellValue[][]; literals: Map<string, LiteralCell> } => {
-  const data: CellValue[][] = [];
-  const literals = new Map<string, LiteralCell>();
-  let next = 0;
-
-  for (const row of rows) {
-    const declared = row[0]?.rowIndex ?? -1;
-    const index = declared >= next ? declared : next;
-    data[index] = row.map((cell, col) => {
-      const literal = literalOf(cell);
-      if (literal !== undefined) literals.set(`${index}-${col}`, literal);
-      return cellToValue(cell);
-    });
-    next = index + 1;
-  }
-
-  return { data, literals };
 };
 
 const canonicalHyperlink = (link: Hyperlink): Hyperlink => ({
@@ -137,13 +116,13 @@ export class Workbook {
     return new Workbook();
   }
 
-  static fromBuffer(buffer: Uint8Array): Workbook {
-    const reader = new ExcelReader();
+  static fromBuffer(buffer: Uint8Array, options?: ExcelReaderOptions): Workbook {
+    const reader = new ExcelReader(options);
     return Workbook.fromParsed(reader.parseFromBuffer(buffer));
   }
 
-  static async fromFile(file: File): Promise<Workbook> {
-    const reader = new ExcelReader();
+  static async fromFile(file: File, options?: ExcelReaderOptions): Promise<Workbook> {
+    const reader = new ExcelReader(options);
     return Workbook.fromParsed(await reader.parseFromFile(file));
   }
 
@@ -155,12 +134,10 @@ export class Workbook {
       subject: parsed.metadata.subject,
     };
     workbook.sheets = parsed.sheets.map(sheet => {
-      const placed = placeRows(sheet.data);
       return {
         name: sheet.name,
         ...(sheet.state ? { state: sheet.state } : {}),
-        data: placed.data,
-        literals: placed.literals,
+        data: placeRows(sheet.data),
         styles: sheet.styles ?? {},
         validations: sheet.validations.map(validation => ({ ...validation })),
         mergeCells: sheet.mergeCells ?? [],
@@ -194,7 +171,7 @@ export class Workbook {
   private findSheet(name: string): WorkbookSheet {
     const sheet = this.sheets.find(s => s.name === name);
     if (!sheet) {
-      throw new Error(`Sheet "${name}" not found`);
+      throw invalidInput(`Sheet "${name}" not found`);
     }
     return sheet;
   }
@@ -202,7 +179,7 @@ export class Workbook {
   addSheet(name: string, data: CellValue[][] = []): void {
     validateSheetName(name);
     if (this.sheets.some(s => s.name.toLowerCase() === name.toLowerCase())) {
-      throw new Error(`Sheet "${name}" already exists`);
+      throw invalidInput(`Sheet "${name}" already exists`);
     }
     this.sheets.push({
       name,
@@ -214,7 +191,6 @@ export class Workbook {
       hyperlinks: [],
       hiddenRows: new Set(),
       hiddenColumns: new Set(),
-      literals: new Map(),
     });
   }
 
@@ -222,7 +198,7 @@ export class Workbook {
     const sheet = this.findSheet(from);
     validateSheetName(to);
     if (this.sheets.some(s => s !== sheet && s.name.toLowerCase() === to.toLowerCase())) {
-      throw new Error(`Sheet "${to}" already exists`);
+      throw invalidInput(`Sheet "${to}" already exists`);
     }
     sheet.name = to;
   }
@@ -230,7 +206,7 @@ export class Workbook {
   removeSheet(name: string): void {
     const index = this.sheets.findIndex(s => s.name === name);
     if (index === -1) {
-      throw new Error(`Sheet "${name}" not found`);
+      throw invalidInput(`Sheet "${name}" not found`);
     }
     this.sheets.splice(index, 1);
   }
@@ -247,7 +223,6 @@ export class Workbook {
     const sheet = this.findSheet(sheetName);
     if (!sheet.data[row]) sheet.data[row] = [];
     sheet.data[row][col] = value;
-    sheet.literals.delete(`${row}-${col}`);
   }
 
   getCellStyle(sheetName: string, row: number, col: number): CellStyle | undefined {
@@ -389,7 +364,7 @@ export class Workbook {
 
   private toExcelData() {
     return this.sheets.map(sheet => ({
-      data: withLiterals(sheet),
+      data: sheet.data,
       validations: sheet.validations,
       styles: sheet.styles,
       mergeCells: sheet.mergeCells,

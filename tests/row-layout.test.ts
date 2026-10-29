@@ -4,9 +4,9 @@ import {
   ExcelWriter,
   Workbook,
   createExcelWorkbookStream,
-  generateColsXml,
   streamToBuffer,
 } from '../src';
+import { generateColsXml } from '../src/core/column-width';
 import type { ExcelData, SheetOptions } from '../src';
 import { cellAt, part, readFirstSheet } from './helpers/read';
 import { buildXlsx } from './helpers/xlsx';
@@ -192,12 +192,20 @@ describe('ExcelReader', () => {
     expect(sheet.hiddenRows).toEqual([2]);
   });
 
-  it('ignores layout on a row with no r attribute', () => {
+  it('applies the layout of a row with no r attribute to the row after the previous one', () => {
     const sheet = read(
-      '<sheetData><row ht="30" customHeight="1" hidden="1"><c r="A1"><v>1</v></c></row></sheetData>'
+      '<sheetData><row r="2"><c r="A2"><v>1</v></c></row><row ht="30" customHeight="1" hidden="1"><c r="A3"><v>1</v></c></row></sheetData>'
     );
-    expect(sheet.rowHeights).toBeUndefined();
-    expect(sheet.hiddenRows).toBeUndefined();
+    expect(sheet.rowHeights).toEqual({ 2: 30 });
+    expect(sheet.hiddenRows).toEqual([2]);
+  });
+
+  it('numbers a first row with no r attribute as row 1', () => {
+    const sheet = read(
+      '<sheetData><row ht="30" customHeight="1"><c><v>1</v></c><c><v>2</v></c></row></sheetData>'
+    );
+    expect(sheet.rowHeights).toEqual({ 0: 30 });
+    expect(sheet.data[0].map(cell => cell.coordinate)).toEqual(['A1', 'B1']);
   });
 
   it('reads hidden columns from ranges, with true or 1, and keeps their width', () => {

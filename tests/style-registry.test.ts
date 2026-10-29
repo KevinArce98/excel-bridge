@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { StyleManager } from '../src';
+import { StyleManager } from '../src/core/style-manager';
 import { generateStylesXml } from '../src/core/xml-templates';
 
 const entries = (xml: string, tag: string): string[] =>

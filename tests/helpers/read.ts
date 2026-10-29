@@ -1,13 +1,18 @@
 import { readFileSync } from 'node:fs';
 import { strFromU8, unzipSync } from 'fflate';
 import { ExcelBridge } from '../../src';
-import type { ParsedSheet, ParsedWorkbook } from '../../src/reader';
+import type { ParsedCell, ParsedSheet, ParsedWorkbook } from '../../src/reader';
 
 export const fixture = (name: string): Uint8Array =>
   new Uint8Array(readFileSync(new URL(`../fixtures/${name}`, import.meta.url)));
 
 export const cellAt = (sheet: ParsedSheet, coordinate: string) =>
   sheet.data.flat().find(cell => cell?.coordinate === coordinate);
+
+export const dateOf = (cell?: ParsedCell): Date => {
+  if (cell?.type !== 'date') throw new Error(`${cell?.coordinate ?? 'the cell'} is not a date cell`);
+  return cell.value;
+};
 
 export const calendarDay = (date: Date) => [
   date.getFullYear(),

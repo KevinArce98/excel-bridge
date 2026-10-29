@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>API reference | excel-bridge docs</title>
+<meta name="description" content="Every export of excel-bridge with its signature, grouped by what you use it for." />
+<link rel="canonical" href="https://kevinarce98.github.io/excel-bridge/api/" />
+<link rel="alternate" hreflang="en" href="https://kevinarce98.github.io/excel-bridge/api/" />
+<link rel="alternate" hreflang="es" href="https://kevinarce98.github.io/excel-bridge/es/api/" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="API reference | excel-bridge docs" />
+<meta property="og:description" content="Every export of excel-bridge with its signature, grouped by what you use it for." />
+<meta property="og:url" content="https://kevinarce98.github.io/excel-bridge/api/" />
+<meta name="theme-color" content="#0f172a" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231B2336'/%3E%3Crect x='5' y='6' width='22' height='6' rx='2' fill='%2322C55E'/%3E%3Crect x='5' y='15' width='9' height='4' rx='1.5' fill='%23334155'/%3E%3Crect x='18' y='15' width='9' height='4' rx='1.5' fill='%23334155'/%3E%3Crect x='5' y='22' width='9' height='4' rx='1.5' fill='%23334155'/%3E%3Crect x='18' y='22' width='9' height='4' rx='1.5' fill='%2322C55E' fill-opacity='0.5'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../assets/docs.css" />
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+<header class="waybill">
+  <div class="waybill-in">
+    <a class="wordmark" href="../" aria-label="excel-bridge"><svg class="mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><rect width="32" height="32" rx="7" fill="#1B2336"/><rect x="5" y="6" width="22" height="6" rx="2" fill="#22C55E"/><rect x="5" y="15" width="9" height="4" rx="1.5" fill="#334155"/><rect x="18" y="15" width="9" height="4" rx="1.5" fill="#334155"/><rect x="5" y="22" width="9" height="4" rx="1.5" fill="#334155"/><rect x="18" y="22" width="9" height="4" rx="1.5" fill="#22C55E" fill-opacity="0.5"/></svg><span><span class="w-excel">excel</span><span class="w-dash">-</span><span class="w-bridge">bridge</span></span></a>
+    <span class="field"><span class="field-caption">Docs</span><span class="field-value">2.x</span></span>
+    <nav class="top-links" aria-label="Site">
+      <a href="../#pack">Try it</a>
+      <a href="https://github.com/KevinArce98/excel-bridge" rel="noopener">GitHub</a>
+      <a href="https://www.npmjs.com/package/excel-bridge" rel="noopener">npm</a>
+    </nav>
+    <div class="lang" role="group" aria-label="Language"><span class="lang-current" aria-current="true" lang="en">EN</span><a href="../es/api/" hreflang="es" lang="es" aria-label="Español">ES</a></div>
+  </div>
+</header>
+<div class="shell">
+  <nav class="rail" aria-label="Docs">
+    <details class="rail-fold" open>
+      <summary>Contents</summary>
+      <section><p class="rail-group">Start</p><ul><li><a href="../getting-started/">Getting started</a></li></ul></section>
+<section><p class="rail-group">Guide</p><ul><li><a href="../guide/values/">Write values and formulas</a></li><li><a href="../guide/styling/">Style cells</a></li><li><a href="../guide/layout/">Lay out sheets</a></li><li><a href="../guide/rules/">Add rules</a></li><li><a href="../guide/reading/">Read a workbook</a></li><li><a href="../guide/objects/">Rows as objects</a></li><li><a href="../guide/workbook/">Edit a workbook</a></li><li><a href="../guide/streaming/">Stream big exports</a></li><li><a href="../guide/errors/">Handle errors and limits</a></li></ul></section>
+<section><p class="rail-group">Reference</p><ul><li><a href="../api/" aria-current="page">API reference</a></li><li><a href="../performance/">Performance and size</a></li><li><a href="../limitations/">Limits and alternatives</a></li><li><a href="../upgrading/">Upgrading</a></li><li><a href="../security/">Security</a></li></ul></section>
+    </details>
+  </nav>
+  <main id="content" class="sheet">
+    <div class="sheet-rule" aria-hidden="true"></div>
+    <article class="prose">
+<h1 id="api-reference">API reference</h1>
+<p>Everything comes from the package root: <code>import { ExcelWriter } from 'excel-bridge'</code>. Import the class or function you need and your bundler ships only that part.</p>
+<h2 id="write">Write<a class="anchor" href="#write" aria-label="Write">#</a></h2>
+<div class="table-scroll" role="region" tabindex="0" aria-label="Write"><table><thead><tr><th scope="col">Export</th><th scope="col">Signature</th><th scope="col">Notes</th></tr></thead><tbody>
+<tr><td data-label="Export"><code>ExcelWriter</code></td><td data-label="Signature"><code>new ExcelWriter(options?)</code></td><td data-label="Notes"><code>createWorkbook(sheets): Blob</code> for the browser, <code>createWorkbookBuffer(sheets): Uint8Array</code> for Node.js.</td></tr>
+<tr><td data-label="Export"><code>createExcelFile</code></td><td data-label="Signature"><code>(data, options?) =&gt; Blob</code></td><td data-label="Notes">One sheet from a 2D array.</td></tr>
+<tr><td data-label="Export"><code>createExcelFileBuffer</code></td><td data-label="Signature"><code>(data, options?) =&gt; Uint8Array</code></td><td data-label="Notes">The same, as bytes.</td></tr>
+<tr><td data-label="Export"><code>createExcelWorkbookStream</code></td><td data-label="Signature"><code>(sheets, options?) =&gt; AsyncGenerator&lt;Uint8Array&gt;</code></td><td data-label="Notes">Chunks of an <code>.xlsx</code> for large exports. See <a href="../guide/streaming/">Stream big exports</a>.</td></tr>
+<tr><td data-label="Export"><code>streamToBuffer</code></td><td data-label="Signature"><code>(stream) =&gt; Promise&lt;Uint8Array&gt;</code></td><td data-label="Notes">Collect a stream into one buffer.</td></tr>
+<tr><td data-label="Export"><code>dataValidation</code></td><td data-label="Signature"><code>list</code>, <code>wholeNumber</code>, <code>decimal</code>, <code>textLength</code>, <code>dateBetween</code></td><td data-label="Notes">Builders that return a <code>CellValidation</code>.</td></tr>
+<tr><td data-label="Export"><code>hyperlink</code></td><td data-label="Signature"><code>url</code>, <code>email</code>, <code>internal</code></td><td data-label="Notes">Builders that return a hyperlink.</td></tr>
+</tbody></table></div>
+<p><code>ExcelWriterOptions</code> is <code>{ creator?, title?, subject?, sharedStrings? }</code>. Each sheet is an <code>ExcelData</code>: <code>data</code> plus optional <code>styles</code>, <code>validations</code>, <code>mergeCells</code>, <code>conditionalFormats</code>, <code>hyperlinks</code> and <code>options</code>.</p>
+<h2 id="read">Read<a class="anchor" href="#read" aria-label="Read">#</a></h2>
+<div class="table-scroll" role="region" tabindex="0" aria-label="Read"><table><thead><tr><th scope="col">Export</th><th scope="col">Signature</th><th scope="col">Notes</th></tr></thead><tbody>
+<tr><td data-label="Export"><code>ExcelReader</code></td><td data-label="Signature"><code>new ExcelReader(options?)</code></td><td data-label="Notes"><code>parseFromBuffer(bytes): ParsedWorkbook</code>, <code>parseFromFile(file): Promise&lt;ParsedWorkbook&gt;</code>.</td></tr>
+<tr><td data-label="Export"><code>parseExcel</code></td><td data-label="Signature"><code>(bytes, options?) =&gt; ParsedWorkbook</code></td><td data-label="Notes">The same as <code>parseFromBuffer</code>, as a function.</td></tr>
+<tr><td data-label="Export"><code>sheetToObjects</code></td><td data-label="Signature"><code>(sheet, options?) =&gt; Row[]</code></td><td data-label="Notes">A sheet as typed objects. See <a href="../guide/objects/">Rows as objects</a>.</td></tr>
+<tr><td data-label="Export"><code>isExcelErrorValue</code></td><td data-label="Signature"><code>(value) =&gt; value is ExcelErrorValue</code></td><td data-label="Notes">True for the seven classic error values.</td></tr>
+</tbody></table></div>
+<p><code>ExcelReaderOptions</code> is <code>{ maxCells?, maxPartBytes?, maxTotalBytes?, maxSheets? }</code>. See <a href="../guide/errors/">Handle errors and limits</a>.</p>
+<h2 id="edit">Edit<a class="anchor" href="#edit" aria-label="Edit">#</a></h2>
+<p><code>Workbook</code> loads, edits and saves. <code>Workbook.create()</code>, <code>Workbook.fromBuffer(bytes, options?)</code> and <code>Workbook.fromFile(file, options?)</code> return a workbook; <code>toBuffer()</code> and <code>toBlob()</code> save it. The methods are listed in <a href="../guide/workbook/">Edit a workbook</a>.</p>
+<h2 id="objects">Objects<a class="anchor" href="#objects" aria-label="Objects">#</a></h2>
+<div class="table-scroll" role="region" tabindex="0" aria-label="Objects"><table><thead><tr><th scope="col">Export</th><th scope="col">Signature</th></tr></thead><tbody>
+<tr><td data-label="Export"><code>objectsToSheet</code></td><td data-label="Signature"><code>(rows, columns, options?) =&gt; ExcelData</code></td></tr>
+<tr><td data-label="Export"><code>objectsToStreamingSheet</code></td><td data-label="Signature"><code>(rows, columns, options?) =&gt; StreamingSheetInput</code></td></tr>
+</tbody></table></div>
+<h2 id="deliver">Deliver<a class="anchor" href="#deliver" aria-label="Deliver">#</a></h2>
+<div class="table-scroll" role="region" tabindex="0" aria-label="Deliver"><table><thead><tr><th scope="col">Export</th><th scope="col">Signature</th><th scope="col">Notes</th></tr></thead><tbody>
+<tr><td data-label="Export"><code>downloadXlsx</code></td><td data-label="Signature"><code>(data, filename?) =&gt; void</code></td><td data-label="Notes">Browser only. Throws <code>UNSUPPORTED</code> without a <code>document</code>.</td></tr>
+<tr><td data-label="Export"><code>xlsxResponse</code></td><td data-label="Signature"><code>(body, filename?, init?) =&gt; Promise&lt;Response&gt;</code></td><td data-label="Notes">For fetch-style servers.</td></tr>
+<tr><td data-label="Export"><code>toReadableStream</code></td><td data-label="Signature"><code>(chunks) =&gt; ReadableStream&lt;Uint8Array&gt;</code></td><td data-label="Notes">Wrap any async iterable of bytes.</td></tr>
+<tr><td data-label="Export"><code>XLSX_CONTENT_TYPE</code></td><td data-label="Signature"><code>string</code></td><td data-label="Notes"><code>application/vnd.openxmlformats-officedocument.spreadsheetml.sheet</code>.</td></tr>
+</tbody></table></div>
+<h2 id="errors">Errors<a class="anchor" href="#errors" aria-label="Errors">#</a></h2>
+<div class="table-scroll" role="region" tabindex="0" aria-label="Errors"><table><thead><tr><th scope="col">Export</th><th scope="col">Notes</th></tr></thead><tbody>
+<tr><td data-label="Export"><code>ExcelBridgeError</code></td><td data-label="Notes">Extends <code>Error</code>. Has <code>code</code> (<code>ExcelBridgeErrorCode</code>), an optional <code>limit</code> (<code>ReaderLimitName</code>) and <code>cause</code>.</td></tr>
+<tr><td data-label="Export"><code>isExcelBridgeError</code></td><td data-label="Notes"><code>(error) =&gt; error is ExcelBridgeError</code>. Prefer it to <code>instanceof</code>.</td></tr>
+</tbody></table></div>
+<h2 id="helpers">Helpers<a class="anchor" href="#helpers" aria-label="Helpers">#</a></h2>
+<div class="table-scroll" role="region" tabindex="0" aria-label="Helpers"><table><thead><tr><th scope="col">Export</th><th scope="col">Signature</th></tr></thead><tbody>
+<tr><td data-label="Export"><code>coordinateToIndex</code></td><td data-label="Signature"><code>(coordinate) =&gt; { row, col }</code>, so <code>&quot;A1&quot;</code> is <code>{ row: 0, col: 0 }</code>.</td></tr>
+<tr><td data-label="Export"><code>indexToCoordinate</code></td><td data-label="Signature"><code>(row, col) =&gt; string</code>, so <code>(0, 0)</code> is <code>&quot;A1&quot;</code>.</td></tr>
+<tr><td data-label="Export"><code>dateToExcelSerial</code></td><td data-label="Signature"><code>(date) =&gt; number</code></td></tr>
+<tr><td data-label="Export"><code>excelSerialToDate</code></td><td data-label="Signature"><code>(serial) =&gt; Date</code></td></tr>
+<tr><td data-label="Export"><code>isDate</code></td><td data-label="Signature"><code>(value) =&gt; value is Date</code>, true only for a valid <code>Date</code>.</td></tr>
+<tr><td data-label="Export"><code>calculateColumnWidths</code></td><td data-label="Signature"><code>(data) =&gt; number[]</code>, the widths <code>autoWidth</code> would use.</td></tr>
+<tr><td data-label="Export"><code>EXCEL_LIMITS</code></td><td data-label="Signature">Excel&#39;s own limits: rows, columns, cell length, hyperlinks.</td></tr>
+</tbody></table></div>
+<h2 id="excelbridge">ExcelBridge<a class="anchor" href="#excelbridge" aria-label="ExcelBridge">#</a></h2>
+<p><code>ExcelBridge</code> puts <code>read</code>, <code>readFromFile</code>, <code>write</code>, <code>writeBuffer</code>, <code>Reader</code>, <code>Writer</code>, <code>Workbook</code>, <code>coordinateToIndex</code> and <code>indexToCoordinate</code> on one object. It suits scripts and prototypes.</p>
+<aside class="callout callout-note"><p class="callout-name">Note</p><p>Bundlers keep an object whole, so even one <code>ExcelBridge.write</code> call ships the reader too. In browser code, import the named exports.</p>
+</aside>
+<h2 id="types">Types<a class="anchor" href="#types" aria-label="Types">#</a></h2>
+<p>The types you will use most. Every type is exported from the package root.</p>
+<figure class="code"><figcaption><span class="code-name">values.d.ts</span><button type="button" class="copy" data-copy="Copy" data-copied="Copied">Copy</button></figcaption><pre tabindex="0"><code><span class="tk-k">type</span> <span class="tk-t">CellValue</span> =
+  | string | number | boolean | <span class="tk-t">Date</span> | <span class="tk-k">null</span> | <span class="tk-k">undefined</span>
+  | <span class="tk-t">FormulaCell</span> | <span class="tk-t">TextCell</span> | <span class="tk-t">ErrorCell</span>;
+
+<span class="tk-k">interface</span> <span class="tk-t">FormulaCell</span> { formula: string; result?: <span class="tk-t">FormulaResult</span> }
+<span class="tk-k">type</span> <span class="tk-t">FormulaResult</span> = string | number | boolean | <span class="tk-t">Date</span> | <span class="tk-t">ErrorCell</span>;
+<span class="tk-k">interface</span> <span class="tk-t">TextCell</span> { text: string }
+<span class="tk-k">interface</span> <span class="tk-t">ErrorCell</span> { error: <span class="tk-t">ExcelErrorValue</span> }
+<span class="tk-k">type</span> <span class="tk-t">ExcelErrorValue</span> = <span class="tk-s">'#NULL!'</span> | <span class="tk-s">'#DIV/0!'</span> | <span class="tk-s">'#VALUE!'</span> | <span class="tk-s">'#REF!'</span> | <span class="tk-s">'#NAME?'</span> | <span class="tk-s">'#NUM!'</span> | <span class="tk-s">'#N/A'</span>;</code></pre></figure>
+<figure class="code"><figcaption><span class="code-name">sheets.d.ts</span><button type="button" class="copy" data-copy="Copy" data-copied="Copied">Copy</button></figcaption><pre tabindex="0"><code><span class="tk-k">interface</span> <span class="tk-t">ExcelData</span> {
+  data: <span class="tk-t">CellValue</span>[][];
+  styles?: <span class="tk-t">Record</span>&lt;string, <span class="tk-t">CellStyle</span>&gt;;
+  validations?: <span class="tk-t">CellValidation</span>[];
+  mergeCells?: string[];
+  conditionalFormats?: <span class="tk-t">ConditionalFormat</span>[];
+  hyperlinks?: <span class="tk-t">Hyperlink</span>[];
+  options?: <span class="tk-t">SheetOptions</span>;
+}
+
+<span class="tk-k">interface</span> <span class="tk-t">SheetOptions</span> <span class="tk-k">extends</span> <span class="tk-t">SheetLayout</span> {
+  name?: string;
+  state?: <span class="tk-s">'visible'</span> | <span class="tk-s">'hidden'</span> | <span class="tk-s">'veryHidden'</span>;
+  autoWidth?: boolean;
+  autoFilter?: <span class="tk-t">AutoFilter</span>;
+}
+
+<span class="tk-k">interface</span> <span class="tk-t">SheetLayout</span> {
+  freezePane?: { row?: number; col?: number };
+  columnWidths?: number[];
+  rowHeights?: <span class="tk-t">Record</span>&lt;number, number&gt;;
+  hiddenRows?: number[];
+  hiddenColumns?: number[];
+}
+
+<span class="tk-k">interface</span> <span class="tk-t">StreamingSheetInput</span> <span class="tk-k">extends</span> <span class="tk-t">SheetLayout</span> {
+  name?: string;
+  rows: <span class="tk-t">Iterable</span>&lt;<span class="tk-t">CellValue</span>[]&gt; | <span class="tk-t">AsyncIterable</span>&lt;<span class="tk-t">CellValue</span>[]&gt;;
+  styles?: <span class="tk-t">Record</span>&lt;string, <span class="tk-t">CellStyle</span>&gt;;
+  mergeCells?: string[];
+  autoFilter?: <span class="tk-t">AutoFilter</span>;
+  hyperlinks?: <span class="tk-t">Hyperlink</span>[];
+}</code></pre></figure>
+<figure class="code"><figcaption><span class="code-name">styles.d.ts</span><button type="button" class="copy" data-copy="Copy" data-copied="Copied">Copy</button></figcaption><pre tabindex="0"><code><span class="tk-k">interface</span> <span class="tk-t">CellStyle</span>&lt;<span class="tk-t">Border</span> <span class="tk-k">extends</span> <span class="tk-t">CellBorder</span> = <span class="tk-t">CellBorder</span>&gt; {
+  background?: string;
+  border?: <span class="tk-t">Border</span>;
+  bold?: boolean;
+  italic?: boolean;
+  underline?: boolean;
+  color?: string;
+  fontSize?: number;
+  fontName?: string;
+  align?: <span class="tk-s">'left'</span> | <span class="tk-s">'center'</span> | <span class="tk-s">'right'</span>;
+  verticalAlign?: <span class="tk-s">'top'</span> | <span class="tk-s">'middle'</span> | <span class="tk-s">'bottom'</span>;
+  wrapText?: boolean;
+  numberFormat?: string;
+}
+
+<span class="tk-k">type</span> <span class="tk-t">CellBorder</span> = boolean | <span class="tk-t">BorderSide</span> | <span class="tk-t">BorderSides</span>;
+<span class="tk-k">type</span> <span class="tk-t">BorderSide</span> = <span class="tk-t">BorderStyleName</span> | <span class="tk-t">BorderLine</span>;
+<span class="tk-k">interface</span> <span class="tk-t">BorderLine</span> { style: <span class="tk-t">BorderStyleName</span>; color?: string }
+<span class="tk-k">type</span> <span class="tk-t">BorderSides</span> = { left?: <span class="tk-t">BorderSide</span>; right?: <span class="tk-t">BorderSide</span>; top?: <span class="tk-t">BorderSide</span>; bottom?: <span class="tk-t">BorderSide</span> };
+<span class="tk-k">type</span> <span class="tk-t">BorderStyleName</span> =
+  | <span class="tk-s">'thin'</span> | <span class="tk-s">'medium'</span> | <span class="tk-s">'thick'</span> | <span class="tk-s">'dashed'</span> | <span class="tk-s">'dotted'</span> | <span class="tk-s">'double'</span> | <span class="tk-s">'hair'</span>
+  | <span class="tk-s">'mediumDashed'</span> | <span class="tk-s">'dashDot'</span> | <span class="tk-s">'mediumDashDot'</span> | <span class="tk-s">'dashDotDot'</span> | <span class="tk-s">'mediumDashDotDot'</span>
+  | <span class="tk-s">'slantDashDot'</span>;</code></pre></figure>
+<figure class="code"><figcaption><span class="code-name">parsed.d.ts</span><button type="button" class="copy" data-copy="Copy" data-copied="Copied">Copy</button></figcaption><pre tabindex="0"><code><span class="tk-k">type</span> <span class="tk-t">ParsedCell</span> =
+  | <span class="tk-t">ParsedStringCell</span> | <span class="tk-t">ParsedNumberCell</span> | <span class="tk-t">ParsedBooleanCell</span>
+  | <span class="tk-t">ParsedDateCell</span> | <span class="tk-t">ParsedErrorCell</span> | <span class="tk-t">ParsedEmptyCell</span>;
+
+<span class="tk-k">interface</span> <span class="tk-t">ParsedCellBase</span> {
+  coordinate: string;
+  rowIndex: number;
+  columnIndex: number;
+  formula?: string;
+}
+
+<span class="tk-k">interface</span> <span class="tk-t">ParsedNumberCell</span> <span class="tk-k">extends</span> <span class="tk-t">ParsedCellBase</span> { <span class="tk-k">type</span>: <span class="tk-s">'number'</span>; value: number }
+<span class="tk-k">interface</span> <span class="tk-t">ParsedErrorCell</span> <span class="tk-k">extends</span> <span class="tk-t">ParsedCellBase</span> { <span class="tk-k">type</span>: <span class="tk-s">'error'</span>; value: <span class="tk-t">ExcelErrorValue</span> | (string &amp; {}) }
+
+<span class="tk-k">interface</span> <span class="tk-t">ParsedSheet</span> <span class="tk-k">extends</span> <span class="tk-t">SheetLayout</span> {
+  name: string;
+  data: <span class="tk-t">ParsedRow</span>[];
+  validations: <span class="tk-t">CellValidation</span>[];
+  state?: <span class="tk-s">'hidden'</span> | <span class="tk-s">'veryHidden'</span>;
+  styles?: <span class="tk-t">Record</span>&lt;string, <span class="tk-t">CellStyle</span>&lt;<span class="tk-t">ParsedBorder</span>&gt;&gt;;
+  mergeCells?: string[];
+  conditionalFormats?: <span class="tk-t">ConditionalFormat</span>[];
+  autoFilter?: <span class="tk-t">AutoFilter</span>;
+  hyperlinks?: <span class="tk-t">Hyperlink</span>[];
+}
+
+<span class="tk-k">interface</span> <span class="tk-t">ParsedWorkbook</span> {
+  sheets: <span class="tk-t">ParsedSheet</span>[];
+  metadata: { created?: string; modified?: string; creator?: string; title?: string; subject?: string };
+}</code></pre></figure>
+<p>The other cell shapes, <code>ParsedStringCell</code>, <code>ParsedBooleanCell</code>, <code>ParsedDateCell</code> and <code>ParsedEmptyCell</code>, follow the table in <a href="../guide/reading/">Read a workbook</a>. <code>ParsedRow</code> is an array of <code>ParsedCell</code>. <code>ParsedBorder</code> is <code>true</code> or <code>BorderLines</code>, an object with a <code>BorderLine</code> entry for each side that has a line.</p>
+<h3 id="all-the-other-types">All the other types<a class="anchor" href="#all-the-other-types" aria-label="All the other types">#</a></h3>
+<p><code>AutoFilter</code>, <code>BorderLines</code>, <code>BorderSideName</code>, <code>CellValidation</code>, <code>CellValueConditionalFormat</code>, <code>ColorScaleConditionalFormat</code>, <code>ConditionalFormat</code>, <code>ConditionalFormatOperator</code>, <code>ConditionalFormatStyle</code>, <code>DataValidationOperator</code>, <code>DataValidationType</code>, <code>ExcelBridgeErrorCode</code>, <code>ExcelBridgeErrorOptions</code>, <code>ExcelReaderOptions</code>, <code>ExcelWriterOptions</code>, <code>ExpressionConditionalFormat</code>, <code>ExternalHyperlink</code>, <code>Hyperlink</code>, <code>HyperlinkOptions</code>, <code>InternalHyperlink</code>, <code>ObjectCellValue</code>, <code>ObjectsToSheetOptions</code>, <code>ObjectsToStreamingSheetOptions</code>, <code>ReadColumn</code>, <code>ReaderLimitName</code>, <code>SheetState</code>, <code>SheetToObjectsOptions</code>, <code>StreamingColumn</code>, <code>WorkbookMetadata</code> and <code>WriteColumn</code>.</p>
+
+    </article>
+    <nav class="stubs" aria-label="Previous and next"><a class="stub stub-prev" href="../guide/errors/"><span class="field-caption">Previous</span><span class="stub-title">Handle errors and limits</span></a><a class="stub stub-next" href="../performance/"><span class="field-caption">Next</span><span class="stub-title">Performance and size</span></a></nav>
+    <p class="doc-foot"><a href="https://github.com/KevinArce98/excel-bridge/edit/main/docs-src/en/api.md" rel="noopener">Edit this page</a> · MIT licence · Microsoft Excel is a trademark of Microsoft; this project is not affiliated with Microsoft.</p>
+  </main>
+  <aside class="toc" aria-label="On this page">
+    <p class="field-caption">On this page</p>
+    <ul><li><a href="#write">Write</a></li><li><a href="#read">Read</a></li><li><a href="#edit">Edit</a></li><li><a href="#objects">Objects</a></li><li><a href="#deliver">Deliver</a></li><li><a href="#errors">Errors</a></li><li><a href="#helpers">Helpers</a></li><li><a href="#excelbridge">ExcelBridge</a></li><li><a href="#types">Types</a></li></ul>
+  </aside>
+</div>
+<script src="../assets/docs.js" defer></script>
+</body>
+</html>

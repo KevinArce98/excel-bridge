@@ -1,3 +1,4 @@
+import { invalidInput } from './errors';
 import { validateRowIndex, validateColIndex } from './date-utils';
 
 export interface CellCoord {
@@ -36,7 +37,7 @@ export const columnLetterToIndex = (letters: string): number => {
 export const coordinateToIndex = (coordinate: string): CellCoord => {
   const match = coordinate.match(/^([A-Z]+)(\d+)$/);
   if (!match) {
-    throw new Error(`Invalid coordinate format: ${coordinate}`);
+    throw invalidInput(`Invalid coordinate format: ${coordinate}`);
   }
 
   return { row: parseInt(match[2]) - 1, col: columnLetterToIndex(match[1]) };
@@ -48,7 +49,7 @@ export const indexToCoordinate = (row: number, col: number): string =>
 const parseCellRef = (ref: string, range: string): CellCoord => {
   const match = CELL_REF.exec(ref);
   if (!match) {
-    throw new Error(`Invalid range format: ${range}`);
+    throw invalidInput(`Invalid range format: ${range}`);
   }
 
   const coord = { row: Number(match[2]) - 1, col: columnLetterToIndex(match[1].toUpperCase()) };
@@ -60,7 +61,7 @@ const parseCellRef = (ref: string, range: string): CellCoord => {
 export const parseRange = (range: string): CellRange => {
   const refs = String(range).split(':');
   if (refs.length > 2) {
-    throw new Error(`Invalid range format: ${range}`);
+    throw invalidInput(`Invalid range format: ${range}`);
   }
 
   const first = parseCellRef(refs[0], range);

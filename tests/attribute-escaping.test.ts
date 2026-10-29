@@ -40,8 +40,8 @@ describe('Attribute escaping', () => {
       { type: 'colorScale', range: hostile, colors: ['#FF0000', '#FFFFFF'] },
     ] as unknown as ConditionalFormat[];
     const validations = [
-      { range: hostile, type: 'list', options: '', formula1: '"a&b<c"' },
-      { range: hostile, type: hostile, operator: hostile, formula1: '1', options: '' },
+      { range: hostile, type: 'list', formula1: '"a&b<c"' },
+      { range: hostile, type: hostile, operator: hostile, formula1: '1' },
     ] as unknown as CellValidation[];
 
     const buffer = new ExcelWriter().createWorkbookBuffer([

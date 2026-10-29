@@ -1,17 +1,23 @@
+import { invalidInput } from './errors';
 const VALID_SHEET_NAME =
   /^[^\\/?*[\]:\x00-\x1F']([^\\/?*[\]:\x00-\x1F]{0,29}[^\\/?*[\]:\x00-\x1F'])?$/;
 
+const RESERVED_SHEET_NAME = 'history';
+
 export const validateSheetName = (name: string): void => {
   if (!VALID_SHEET_NAME.test(name)) {
-    throw new Error(
+    throw invalidInput(
       `Invalid sheet name "${name}": use 1 to 31 characters, none of \\ / ? * [ ] : or control characters, and no apostrophe at either end`
     );
+  }
+  if (name.toLowerCase() === RESERVED_SHEET_NAME) {
+    throw invalidInput(`Invalid sheet name "${name}": Excel reserves the name "History"`);
   }
 };
 
 export const validateSheetNames = (names: string[]): void => {
   if (names.length === 0) {
-    throw new Error('A workbook needs at least one sheet');
+    throw invalidInput('A workbook needs at least one sheet');
   }
 
   const seen = new Set<string>();
@@ -19,7 +25,7 @@ export const validateSheetNames = (names: string[]): void => {
     validateSheetName(name);
     const key = name.toLowerCase();
     if (seen.has(key)) {
-      throw new Error(`Sheet name "${name}" is used twice (names are not case-sensitive)`);
+      throw invalidInput(`Sheet name "${name}" is used twice (names are not case-sensitive)`);
     }
     seen.add(key);
   }

@@ -55,6 +55,38 @@ describe('error cells and values a worksheet cannot hold', () => {
   });
 });
 
+describe('formula cells in the ParsedCell union', () => {
+  const sheet = readFirstSheet(
+    buildXlsx(
+      row(
+        [
+          '<c r="A1"><f>1+1</f><v>2</v></c>',
+          '<c r="B1" t="str"><f>"a"&amp;"b"</f><v>ab</v></c>',
+          '<c r="C1" t="b"><f>TRUE()</f><v>1</v></c>',
+          '<c r="D1"><f>NOW()</f></c>',
+          '<c r="E1"><f></f><v>5</v></c>',
+          '<c r="F1"><f t="shared" si="0"/><v>6</v></c>',
+          '<c r="G1" t="str"><f>""</f><v></v></c>',
+        ].join('')
+      )
+    )
+  );
+
+  it.each([
+    ['A1', { type: 'number', value: 2, formula: '1+1' }],
+    ['B1', { type: 'string', value: 'ab', formula: '"a"&"b"' }],
+    ['C1', { type: 'boolean', value: true, formula: 'TRUE()' }],
+    ['D1', { type: 'empty', value: null, formula: 'NOW()' }],
+    ['G1', { type: 'string', value: '', formula: '""' }],
+  ])('keeps the type and value of the cached result in %s', (coordinate, expected) => {
+    expect(cellAt(sheet, coordinate)).toMatchObject(expected);
+  });
+
+  it.each(['E1', 'F1'])('reads an empty formula in %s as no formula', coordinate => {
+    expect(cellAt(sheet, coordinate)).not.toHaveProperty('formula');
+  });
+});
+
 describe('wrap text from other tools', () => {
   const styles = (wrapText: string) =>
     `<?xml version="1.0"?><styleSheet xmlns="${SPREADSHEET_NS}"><fonts count="1"><font/></fonts><fills count="1"><fill/></fills><borders count="1"><border/></borders><cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/><xf numFmtId="0" fontId="0" fillId="0" borderId="0"><alignment wrapText="${wrapText}"/></xf></cellXfs></styleSheet>`;

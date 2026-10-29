@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Da estilo a las celdas | excel-bridge docs</title>
+<meta name="description" content="Color, fuentes, formatos de número, alineación y bordes por lado para cualquier celda, con la fila y la columna como clave." />
+<link rel="canonical" href="https://kevinarce98.github.io/excel-bridge/es/guide/styling/" />
+<link rel="alternate" hreflang="en" href="https://kevinarce98.github.io/excel-bridge/guide/styling/" />
+<link rel="alternate" hreflang="es" href="https://kevinarce98.github.io/excel-bridge/es/guide/styling/" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="Da estilo a las celdas | excel-bridge docs" />
+<meta property="og:description" content="Color, fuentes, formatos de número, alineación y bordes por lado para cualquier celda, con la fila y la columna como clave." />
+<meta property="og:url" content="https://kevinarce98.github.io/excel-bridge/es/guide/styling/" />
+<meta name="theme-color" content="#0f172a" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231B2336'/%3E%3Crect x='5' y='6' width='22' height='6' rx='2' fill='%2322C55E'/%3E%3Crect x='5' y='15' width='9' height='4' rx='1.5' fill='%23334155'/%3E%3Crect x='18' y='15' width='9' height='4' rx='1.5' fill='%23334155'/%3E%3Crect x='5' y='22' width='9' height='4' rx='1.5' fill='%23334155'/%3E%3Crect x='18' y='22' width='9' height='4' rx='1.5' fill='%2322C55E' fill-opacity='0.5'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../../../assets/docs.css" />
+</head>
+<body>
+<a class="skip" href="#content">Saltar al contenido</a>
+<header class="waybill">
+  <div class="waybill-in">
+    <a class="wordmark" href="../../../" aria-label="excel-bridge"><svg class="mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><rect width="32" height="32" rx="7" fill="#1B2336"/><rect x="5" y="6" width="22" height="6" rx="2" fill="#22C55E"/><rect x="5" y="15" width="9" height="4" rx="1.5" fill="#334155"/><rect x="18" y="15" width="9" height="4" rx="1.5" fill="#334155"/><rect x="5" y="22" width="9" height="4" rx="1.5" fill="#334155"/><rect x="18" y="22" width="9" height="4" rx="1.5" fill="#22C55E" fill-opacity="0.5"/></svg><span><span class="w-excel">excel</span><span class="w-dash">-</span><span class="w-bridge">bridge</span></span></a>
+    <span class="field"><span class="field-caption">Docs</span><span class="field-value">2.x</span></span>
+    <nav class="top-links" aria-label="Sitio">
+      <a href="../../../#pack">Probar</a>
+      <a href="https://github.com/KevinArce98/excel-bridge" rel="noopener">GitHub</a>
+      <a href="https://www.npmjs.com/package/excel-bridge" rel="noopener">npm</a>
+    </nav>
+    <div class="lang" role="group" aria-label="Idioma"><a href="../../../guide/styling/" hreflang="en" lang="en" aria-label="English">EN</a><span class="lang-current" aria-current="true" lang="es">ES</span></div>
+  </div>
+</header>
+<div class="shell">
+  <nav class="rail" aria-label="Docs">
+    <details class="rail-fold" open>
+      <summary>Contenido</summary>
+      <section><p class="rail-group">Inicio</p><ul><li><a href="../../../es/getting-started/">Primeros pasos</a></li></ul></section>
+<section><p class="rail-group">Guía</p><ul><li><a href="../../../es/guide/values/">Escribe valores y fórmulas</a></li><li><a href="../../../es/guide/styling/" aria-current="page">Da estilo a las celdas</a></li><li><a href="../../../es/guide/layout/">Define el diseño de las hojas</a></li><li><a href="../../../es/guide/rules/">Agrega reglas</a></li><li><a href="../../../es/guide/reading/">Lee un libro</a></li><li><a href="../../../es/guide/objects/">Filas como objetos</a></li><li><a href="../../../es/guide/workbook/">Edita un libro</a></li><li><a href="../../../es/guide/streaming/">Exporta archivos grandes con streaming</a></li><li><a href="../../../es/guide/errors/">Maneja errores y límites</a></li></ul></section>
+<section><p class="rail-group">Referencia</p><ul><li><a href="../../../es/api/">Referencia de la API</a></li><li><a href="../../../es/performance/">Rendimiento y tamaño</a></li><li><a href="../../../es/limitations/">Límites y alternativas</a></li><li><a href="../../../es/upgrading/">Actualización</a></li><li><a href="../../../es/security/">Seguridad</a></li></ul></section>
+    </details>
+  </nav>
+  <main id="content" class="sheet">
+    <div class="sheet-rule" aria-hidden="true"></div>
+    <article class="prose">
+<h1 id="da-estilo-a-las-celdas">Da estilo a las celdas</h1>
+<p>Dale a cualquier celda un relleno, una fuente, una alineación, un formato de número o un borde. Los estilos viven junto a los datos, con la clave <code>&quot;&lt;row&gt;-&lt;col&gt;&quot;</code> y índices que empiezan en cero, así que puedes construirlos a partir de los propios datos.</p>
+<figure class="code"><figcaption><span class="code-name">header-row.ts</span><button type="button" class="copy" data-copy="Copiar" data-copied="Copiado">Copiar</button></figcaption><pre tabindex="0"><code><span class="tk-k">import</span> { <span class="tk-t">ExcelWriter</span> } <span class="tk-k">from</span> <span class="tk-s">'excel-bridge'</span>;
+<span class="tk-k">import</span> <span class="tk-k">type</span> { <span class="tk-t">ExcelData</span> } <span class="tk-k">from</span> <span class="tk-s">'excel-bridge'</span>;
+
+<span class="tk-k">const</span> header = { background: <span class="tk-s">'#4472C4'</span>, bold: <span class="tk-k">true</span>, color: <span class="tk-s">'#FFFFFF'</span> };
+
+<span class="tk-k">const</span> sheet: <span class="tk-t">ExcelData</span> = {
+  data: [
+    ['<span class="tk-t">Product</span><span class="tk-s">', '</span><span class="tk-t">Price</span><span class="tk-s">', '</span><span class="tk-t">Stock</span><span class="tk-s">', '</span><span class="tk-t">Status</span>'],
+    ['<span class="tk-t">Laptop</span><span class="tk-s">', 999.99, 15, '</span><span class="tk-t">Available</span>'],
+    ['<span class="tk-t">Mouse</span><span class="tk-s">', 29.99, 5, '</span><span class="tk-t">Low</span> stock'],
+    ['<span class="tk-t">Keyboard</span><span class="tk-s">', 79.99, 0, '</span><span class="tk-t">Out</span> <span class="tk-k">of</span> stock'],
+  ],
+  styles: {
+    <span class="tk-s">'0-0'</span>: header,
+    <span class="tk-s">'0-1'</span>: header,
+    <span class="tk-s">'0-2'</span>: header,
+    <span class="tk-s">'0-3'</span>: header,
+    <span class="tk-s">'1-2'</span>: { background: <span class="tk-s">'#E2EFDA'</span>, color: <span class="tk-s">'#006100'</span> },
+    <span class="tk-s">'2-2'</span>: { background: <span class="tk-s">'#FFC7CE'</span>, color: <span class="tk-s">'#9C0006'</span> },
+    <span class="tk-s">'3-3'</span>: { background: <span class="tk-s">'#FFE6E6'</span>, color: <span class="tk-s">'#C00000'</span> },
+  },
+  options: { name: <span class="tk-s">'Inventory'</span>, freezePane: { row: <span class="tk-n">1</span> }, autoWidth: <span class="tk-k">true</span> },
+};
+
+<span class="tk-k">const</span> bytes = <span class="tk-k">new</span> <span class="tk-t">ExcelWriter</span>().createWorkbookBuffer([sheet]);</code></pre></figure>
+<aside class="callout callout-tip"><p class="callout-name">Consejo</p><p>Anota la hoja como <code>ExcelData</code>. Sin eso, TypeScript amplía literales como <code>align: 'center'</code> a <code>string</code> y rechaza el objeto.</p>
+</aside>
+<h2 id="que-puede-contener-un-estilo">Qué puede contener un estilo<a class="anchor" href="#que-puede-contener-un-estilo" aria-label="Qué puede contener un estilo">#</a></h2>
+<div class="table-scroll" role="region" tabindex="0" aria-label="Qué puede contener un estilo"><table><thead><tr><th scope="col">Propiedad</th><th scope="col">Valor</th><th scope="col">Efecto</th></tr></thead><tbody>
+<tr><td data-label="Propiedad"><code>background</code></td><td data-label="Valor">color</td><td data-label="Efecto">Relleno sólido.</td></tr>
+<tr><td data-label="Propiedad"><code>color</code></td><td data-label="Valor">color</td><td data-label="Efecto">Color de la fuente.</td></tr>
+<tr><td data-label="Propiedad"><code>bold</code>, <code>italic</code>, <code>underline</code></td><td data-label="Valor"><code>boolean</code></td><td data-label="Efecto">Peso, inclinación y subrayado de la fuente.</td></tr>
+<tr><td data-label="Propiedad"><code>fontSize</code></td><td data-label="Valor"><code>number</code></td><td data-label="Efecto">Puntos. Predeterminado: 11.</td></tr>
+<tr><td data-label="Propiedad"><code>fontName</code></td><td data-label="Valor"><code>string</code></td><td data-label="Efecto">Predeterminado: <code>Calibri</code>.</td></tr>
+<tr><td data-label="Propiedad"><code>align</code></td><td data-label="Valor"><code>'left' | 'center' | 'right'</code></td><td data-label="Efecto">Alineación horizontal.</td></tr>
+<tr><td data-label="Propiedad"><code>verticalAlign</code></td><td data-label="Valor"><code>'top' | 'middle' | 'bottom'</code></td><td data-label="Efecto">Alineación vertical.</td></tr>
+<tr><td data-label="Propiedad"><code>wrapText</code></td><td data-label="Valor"><code>boolean</code></td><td data-label="Efecto">Ajusta el texto largo dentro de la celda.</td></tr>
+<tr><td data-label="Propiedad"><code>numberFormat</code></td><td data-label="Valor">código de formato</td><td data-label="Efecto">Por ejemplo <code>'#,##0.00'</code> o <code>'0%'</code>.</td></tr>
+<tr><td data-label="Propiedad"><code>border</code></td><td data-label="Valor"><code>boolean</code>, un estilo de línea o entradas por lado</td><td data-label="Efecto">Consulta <a href="#bordes">Bordes</a>.</td></tr>
+</tbody></table></div>
+<p>Los colores son hexadecimales: <code>#RGB</code>, <code>#RRGGBB</code> o <code>#AARRGGBB</code>, con o sin el <code>#</code>. Cualquier otro valor, como <code>red</code>, lanza un error en lugar de escribir un valor no válido.</p>
+<figure class="code"><figcaption><span class="code-name">invoice.ts</span><button type="button" class="copy" data-copy="Copiar" data-copied="Copiado">Copiar</button></figcaption><pre tabindex="0"><code><span class="tk-k">import</span> <span class="tk-k">type</span> { <span class="tk-t">ExcelData</span> } <span class="tk-k">from</span> <span class="tk-s">'excel-bridge'</span>;
+
+<span class="tk-k">const</span> invoice: <span class="tk-t">ExcelData</span> = {
+  data: [
+    ['<span class="tk-t">Invoice</span>', <span class="tk-n">1250.5</span>],
+    ['<span class="tk-t">Tax</span>', <span class="tk-n">237.6</span>],
+  ],
+  styles: {
+    <span class="tk-s">'0-0'</span>: { bold: <span class="tk-k">true</span>, italic: <span class="tk-k">true</span>, fontSize: <span class="tk-n">14</span>, fontName: <span class="tk-s">'Arial'</span>, align: <span class="tk-s">'center'</span>, wrapText: <span class="tk-k">true</span> },
+    <span class="tk-s">'0-1'</span>: { numberFormat: <span class="tk-s">'#,##0.00'</span> },
+    <span class="tk-s">'1-1'</span>: { numberFormat: <span class="tk-s">'#,##0.00'</span>, verticalAlign: <span class="tk-s">'middle'</span> },
+  },
+};</code></pre></figure>
+<h2 id="las-fechas-tambien-admiten-estilos">Las fechas también admiten estilos<a class="anchor" href="#las-fechas-tambien-admiten-estilos" aria-label="Las fechas también admiten estilos">#</a></h2>
+<p>Una celda <code>Date</code> usa el formato de fecha corta integrado. Dale a su estilo un <code>numberFormat</code> de fecha para mostrar la hora del día u otro formato. Un <code>numberFormat</code> que no es de fecha se ignora en una celda <code>Date</code>.</p>
+<figure class="code"><figcaption><span class="code-name">dates.ts</span><button type="button" class="copy" data-copy="Copiar" data-copied="Copiado">Copiar</button></figcaption><pre tabindex="0"><code><span class="tk-k">import</span> <span class="tk-k">type</span> { <span class="tk-t">ExcelData</span> } <span class="tk-k">from</span> <span class="tk-s">'excel-bridge'</span>;
+
+<span class="tk-k">const</span> events: <span class="tk-t">ExcelData</span> = {
+  data: [['<span class="tk-t">Launch</span>', <span class="tk-k">new</span> <span class="tk-t">Date</span>(<span class="tk-n">2024</span>, <span class="tk-n">0</span>, <span class="tk-n">15</span>, <span class="tk-n">13</span>, <span class="tk-n">45</span>)]],
+  styles: { <span class="tk-s">'0-1'</span>: { bold: <span class="tk-k">true</span>, numberFormat: <span class="tk-s">'yyyy-mm-dd hh:mm'</span> } },
+};</code></pre></figure>
+<aside class="callout callout-limit"><p class="callout-name">Límite</p><p>Un <code>Date</code> se escribe como hora local de reloj: <code>new Date(2024, 0, 15)</code> es el 15 de enero en cualquier zona horaria. Una fecha a medianoche UTC, como <code>new Date('2024-01-15')</code>, cae en el día anterior con desfases negativos, y una hora local que no existe (dentro de un salto por horario de verano) se adelanta.</p>
+</aside>
+<h2 id="bordes">Bordes<a class="anchor" href="#bordes" aria-label="Bordes">#</a></h2>
+<p><code>border: true</code> dibuja un recuadro negro delgado en los cuatro lados. Para cualquier otra cosa, pasa un estilo de línea, un par <code>{ style, color? }</code> o un objeto con una entrada por lado.</p>
+<figure class="code"><figcaption><span class="code-name">borders.ts</span><button type="button" class="copy" data-copy="Copiar" data-copied="Copiado">Copiar</button></figcaption><pre tabindex="0"><code><span class="tk-k">import</span> <span class="tk-k">type</span> { <span class="tk-t">ExcelData</span> } <span class="tk-k">from</span> <span class="tk-s">'excel-bridge'</span>;
+
+<span class="tk-k">const</span> report: <span class="tk-t">ExcelData</span> = {
+  data: [
+    ['<span class="tk-t">Region</span><span class="tk-s">', '</span><span class="tk-t">Revenue</span>'],
+    ['<span class="tk-t">North</span>', <span class="tk-n">1200</span>],
+    ['<span class="tk-t">South</span>', <span class="tk-n">480</span>],
+  ],
+  styles: {
+    <span class="tk-s">'0-0'</span>: { bold: <span class="tk-k">true</span>, border: { bottom: <span class="tk-s">'medium'</span> } },
+    <span class="tk-s">'0-1'</span>: { bold: <span class="tk-k">true</span>, border: { bottom: <span class="tk-s">'medium'</span> } },
+    <span class="tk-s">'1-1'</span>: { border: { left: { style: <span class="tk-s">'thin'</span>, color: <span class="tk-s">'#CCCCCC'</span> } } },
+    <span class="tk-s">'2-0'</span>: { border: <span class="tk-s">'thin'</span> },
+    <span class="tk-s">'2-1'</span>: { border: { top: <span class="tk-s">'thin'</span>, bottom: { style: <span class="tk-s">'double'</span>, color: <span class="tk-s">'#CC0000'</span> } } },
+  },
+};</code></pre></figure>
+<ul>
+<li><strong>Valores aceptados:</strong> <code>true</code> o <code>false</code>; un estilo de línea para los cuatro lados; <code>{ style, color? }</code> para los cuatro lados; o <code>{ left?, right?, top?, bottom? }</code>, cada uno con un estilo de línea o <code>{ style, color? }</code>.</li>
+<li><strong>Estilos de línea (13):</strong> <code>thin</code>, <code>medium</code>, <code>thick</code>, <code>dashed</code>, <code>dotted</code>, <code>double</code>, <code>hair</code>, <code>mediumDashed</code>, <code>dashDot</code>, <code>mediumDashDot</code>, <code>dashDotDot</code>, <code>mediumDashDotDot</code>, <code>slantDashDot</code>.</li>
+<li><strong>Colores:</strong> <code>#RGB</code>, <code>#RRGGBB</code> o <code>#AARRGGBB</code>. Sin color, la línea es negra.</li>
+<li><strong>Errores:</strong> un estilo de línea desconocido o un color como <code>red</code> lanza un error y nombra el valor.</li>
+<li><strong>Celdas combinadas:</strong> el archivo guarda los bordes por celda, y el escritor no copia un borde a lo largo de un rango combinado. Define el lado en cada celda del borde y rellena los datos con <code>null</code> para que esas celdas existan. Un estilo en una celda más allá del final de su fila se ignora.</li>
+</ul>
+<aside class="callout callout-limit"><p class="callout-name">Límite</p><p>No hay bordes diagonales ni bordes dentro de los formatos condicionales.</p>
+</aside>
+<h2 id="formato-condicional-sin-un-estilo-por-celda">Formato condicional sin un estilo por celda<a class="anchor" href="#formato-condicional-sin-un-estilo-por-celda" aria-label="Formato condicional sin un estilo por celda">#</a></h2>
+<p>Resalta celdas por valor o por fórmula, o con una escala de color, usando <a href="../rules/">reglas</a> en lugar de un estilo por celda.</p>
+
+    </article>
+    <nav class="stubs" aria-label="Anterior y siguiente"><a class="stub stub-prev" href="../../../es/guide/values/"><span class="field-caption">Anterior</span><span class="stub-title">Escribe valores y fórmulas</span></a><a class="stub stub-next" href="../../../es/guide/layout/"><span class="field-caption">Siguiente</span><span class="stub-title">Define el diseño de las hojas</span></a></nav>
+    <p class="doc-foot"><a href="https://github.com/KevinArce98/excel-bridge/edit/main/docs-src/es/guide/styling.md" rel="noopener">Editar esta página</a> · Licencia MIT · Microsoft Excel es una marca de Microsoft; este proyecto no está afiliado a Microsoft.</p>
+  </main>
+  <aside class="toc" aria-label="En esta página">
+    <p class="field-caption">En esta página</p>
+    <ul><li><a href="#que-puede-contener-un-estilo">Qué puede contener un estilo</a></li><li><a href="#las-fechas-tambien-admiten-estilos">Las fechas también admiten estilos</a></li><li><a href="#bordes">Bordes</a></li><li><a href="#formato-condicional-sin-un-estilo-por-celda">Formato condicional sin un estilo por celda</a></li></ul>
+  </aside>
+</div>
+<script src="../../../assets/docs.js" defer></script>
+</body>
+</html>

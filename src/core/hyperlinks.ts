@@ -1,3 +1,4 @@
+import { invalidInput } from './errors';
 import { CellStyle, Hyperlink } from './types';
 import { EXCEL_LIMITS } from './date-utils';
 import { parseRange, formatRange } from './cell-ref';
@@ -20,7 +21,7 @@ const CONTROL_CHARS = /[\x00-\x1F\x7F]/;
 
 const checkLength = (kind: 'url' | 'location', value: string): void => {
   if (value.length > EXCEL_LIMITS.MAX_HYPERLINK_LENGTH) {
-    throw new Error(
+    throw invalidInput(
       `Hyperlink ${kind} length ${value.length} exceeds Excel limit (${EXCEL_LIMITS.MAX_HYPERLINK_LENGTH})`
     );
   }
@@ -33,7 +34,7 @@ export const prepareHyperlink = (link: Hyperlink): PreparedHyperlink => {
   const location = typeof link.location === 'string' ? link.location.replace(/^#/, '') : '';
 
   if (Boolean(url) === Boolean(location)) {
-    throw new Error(`Hyperlink at ${ref} must set exactly one of url or location`);
+    throw invalidInput(`Hyperlink at ${ref} must set exactly one of url or location`);
   }
 
   const prepared: PreparedHyperlink = { ref, anchor: `${range.start.row}-${range.start.col}` };
@@ -41,7 +42,7 @@ export const prepareHyperlink = (link: Hyperlink): PreparedHyperlink => {
   if (url) {
     checkLength('url', url);
     if (!ALLOWED_URL.test(url)) {
-      throw new Error(
+      throw invalidInput(
         `Unsupported hyperlink url at ${ref}: ${url} (use http, https or mailto; percent-encode spaces and quotes)`
       );
     }
@@ -56,7 +57,7 @@ export const prepareHyperlink = (link: Hyperlink): PreparedHyperlink => {
   } else {
     checkLength('location', location);
     if (CONTROL_CHARS.test(location)) {
-      throw new Error(`Invalid hyperlink location at ${ref}: ${location}`);
+      throw invalidInput(`Invalid hyperlink location at ${ref}: ${location}`);
     }
     prepared.location = location;
   }
@@ -69,7 +70,7 @@ export const prepareHyperlink = (link: Hyperlink): PreparedHyperlink => {
 
 export const prepareHyperlinks = (links: Hyperlink[] = []): PreparedHyperlink[] => {
   if (links.length > EXCEL_LIMITS.MAX_HYPERLINKS) {
-    throw new Error(
+    throw invalidInput(
       `Hyperlink count ${links.length} exceeds Excel limit (${EXCEL_LIMITS.MAX_HYPERLINKS})`
     );
   }
@@ -80,7 +81,7 @@ export const prepareHyperlinks = (links: Hyperlink[] = []): PreparedHyperlink[] 
   return links.map(link => {
     const prepared = prepareHyperlink(link);
     if (seen.has(prepared.ref)) {
-      throw new Error(`Duplicate hyperlink at ${prepared.ref}`);
+      throw invalidInput(`Duplicate hyperlink at ${prepared.ref}`);
     }
     seen.add(prepared.ref);
 

@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Read a workbook | excel-bridge docs</title>
+<meta name="description" content="Parse an .xlsx from a Buffer or a File into typed cells, styles and layout, and handle rows that are missing." />
+<link rel="canonical" href="https://kevinarce98.github.io/excel-bridge/guide/reading/" />
+<link rel="alternate" hreflang="en" href="https://kevinarce98.github.io/excel-bridge/guide/reading/" />
+<link rel="alternate" hreflang="es" href="https://kevinarce98.github.io/excel-bridge/es/guide/reading/" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="Read a workbook | excel-bridge docs" />
+<meta property="og:description" content="Parse an .xlsx from a Buffer or a File into typed cells, styles and layout, and handle rows that are missing." />
+<meta property="og:url" content="https://kevinarce98.github.io/excel-bridge/guide/reading/" />
+<meta name="theme-color" content="#0f172a" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231B2336'/%3E%3Crect x='5' y='6' width='22' height='6' rx='2' fill='%2322C55E'/%3E%3Crect x='5' y='15' width='9' height='4' rx='1.5' fill='%23334155'/%3E%3Crect x='18' y='15' width='9' height='4' rx='1.5' fill='%23334155'/%3E%3Crect x='5' y='22' width='9' height='4' rx='1.5' fill='%23334155'/%3E%3Crect x='18' y='22' width='9' height='4' rx='1.5' fill='%2322C55E' fill-opacity='0.5'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../../assets/docs.css" />
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+<header class="waybill">
+  <div class="waybill-in">
+    <a class="wordmark" href="../../" aria-label="excel-bridge"><svg class="mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><rect width="32" height="32" rx="7" fill="#1B2336"/><rect x="5" y="6" width="22" height="6" rx="2" fill="#22C55E"/><rect x="5" y="15" width="9" height="4" rx="1.5" fill="#334155"/><rect x="18" y="15" width="9" height="4" rx="1.5" fill="#334155"/><rect x="5" y="22" width="9" height="4" rx="1.5" fill="#334155"/><rect x="18" y="22" width="9" height="4" rx="1.5" fill="#22C55E" fill-opacity="0.5"/></svg><span><span class="w-excel">excel</span><span class="w-dash">-</span><span class="w-bridge">bridge</span></span></a>
+    <span class="field"><span class="field-caption">Docs</span><span class="field-value">2.x</span></span>
+    <nav class="top-links" aria-label="Site">
+      <a href="../../#pack">Try it</a>
+      <a href="https://github.com/KevinArce98/excel-bridge" rel="noopener">GitHub</a>
+      <a href="https://www.npmjs.com/package/excel-bridge" rel="noopener">npm</a>
+    </nav>
+    <div class="lang" role="group" aria-label="Language"><span class="lang-current" aria-current="true" lang="en">EN</span><a href="../../es/guide/reading/" hreflang="es" lang="es" aria-label="Español">ES</a></div>
+  </div>
+</header>
+<div class="shell">
+  <nav class="rail" aria-label="Docs">
+    <details class="rail-fold" open>
+      <summary>Contents</summary>
+      <section><p class="rail-group">Start</p><ul><li><a href="../../getting-started/">Getting started</a></li></ul></section>
+<section><p class="rail-group">Guide</p><ul><li><a href="../../guide/values/">Write values and formulas</a></li><li><a href="../../guide/styling/">Style cells</a></li><li><a href="../../guide/layout/">Lay out sheets</a></li><li><a href="../../guide/rules/">Add rules</a></li><li><a href="../../guide/reading/" aria-current="page">Read a workbook</a></li><li><a href="../../guide/objects/">Rows as objects</a></li><li><a href="../../guide/workbook/">Edit a workbook</a></li><li><a href="../../guide/streaming/">Stream big exports</a></li><li><a href="../../guide/errors/">Handle errors and limits</a></li></ul></section>
+<section><p class="rail-group">Reference</p><ul><li><a href="../../api/">API reference</a></li><li><a href="../../performance/">Performance and size</a></li><li><a href="../../limitations/">Limits and alternatives</a></li><li><a href="../../upgrading/">Upgrading</a></li><li><a href="../../security/">Security</a></li></ul></section>
+    </details>
+  </nav>
+  <main id="content" class="sheet">
+    <div class="sheet-rule" aria-hidden="true"></div>
+    <article class="prose">
+<h1 id="read-a-workbook">Read a workbook</h1>
+<p><code>ExcelReader</code> turns an <code>.xlsx</code> into plain objects: every sheet with its typed cells, its styles and its layout. Reading is synchronous for bytes you already have, and asynchronous for a browser <code>File</code>.</p>
+<figure class="code"><figcaption><span class="code-name">read.ts</span><button type="button" class="copy" data-copy="Copy" data-copied="Copied">Copy</button></figcaption><pre tabindex="0"><code><span class="tk-k">import</span> fs <span class="tk-k">from</span> <span class="tk-s">'node:fs'</span>;
+<span class="tk-k">import</span> { <span class="tk-t">ExcelReader</span> } <span class="tk-k">from</span> <span class="tk-s">'excel-bridge'</span>;
+
+<span class="tk-k">const</span> reader = <span class="tk-k">new</span> <span class="tk-t">ExcelReader</span>();
+
+<span class="tk-k">const</span> workbook = reader.parseFromBuffer(fs.readFileSync('data.xlsx'));
+
+<span class="tk-k">const</span> [sheet] = workbook.sheets;
+console.log(sheet.name, sheet.data.length);</code></pre></figure>
+<p>In the browser, pass the <code>File</code> from an <code>&lt;input type=&quot;file&quot;&gt;</code> to <code>await reader.parseFromFile(file)</code>. <code>ExcelBridge.read(buffer)</code> and <code>parseExcel(buffer)</code> do the same as <code>parseFromBuffer</code>.</p>
+<h2 id="cells-are-typed-by-type">Cells are typed by <code>type</code><a class="anchor" href="#cells-are-typed-by-type" aria-label="Cells are typed by type">#</a></h2>
+<p>Each cell is one of six shapes, told apart by <code>type</code>. Check <code>type</code> and TypeScript narrows <code>value</code> for you.</p>
+<figure class="code"><figcaption><span class="code-name">narrow.ts</span><button type="button" class="copy" data-copy="Copy" data-copied="Copied">Copy</button></figcaption><pre tabindex="0"><code><span class="tk-k">import</span> fs <span class="tk-k">from</span> <span class="tk-s">'node:fs'</span>;
+<span class="tk-k">import</span> { <span class="tk-t">ExcelReader</span> } <span class="tk-k">from</span> <span class="tk-s">'excel-bridge'</span>;
+
+<span class="tk-k">const</span> workbook = <span class="tk-k">new</span> <span class="tk-t">ExcelReader</span>().parseFromBuffer(fs.readFileSync('data.xlsx'));
+
+workbook.sheets[<span class="tk-n">0</span>].data.forEach(row =&gt; {
+  row.forEach(cell =&gt; {
+    switch (cell.<span class="tk-k">type</span>) {
+      case <span class="tk-s">'number'</span>:
+        console.log(cell.coordinate, cell.value.toFixed(<span class="tk-n">2</span>));
+        break;
+      case <span class="tk-s">'date'</span>:
+        console.log(cell.coordinate, cell.value.toISOString());
+        break;
+      case <span class="tk-s">'error'</span>:
+        console.log(cell.coordinate, <span class="tk-s">'error'</span>, cell.value);
+        break;
+      case <span class="tk-s">'empty'</span>:
+        break;
+      <span class="tk-k">default</span>:
+        console.log(cell.coordinate, cell.value);
+    }
+  });
+});</code></pre></figure>
+<div class="table-scroll" role="region" tabindex="0" aria-label="Cells are typed by type"><table><thead><tr><th scope="col"><code>type</code></th><th scope="col"><code>value</code></th><th scope="col">Notes</th></tr></thead><tbody>
+<tr><td data-label="`type`"><code>'string'</code></td><td data-label="`value`"><code>string</code></td><td data-label="Notes">Escapes such as <code>_x000D_</code> are decoded. A <code>t=&quot;d&quot;</code> cell that is not one of the ISO date forms below is read as its text.</td></tr>
+<tr><td data-label="`type`"><code>'number'</code></td><td data-label="`value`"><code>number</code></td><td data-label="Notes"></td></tr>
+<tr><td data-label="`type`"><code>'boolean'</code></td><td data-label="`value`"><code>boolean</code></td><td data-label="Notes"></td></tr>
+<tr><td data-label="`type`"><code>'date'</code></td><td data-label="`value`"><code>Date</code></td><td data-label="Notes">A cell whose number format is a date, or a <code>t=&quot;d&quot;</code> cell written as <code>YYYY-MM-DD</code> or <code>YYYY-MM-DDTHH:MM:SS</code> with an optional fraction and a trailing <code>Z</code>. Local wall-clock time: the <code>Z</code> is ignored. A date with an offset such as <code>+05:30</code>, or a space instead of <code>T</code>, is read as text, as Excel shows it. Both date systems (1900 and 1904) are read.</td></tr>
+<tr><td data-label="`type`"><code>'error'</code></td><td data-label="`value`"><code>string</code></td><td data-label="Notes">The error text, such as <code>#DIV/0!</code>.</td></tr>
+<tr><td data-label="`type`"><code>'empty'</code></td><td data-label="`value`"><code>null</code></td><td data-label="Notes">A cell with a style but no value, or padding for a gap between cells in a row.</td></tr>
+</tbody></table></div>
+<p>Every cell also has <code>coordinate</code> (<code>&quot;B2&quot;</code>), <code>rowIndex</code> and <code>columnIndex</code>, both zero-based. A formula cell carries its formula in <code>formula</code>, without the leading <code>=</code>, and its cached value in <code>value</code>. A formula without a cached value is an <code>'empty'</code> cell with a <code>formula</code>.</p>
+<h2 id="rows-are-indexed-by-position">Rows are indexed by position<a class="anchor" href="#rows-are-indexed-by-position" aria-label="Rows are indexed by position">#</a></h2>
+<p><code>sheet.data</code> is indexed by the row&#39;s position in the sheet, so <code>sheet.data[4]</code> is row 5. Rows that are not in the file are holes in the array.</p>
+<figure class="code"><figcaption><span class="code-name">holes.ts</span><button type="button" class="copy" data-copy="Copy" data-copied="Copied">Copy</button></figcaption><pre tabindex="0"><code><span class="tk-k">import</span> fs <span class="tk-k">from</span> <span class="tk-s">'node:fs'</span>;
+<span class="tk-k">import</span> { <span class="tk-t">ExcelReader</span> } <span class="tk-k">from</span> <span class="tk-s">'excel-bridge'</span>;
+
+<span class="tk-k">const</span> workbook = <span class="tk-k">new</span> <span class="tk-t">ExcelReader</span>().parseFromBuffer(fs.readFileSync('data.xlsx'));
+<span class="tk-k">const</span> { data } = workbook.sheets[<span class="tk-n">0</span>];
+
+data.forEach((row, index) =&gt; console.log(index + <span class="tk-n">1</span>, row.length));
+
+<span class="tk-k">for</span> (<span class="tk-k">const</span> row <span class="tk-k">of</span> data) {
+  <span class="tk-k">if</span> (!row) continue;
+  console.log(row.map(cell =&gt; cell.value).join(' | '));
+}</code></pre></figure>
+<aside class="callout callout-note"><p class="callout-name">Note</p><p><code>forEach</code>, <code>map</code> and <code>Object.values</code> skip holes. A <code>for...of</code> loop visits every index and yields <code>undefined</code> for a hole, so guard it. <code>data.length</code> is the last row plus one.</p>
+</aside>
+<h2 id="styles-merges-and-layout">Styles, merges and layout<a class="anchor" href="#styles-merges-and-layout" aria-label="Styles, merges and layout">#</a></h2>
+<p>Besides the cells, a <code>ParsedSheet</code> exposes what the file says about the sheet.</p>
+<figure class="code"><figcaption><span class="code-name">sheet-details.ts</span><button type="button" class="copy" data-copy="Copy" data-copied="Copied">Copy</button></figcaption><pre tabindex="0"><code><span class="tk-k">import</span> fs <span class="tk-k">from</span> <span class="tk-s">'node:fs'</span>;
+<span class="tk-k">import</span> { <span class="tk-t">ExcelReader</span> } <span class="tk-k">from</span> <span class="tk-s">'excel-bridge'</span>;
+
+<span class="tk-k">const</span> { sheets, metadata } = <span class="tk-k">new</span> <span class="tk-t">ExcelReader</span>().parseFromBuffer(fs.readFileSync('data.xlsx'));
+<span class="tk-k">const</span> sheet = sheets[<span class="tk-n">0</span>];
+
+sheet.name;
+sheet.state;
+sheet.styles;
+sheet.mergeCells;
+sheet.freezePane;
+sheet.columnWidths;
+sheet.rowHeights;
+sheet.hiddenRows;
+sheet.hiddenColumns;
+sheet.validations;
+sheet.conditionalFormats;
+sheet.autoFilter;
+sheet.hyperlinks;
+metadata.creator;</code></pre></figure>
+<ul>
+<li><strong><code>state</code></strong> is <code>'hidden'</code> or <code>'veryHidden'</code> for a hidden sheet, and <code>undefined</code> otherwise.</li>
+<li><strong><code>styles</code></strong> maps <code>&quot;row-col&quot;</code> to a <code>CellStyle</code>, the same type the writer takes. In a read style, <code>border</code> is <code>true</code> for a thin black box on all four sides and otherwise an object with one <code>{ style, color? }</code> entry for each side that has a line. Only RGB colours and custom number formats are read, plus the built-in date and time formats.</li>
+<li><strong><code>rowHeights</code>, <code>hiddenRows</code> and <code>hiddenColumns</code></strong> appear only for files that have them.</li>
+<li><strong><code>hyperlinks</code></strong> are returned as stored, whatever their scheme. Check <code>url</code> before you render it as an <code>&lt;a href&gt;</code>.</li>
+</ul>
+<h2 id="limits-for-files-you-did-not-make">Limits for files you did not make<a class="anchor" href="#limits-for-files-you-did-not-make" aria-label="Limits for files you did not make">#</a></h2>
+<p><code>new ExcelReader({ maxCells, maxPartBytes, maxTotalBytes, maxSheets })</code> sets limits for files you did not make. The size limits and <code>maxSheets</code> are checked before the sheets are inflated. <code>maxCells</code> is checked while a sheet is parsed, after its XML is inflated, so use <code>maxPartBytes</code> to bound memory. See <a href="../errors/">Handle errors and limits</a>.</p>
+<h2 id="rows-as-objects">Rows as objects<a class="anchor" href="#rows-as-objects" aria-label="Rows as objects">#</a></h2>
+<p>To read a table as an array of objects instead of cells, see <a href="../objects/">Rows as objects</a>.</p>
+
+    </article>
+    <nav class="stubs" aria-label="Previous and next"><a class="stub stub-prev" href="../../guide/rules/"><span class="field-caption">Previous</span><span class="stub-title">Add rules</span></a><a class="stub stub-next" href="../../guide/objects/"><span class="field-caption">Next</span><span class="stub-title">Rows as objects</span></a></nav>
+    <p class="doc-foot"><a href="https://github.com/KevinArce98/excel-bridge/edit/main/docs-src/en/guide/reading.md" rel="noopener">Edit this page</a> · MIT licence · Microsoft Excel is a trademark of Microsoft; this project is not affiliated with Microsoft.</p>
+  </main>
+  <aside class="toc" aria-label="On this page">
+    <p class="field-caption">On this page</p>
+    <ul><li><a href="#cells-are-typed-by-type">Cells are typed by type</a></li><li><a href="#rows-are-indexed-by-position">Rows are indexed by position</a></li><li><a href="#styles-merges-and-layout">Styles, merges and layout</a></li><li><a href="#limits-for-files-you-did-not-make">Limits for files you did not make</a></li><li><a href="#rows-as-objects">Rows as objects</a></li></ul>
+  </aside>
+</div>
+<script src="../../assets/docs.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Handle errors and limits | excel-bridge docs</title>
+<meta name="description" content="Branch on error codes instead of messages, and set reader limits for files you did not make." />
+<link rel="canonical" href="https://kevinarce98.github.io/excel-bridge/guide/errors/" />
+<link rel="alternate" hreflang="en" href="https://kevinarce98.github.io/excel-bridge/guide/errors/" />
+<link rel="alternate" hreflang="es" href="https://kevinarce98.github.io/excel-bridge/es/guide/errors/" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="Handle errors and limits | excel-bridge docs" />
+<meta property="og:description" content="Branch on error codes instead of messages, and set reader limits for files you did not make." />
+<meta property="og:url" content="https://kevinarce98.github.io/excel-bridge/guide/errors/" />
+<meta name="theme-color" content="#0f172a" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231B2336'/%3E%3Crect x='5' y='6' width='22' height='6' rx='2' fill='%2322C55E'/%3E%3Crect x='5' y='15' width='9' height='4' rx='1.5' fill='%23334155'/%3E%3Crect x='18' y='15' width='9' height='4' rx='1.5' fill='%23334155'/%3E%3Crect x='5' y='22' width='9' height='4' rx='1.5' fill='%23334155'/%3E%3Crect x='18' y='22' width='9' height='4' rx='1.5' fill='%2322C55E' fill-opacity='0.5'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../../assets/docs.css" />
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+<header class="waybill">
+  <div class="waybill-in">
+    <a class="wordmark" href="../../" aria-label="excel-bridge"><svg class="mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><rect width="32" height="32" rx="7" fill="#1B2336"/><rect x="5" y="6" width="22" height="6" rx="2" fill="#22C55E"/><rect x="5" y="15" width="9" height="4" rx="1.5" fill="#334155"/><rect x="18" y="15" width="9" height="4" rx="1.5" fill="#334155"/><rect x="5" y="22" width="9" height="4" rx="1.5" fill="#334155"/><rect x="18" y="22" width="9" height="4" rx="1.5" fill="#22C55E" fill-opacity="0.5"/></svg><span><span class="w-excel">excel</span><span class="w-dash">-</span><span class="w-bridge">bridge</span></span></a>
+    <span class="field"><span class="field-caption">Docs</span><span class="field-value">2.x</span></span>
+    <nav class="top-links" aria-label="Site">
+      <a href="../../#pack">Try it</a>
+      <a href="https://github.com/KevinArce98/excel-bridge" rel="noopener">GitHub</a>
+      <a href="https://www.npmjs.com/package/excel-bridge" rel="noopener">npm</a>
+    </nav>
+    <div class="lang" role="group" aria-label="Language"><span class="lang-current" aria-current="true" lang="en">EN</span><a href="../../es/guide/errors/" hreflang="es" lang="es" aria-label="Español">ES</a></div>
+  </div>
+</header>
+<div class="shell">
+  <nav class="rail" aria-label="Docs">
+    <details class="rail-fold" open>
+      <summary>Contents</summary>
+      <section><p class="rail-group">Start</p><ul><li><a href="../../getting-started/">Getting started</a></li></ul></section>
+<section><p class="rail-group">Guide</p><ul><li><a href="../../guide/values/">Write values and formulas</a></li><li><a href="../../guide/styling/">Style cells</a></li><li><a href="../../guide/layout/">Lay out sheets</a></li><li><a href="../../guide/rules/">Add rules</a></li><li><a href="../../guide/reading/">Read a workbook</a></li><li><a href="../../guide/objects/">Rows as objects</a></li><li><a href="../../guide/workbook/">Edit a workbook</a></li><li><a href="../../guide/streaming/">Stream big exports</a></li><li><a href="../../guide/errors/" aria-current="page">Handle errors and limits</a></li></ul></section>
+<section><p class="rail-group">Reference</p><ul><li><a href="../../api/">API reference</a></li><li><a href="../../performance/">Performance and size</a></li><li><a href="../../limitations/">Limits and alternatives</a></li><li><a href="../../upgrading/">Upgrading</a></li><li><a href="../../security/">Security</a></li></ul></section>
+    </details>
+  </nav>
+  <main id="content" class="sheet">
+    <div class="sheet-rule" aria-hidden="true"></div>
+    <article class="prose">
+<h1 id="handle-errors-and-limits">Handle errors and limits</h1>
+<p>Every error the library raises on purpose is an <code>ExcelBridgeError</code>. It carries a <code>code</code>, so you can decide what to do without reading the message.</p>
+<figure class="code"><figcaption><span class="code-name">catch.ts</span><button type="button" class="copy" data-copy="Copy" data-copied="Copied">Copy</button></figcaption><pre tabindex="0"><code><span class="tk-k">import</span> { <span class="tk-t">ExcelReader</span>, <span class="tk-t">ExcelWriter</span>, isExcelBridgeError } <span class="tk-k">from</span> <span class="tk-s">'excel-bridge'</span>;
+
+<span class="tk-k">const</span> bytes = <span class="tk-k">new</span> <span class="tk-t">ExcelWriter</span>().createWorkbookBuffer([{ data: [['a<span class="tk-s">', 1], ['</span>b<span class="tk-s">', 2], ['</span>c', <span class="tk-n">3</span>]] }]);
+
+<span class="tk-k">try</span> {
+  <span class="tk-k">new</span> <span class="tk-t">ExcelReader</span>({ maxCells: <span class="tk-n">2</span> }).parseFromBuffer(bytes);
+} <span class="tk-k">catch</span> (error) {
+  <span class="tk-k">if</span> (isExcelBridgeError(error)) {
+    console.log(error.code, error.limit, error.message);
+  } <span class="tk-k">else</span> {
+    <span class="tk-k">throw</span> error;
+  }
+}</code></pre></figure>
+<h2 id="the-four-codes">The four codes<a class="anchor" href="#the-four-codes" aria-label="The four codes">#</a></h2>
+<div class="table-scroll" role="region" tabindex="0" aria-label="The four codes"><table><thead><tr><th scope="col">Code</th><th scope="col">Meaning</th><th scope="col">A server might answer</th></tr></thead><tbody>
+<tr><td data-label="Code"><code>INVALID_INPUT</code></td><td data-label="Meaning">You passed a value the library rejects: a <code>NaN</code> cell, a bad sheet name, a bad colour, a row beyond the grid. Fix the call or the data.</td><td data-label="A server might answer">500 if your code built the value, 422 if a user supplied it</td></tr>
+<tr><td data-label="Code"><code>INVALID_FILE</code></td><td data-label="Meaning">The bytes are not what was asked for: not a zip, no workbook part, XML that does not parse, a cell outside Excel&#39;s grid, or a column you required that the sheet lacks.</td><td data-label="A server might answer">400 or 422</td></tr>
+<tr><td data-label="Code"><code>LIMIT_EXCEEDED</code></td><td data-label="Meaning">A reader limit was hit, a default one included. <code>error.limit</code> names it.</td><td data-label="A server might answer">413</td></tr>
+<tr><td data-label="Code"><code>UNSUPPORTED</code></td><td data-label="Meaning">The environment lacks what the call needs, for example <code>downloadXlsx</code> without a <code>document</code>.</td><td data-label="A server might answer">500</td></tr>
+</tbody></table></div>
+<p>Excel&#39;s own format limits are <code>INVALID_INPUT</code> when you write, for example a row past 1,048,576 or text over 32,767 characters in a cell. When you read, a row or column outside the grid is <code>INVALID_FILE</code>. The reader does not check the length of cell text, so <code>Workbook</code> throws <code>INVALID_INPUT</code> when it saves such a cell. They are not <code>LIMIT_EXCEEDED</code>, which is for the reader limits below, so a server that answers 413 for <code>LIMIT_EXCEEDED</code> does not answer 413 for a corrupt file.</p>
+<p>New codes can be added in a minor release, so give a <code>switch</code> over <code>error.code</code> a <code>default</code>.</p>
+<aside class="callout callout-note"><p class="callout-name">Note</p><p>Use <code>isExcelBridgeError(error)</code> or <code>error.code</code>, not <code>instanceof</code>. The ESM and CommonJS builds of the package are separate copies of the class, so <code>instanceof</code> can be false across them.</p>
+</aside>
+<p>An error from <code>parseFromBuffer</code> keeps its message prefix, <code>Failed to parse Excel file:</code>, and the original error is on <code>cause</code>.</p>
+<h2 id="reader-limits">Reader limits<a class="anchor" href="#reader-limits" aria-label="Reader limits">#</a></h2>
+<p><code>ExcelReader</code>, <code>parseExcel</code>, <code>ExcelBridge.read</code> and <code>Workbook.fromBuffer</code> take the same options. Set them for any file you did not make.</p>
+<figure class="code"><figcaption><span class="code-name">limits.ts</span><button type="button" class="copy" data-copy="Copy" data-copied="Copied">Copy</button></figcaption><pre tabindex="0"><code><span class="tk-k">import</span> fs <span class="tk-k">from</span> <span class="tk-s">'node:fs'</span>;
+<span class="tk-k">import</span> { <span class="tk-t">ExcelReader</span> } <span class="tk-k">from</span> <span class="tk-s">'excel-bridge'</span>;
+
+<span class="tk-k">const</span> reader = <span class="tk-k">new</span> <span class="tk-t">ExcelReader</span>({
+  maxCells: <span class="tk-n">1_000_000</span>,
+  maxPartBytes: <span class="tk-n">64</span> * <span class="tk-n">1024</span> * <span class="tk-n">1024</span>,
+  maxTotalBytes: <span class="tk-n">128</span> * <span class="tk-n">1024</span> * <span class="tk-n">1024</span>,
+  maxSheets: <span class="tk-n">20</span>,
+});
+
+<span class="tk-k">const</span> workbook = reader.parseFromBuffer(fs.readFileSync('data.xlsx'));</code></pre></figure>
+<div class="table-scroll" role="region" tabindex="0" aria-label="Reader limits"><table><thead><tr><th scope="col">Option</th><th scope="col">Counts</th><th scope="col">Default</th></tr></thead><tbody>
+<tr><td data-label="Option"><code>maxCells</code></td><td data-label="Counts">Every cell the reader creates in the workbook, including the empty cells that pad short rows.</td><td data-label="Default">5,000,000</td></tr>
+<tr><td data-label="Option"><code>maxPartBytes</code></td><td data-label="Counts">The declared uncompressed size of any one part of the file. A worksheet is a part, so this is the sheet XML limit.</td><td data-label="Default">256 MiB</td></tr>
+<tr><td data-label="Option"><code>maxTotalBytes</code></td><td data-label="Counts">The sum of the declared sizes of every part that is inflated.</td><td data-label="Default">512 MiB</td></tr>
+<tr><td data-label="Option"><code>maxSheets</code></td><td data-label="Counts">The sheets listed in the workbook.</td><td data-label="Default">1,000</td></tr>
+</tbody></table></div>
+<p>Pass <code>Infinity</code> to turn a limit off. The size limits are checked from the file&#39;s directory before anything is inflated, so a file that declares 2 GiB for one part is refused without allocating it.</p>
+<h2 id="files-you-did-not-make">Files you did not make<a class="anchor" href="#files-you-did-not-make" aria-label="Files you did not make">#</a></h2>
+<aside class="callout callout-warning"><p class="callout-name">Warning</p><p>These limits do not make an untrusted file safe. A sheet of 4.5 million cells (205 MiB of XML) passes every default. Reading it took 3 to 5 s, and the process peaked at 2.1 to 2.5 GB of resident memory in repeated runs on Node 22 with its default heap: about 10 to 12 times the sheet XML. A zip header that understates a part&#39;s size can cut the part short, which the reader usually reports as an invalid file.</p>
+</aside>
+<p>Cap the upload size before you parse, set <code>maxCells</code> and <code>maxPartBytes</code> to what your product needs, and for public uploads parse in a worker or a separate process that can be restarted.</p>
+
+    </article>
+    <nav class="stubs" aria-label="Previous and next"><a class="stub stub-prev" href="../../guide/streaming/"><span class="field-caption">Previous</span><span class="stub-title">Stream big exports</span></a><a class="stub stub-next" href="../../api/"><span class="field-caption">Next</span><span class="stub-title">API reference</span></a></nav>
+    <p class="doc-foot"><a href="https://github.com/KevinArce98/excel-bridge/edit/main/docs-src/en/guide/errors.md" rel="noopener">Edit this page</a> · MIT licence · Microsoft Excel is a trademark of Microsoft; this project is not affiliated with Microsoft.</p>
+  </main>
+  <aside class="toc" aria-label="On this page">
+    <p class="field-caption">On this page</p>
+    <ul><li><a href="#the-four-codes">The four codes</a></li><li><a href="#reader-limits">Reader limits</a></li><li><a href="#files-you-did-not-make">Files you did not make</a></li></ul>
+  </aside>
+</div>
+<script src="../../assets/docs.js" defer></script>
+</body>
+</html>

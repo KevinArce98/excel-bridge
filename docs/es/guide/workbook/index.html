@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Edita un libro | excel-bridge docs</title>
+<meta name="description" content="Crea un libro con Workbook, o carga uno, cambia celdas, estilos y diseño, y guárdalo de nuevo." />
+<link rel="canonical" href="https://kevinarce98.github.io/excel-bridge/es/guide/workbook/" />
+<link rel="alternate" hreflang="en" href="https://kevinarce98.github.io/excel-bridge/guide/workbook/" />
+<link rel="alternate" hreflang="es" href="https://kevinarce98.github.io/excel-bridge/es/guide/workbook/" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="Edita un libro | excel-bridge docs" />
+<meta property="og:description" content="Crea un libro con Workbook, o carga uno, cambia celdas, estilos y diseño, y guárdalo de nuevo." />
+<meta property="og:url" content="https://kevinarce98.github.io/excel-bridge/es/guide/workbook/" />
+<meta name="theme-color" content="#0f172a" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231B2336'/%3E%3Crect x='5' y='6' width='22' height='6' rx='2' fill='%2322C55E'/%3E%3Crect x='5' y='15' width='9' height='4' rx='1.5' fill='%23334155'/%3E%3Crect x='18' y='15' width='9' height='4' rx='1.5' fill='%23334155'/%3E%3Crect x='5' y='22' width='9' height='4' rx='1.5' fill='%23334155'/%3E%3Crect x='18' y='22' width='9' height='4' rx='1.5' fill='%2322C55E' fill-opacity='0.5'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../../../assets/docs.css" />
+</head>
+<body>
+<a class="skip" href="#content">Saltar al contenido</a>
+<header class="waybill">
+  <div class="waybill-in">
+    <a class="wordmark" href="../../../" aria-label="excel-bridge"><svg class="mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><rect width="32" height="32" rx="7" fill="#1B2336"/><rect x="5" y="6" width="22" height="6" rx="2" fill="#22C55E"/><rect x="5" y="15" width="9" height="4" rx="1.5" fill="#334155"/><rect x="18" y="15" width="9" height="4" rx="1.5" fill="#334155"/><rect x="5" y="22" width="9" height="4" rx="1.5" fill="#334155"/><rect x="18" y="22" width="9" height="4" rx="1.5" fill="#22C55E" fill-opacity="0.5"/></svg><span><span class="w-excel">excel</span><span class="w-dash">-</span><span class="w-bridge">bridge</span></span></a>
+    <span class="field"><span class="field-caption">Docs</span><span class="field-value">2.x</span></span>
+    <nav class="top-links" aria-label="Sitio">
+      <a href="../../../#pack">Probar</a>
+      <a href="https://github.com/KevinArce98/excel-bridge" rel="noopener">GitHub</a>
+      <a href="https://www.npmjs.com/package/excel-bridge" rel="noopener">npm</a>
+    </nav>
+    <div class="lang" role="group" aria-label="Idioma"><a href="../../../guide/workbook/" hreflang="en" lang="en" aria-label="English">EN</a><span class="lang-current" aria-current="true" lang="es">ES</span></div>
+  </div>
+</header>
+<div class="shell">
+  <nav class="rail" aria-label="Docs">
+    <details class="rail-fold" open>
+      <summary>Contenido</summary>
+      <section><p class="rail-group">Inicio</p><ul><li><a href="../../../es/getting-started/">Primeros pasos</a></li></ul></section>
+<section><p class="rail-group">Guía</p><ul><li><a href="../../../es/guide/values/">Escribe valores y fórmulas</a></li><li><a href="../../../es/guide/styling/">Da estilo a las celdas</a></li><li><a href="../../../es/guide/layout/">Define el diseño de las hojas</a></li><li><a href="../../../es/guide/rules/">Agrega reglas</a></li><li><a href="../../../es/guide/reading/">Lee un libro</a></li><li><a href="../../../es/guide/objects/">Filas como objetos</a></li><li><a href="../../../es/guide/workbook/" aria-current="page">Edita un libro</a></li><li><a href="../../../es/guide/streaming/">Exporta archivos grandes con streaming</a></li><li><a href="../../../es/guide/errors/">Maneja errores y límites</a></li></ul></section>
+<section><p class="rail-group">Referencia</p><ul><li><a href="../../../es/api/">Referencia de la API</a></li><li><a href="../../../es/performance/">Rendimiento y tamaño</a></li><li><a href="../../../es/limitations/">Límites y alternativas</a></li><li><a href="../../../es/upgrading/">Actualización</a></li><li><a href="../../../es/security/">Seguridad</a></li></ul></section>
+    </details>
+  </nav>
+  <main id="content" class="sheet">
+    <div class="sheet-rule" aria-hidden="true"></div>
+    <article class="prose">
+<h1 id="edita-un-libro">Edita un libro</h1>
+<p><code>Workbook</code> crea un libro, o carga uno, lo edita y lo guarda de nuevo, sin reconstruir a mano los datos de las hojas. Reconstruye el archivo a partir de lo que modela la biblioteca, así que sirve para archivos que escribió esta biblioteca y para archivos simples de otras herramientas.</p>
+<figure class="code"><figcaption><span class="code-name">workbook.ts</span><button type="button" class="copy" data-copy="Copiar" data-copied="Copiado">Copiar</button></figcaption><pre tabindex="0"><code><span class="tk-k">import</span> fs <span class="tk-k">from</span> <span class="tk-s">'node:fs'</span>;
+<span class="tk-k">import</span> { <span class="tk-t">Workbook</span> } <span class="tk-k">from</span> <span class="tk-s">'excel-bridge'</span>;
+
+<span class="tk-k">const</span> wb = <span class="tk-t">Workbook</span>.create();
+wb.addSheet('<span class="tk-t">Sales</span>', [
+  ['<span class="tk-t">Product</span><span class="tk-s">', '</span><span class="tk-t">Price</span><span class="tk-s">', '</span><span class="tk-t">Qty</span>'],
+  ['<span class="tk-t">Laptop</span>', <span class="tk-n">999.99</span>, <span class="tk-n">5</span>],
+]);
+wb.setCellStyle('<span class="tk-t">Sales</span><span class="tk-s">', 0, 0, { bold: true, background: '</span>#<span class="tk-t">C4</span><span class="tk-s">', color: '</span>#<span class="tk-t">FFFFFF</span>' });
+wb.setFreezePane('<span class="tk-t">Sales</span>', { row: <span class="tk-n">1</span> });
+wb.setMetadata({ creator: <span class="tk-s">'My App'</span>, title: <span class="tk-s">'Sales Report'</span> });
+fs.writeFileSync('sales.xlsx', wb.toBuffer());
+
+<span class="tk-k">const</span> existing = <span class="tk-t">Workbook</span>.fromBuffer(fs.readFileSync('sales.xlsx'));
+existing.setCellValue('<span class="tk-t">Sales</span>', <span class="tk-n">1</span>, <span class="tk-n">1</span>, <span class="tk-n">899.99</span>);
+<span class="tk-k">const</span> blob = existing.toBlob();</code></pre></figure>
+<p>Carga con <code>Workbook.fromBuffer(buffer)</code>, o con <code>await Workbook.fromFile(file)</code> en el navegador. Ambos aceptan los mismos <a href="../errors/">límites del lector</a> que <code>ExcelReader</code>. Guarda con <code>toBuffer()</code> o <code>toBlob()</code>.</p>
+<h2 id="metodos">Métodos<a class="anchor" href="#metodos" aria-label="Métodos">#</a></h2>
+<p>Las filas y las columnas empiezan en cero, y las hojas se identifican por nombre.</p>
+<div class="table-scroll" role="region" tabindex="0" aria-label="Métodos"><table><thead><tr><th scope="col">Área</th><th scope="col">Métodos</th></tr></thead><tbody>
+<tr><td data-label="Área">Hojas</td><td data-label="Métodos"><code>addSheet</code>, <code>renameSheet</code>, <code>removeSheet</code>, <code>getSheetNames</code>, <code>getSheetData</code>, <code>getSheetState</code>, <code>setSheetState</code></td></tr>
+<tr><td data-label="Área">Celdas</td><td data-label="Métodos"><code>getCellValue</code>, <code>setCellValue</code>, <code>getCellStyle</code>, <code>setCellStyle</code></td></tr>
+<tr><td data-label="Área">Diseño</td><td data-label="Métodos"><code>setMergeCells</code>, <code>setFreezePane</code>, <code>setColumnWidths</code>, <code>setAutoWidth</code>, <code>setRowHeight</code>/<code>getRowHeight</code>, <code>setRowHidden</code>/<code>isRowHidden</code>, <code>setColumnHidden</code>/<code>isColumnHidden</code></td></tr>
+<tr><td data-label="Área">Reglas y vínculos</td><td data-label="Métodos"><code>addValidation</code>, <code>addConditionalFormat</code>, <code>setAutoFilter</code>, <code>getAutoFilter</code>, <code>removeAutoFilter</code>, <code>setHyperlink</code>, <code>getHyperlinks</code>, <code>removeHyperlink</code></td></tr>
+<tr><td data-label="Área">Documento</td><td data-label="Métodos"><code>getMetadata</code>, <code>setMetadata</code></td></tr>
+<tr><td data-label="Área">Salida</td><td data-label="Métodos"><code>toBuffer</code>, <code>toBlob</code></td></tr>
+</tbody></table></div>
+<h2 id="que-obtienes-de-un-archivo-cargado">Qué obtienes de un archivo cargado<a class="anchor" href="#que-obtienes-de-un-archivo-cargado" aria-label="Qué obtienes de un archivo cargado">#</a></h2>
+<p><code>getCellValue</code> y <code>getSheetData</code> devuelven los mismos valores que escribes. Una fórmula cargada vuelve como <code>{ formula, result? }</code> con el valor guardado en el archivo, y un error cargado como <code>{ error }</code>. El texto sigue siendo texto, incluso cuando empieza con <code>=</code>.</p>
+<aside class="callout callout-warning"><p class="callout-name">Aviso</p><p>El <code>result</code> de una fórmula es el valor que guardó el archivo. No cambia cuando editas las celdas que usa la fórmula, así que puede quedar desactualizado hasta que Excel recalcule al abrir. Asigna a la celda <code>{ formula }</code> sin <code>result</code> para descartarlo.</p>
+</aside>
+<p><code>getSheetData(name)</code> tiene huecos donde el archivo tiene filas en blanco: <code>length</code> es la última fila más uno, <code>for...of</code> produce <code>undefined</code> en un hueco y <code>JSON.stringify</code> escribe <code>null</code>. Una hoja cargada cuyo nombre Excel rechazaría, por ejemplo uno de más de 31 caracteres, se carga, pero guardar lanza un error hasta que le des un nombre válido con <code>renameSheet</code>.</p>
+<h2 id="que-conserva-un-ciclo-de-ida-y-vuelta">Qué conserva un ciclo de ida y vuelta<a class="anchor" href="#que-conserva-un-ciclo-de-ida-y-vuelta" aria-label="Qué conserva un ciclo de ida y vuelta">#</a></h2>
+<p><code>Workbook.fromBuffer</code> y <code>fromFile</code> restauran:</p>
+<ul>
+<li>los datos en su fila y columna, los estilos, las celdas combinadas, los paneles inmovilizados y los anchos de columna</li>
+<li>los bordes por lado, las alturas de fila, las filas ocultas y las columnas ocultas</li>
+<li>las validaciones de datos, las reglas de formato condicional, los rangos de autofiltro, los hipervínculos y la visibilidad de las hojas</li>
+<li>las fórmulas con sus resultados guardados y los siete valores de error clásicos</li>
+</ul>
+<h2 id="que-cambia-o-descarta">Qué cambia o descarta<a class="anchor" href="#que-cambia-o-descarta" aria-label="Qué cambia o descarta">#</a></h2>
+<ul>
+<li>Imágenes, gráficos, comentarios, tablas de Excel, tablas dinámicas, nombres definidos, configuración de impresión, temas y macros.</li>
+<li>Los criterios de filtro y el estado de ordenación definidos en Excel. Las filas ocultas por un filtro siguen ocultas, y <code>removeAutoFilter</code> muestra las filas bajo el rango eliminado.</li>
+<li>Los vínculos que el escritor no acepta (todo excepto <code>http:</code>, <code>https:</code>, <code>mailto:</code> o una ubicación dentro del libro) y las validaciones de un tipo que el lector no conoce. <code>ExcelReader</code> sigue devolviendo los vínculos.</li>
+<li>Los mensajes de entrada y de error de la validación, el estilo de error (detener, advertencia, información) y los interruptores de &quot;mostrar mensaje&quot;. Toda regla guardada se escribe para mostrar ambos mensajes y para rechazar las entradas incorrectas.</li>
+<li>El texto de error distinto de los siete errores clásicos, que se guarda como texto.</li>
+<li>Los formatos integrados de fecha y hora que dependen de la configuración regional, que se vuelven a escribir como códigos explícitos en-US. La fecha corta integrada (id 14) sigue siendo la fecha corta.</li>
+<li>Los colores de tema e indexados, y los formatos de número integrados como <code>0%</code>. Solo se leen los colores RGB, los formatos de número personalizados y los formatos integrados de fecha y hora, y los colores de borde de tema o indexados pasan a ser negros.</li>
+<li>Los bordes diagonales, el texto enriquecido (se aplana) y los paneles divididos (se descartan).</li>
+<li>Las reglas de formato condicional distintas de <code>cellIs</code>, <code>expression</code> y <code>colorScale</code>.</li>
+<li>Los valores predeterminados de la hoja (<code>&lt;sheetFormatPr&gt;</code>: altura de fila y ancho de columna predeterminados, niveles de esquema). Un grupo de esquema contraído sigue oculto, pero pierde sus botones.</li>
+<li>Los seguidores de una fórmula compartida, que se leen sin su fórmula.</li>
+<li>Una fórmula almacenada cuyo texto empieza con <code>=</code>. Excel no escribe una, pero un archivo hecho por 1.x a partir de una cadena como <code>=== Summary ===</code> la tiene. <code>Workbook</code> la guarda sin ese primer <code>=</code>, y una fórmula que es solo <code>=</code> hace que <code>toBuffer</code> lance un error.</li>
+</ul>
+<p>Una columna guardada con ancho 0 sigue teniendo ancho 0 cuando la muestras con <code>setColumnHidden</code>. Define también su ancho.</p>
+<aside class="callout callout-limit"><p class="callout-name">Límite</p><p>Si necesitas editar un archivo y conservar todo lo que no tocaste, como una plantilla con gráficos o macros, <code>Workbook</code> no es la herramienta adecuada: reconstruye el archivo a partir de su modelo. <code>openXlsx</code> y <code>saveXlsx</code> de hucre conservan las partes que no modelan.</p>
+</aside>
+
+    </article>
+    <nav class="stubs" aria-label="Anterior y siguiente"><a class="stub stub-prev" href="../../../es/guide/objects/"><span class="field-caption">Anterior</span><span class="stub-title">Filas como objetos</span></a><a class="stub stub-next" href="../../../es/guide/streaming/"><span class="field-caption">Siguiente</span><span class="stub-title">Exporta archivos grandes con streaming</span></a></nav>
+    <p class="doc-foot"><a href="https://github.com/KevinArce98/excel-bridge/edit/main/docs-src/es/guide/workbook.md" rel="noopener">Editar esta página</a> · Licencia MIT · Microsoft Excel es una marca de Microsoft; este proyecto no está afiliado a Microsoft.</p>
+  </main>
+  <aside class="toc" aria-label="En esta página">
+    <p class="field-caption">En esta página</p>
+    <ul><li><a href="#metodos">Métodos</a></li><li><a href="#que-obtienes-de-un-archivo-cargado">Qué obtienes de un archivo cargado</a></li><li><a href="#que-conserva-un-ciclo-de-ida-y-vuelta">Qué conserva un ciclo de ida y vuelta</a></li><li><a href="#que-cambia-o-descarta">Qué cambia o descarta</a></li></ul>
+  </aside>
+</div>
+<script src="../../../assets/docs.js" defer></script>
+</body>
+</html>

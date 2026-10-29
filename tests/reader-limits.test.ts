@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { strToU8, unzipSync, zipSync } from 'fflate';
 import { ExcelBridge, ExcelReader } from '../src';
-import { MAX_PLACEHOLDER_CELLS } from '../src/reader';
+import { DEFAULT_READER_LIMITS } from '../src/reader';
 import { REL_NS, SPREADSHEET_NS, buildXlsx } from './helpers/xlsx';
 
 const corruptEntry = (zip: Uint8Array, entryName: string): Uint8Array => {
@@ -43,10 +43,11 @@ describe('reader grid limits', () => {
   it('reads the last cell of the grid', () => {
     const xlsx = buildXlsx(singleCellSheet('XFD1048576', 1048576));
     const [sheet] = ExcelBridge.read(xlsx).sheets;
-    expect(sheet.data).toHaveLength(1);
-    expect(sheet.data[0]).toHaveLength(16384);
-    expect(sheet.data[0][16383].value).toBe(1);
-    expect(sheet.data[0][16383].coordinate).toBe('XFD1048576');
+    expect(sheet.data).toHaveLength(1048576);
+    expect(Object.keys(sheet.data)).toEqual(['1048575']);
+    expect(sheet.data[1048575]).toHaveLength(16384);
+    expect(sheet.data[1048575][16383].value).toBe(1);
+    expect(sheet.data[1048575][16383].coordinate).toBe('XFD1048576');
   });
 
   it('clamps a huge <col> range to the grid', () => {
@@ -83,9 +84,9 @@ describe('reader placeholder budget', () => {
   };
 
   it('rejects sheets that pad more empty cells than the budget', () => {
-    const rows = Math.ceil(MAX_PLACEHOLDER_CELLS / 16383) + 1;
+    const rows = Math.ceil(DEFAULT_READER_LIMITS.maxCells / 16383) + 1;
     const xlsx = buildXlsx(wideSparseRows(rows));
-    expect(() => ExcelBridge.read(xlsx)).toThrow(/Workbook pads more than \d+ empty cells/);
+    expect(() => ExcelBridge.read(xlsx)).toThrow(/Workbook has at least \d+ cells/);
   });
 
   it('accepts sheets under the budget', () => {

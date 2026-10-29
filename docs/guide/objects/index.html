@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Rows as objects | excel-bridge docs</title>
+<meta name="description" content="Turn an array of objects into a sheet, and a sheet back into typed objects, with a header row or an explicit column list." />
+<link rel="canonical" href="https://kevinarce98.github.io/excel-bridge/guide/objects/" />
+<link rel="alternate" hreflang="en" href="https://kevinarce98.github.io/excel-bridge/guide/objects/" />
+<link rel="alternate" hreflang="es" href="https://kevinarce98.github.io/excel-bridge/es/guide/objects/" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="Rows as objects | excel-bridge docs" />
+<meta property="og:description" content="Turn an array of objects into a sheet, and a sheet back into typed objects, with a header row or an explicit column list." />
+<meta property="og:url" content="https://kevinarce98.github.io/excel-bridge/guide/objects/" />
+<meta name="theme-color" content="#0f172a" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231B2336'/%3E%3Crect x='5' y='6' width='22' height='6' rx='2' fill='%2322C55E'/%3E%3Crect x='5' y='15' width='9' height='4' rx='1.5' fill='%23334155'/%3E%3Crect x='18' y='15' width='9' height='4' rx='1.5' fill='%23334155'/%3E%3Crect x='5' y='22' width='9' height='4' rx='1.5' fill='%23334155'/%3E%3Crect x='18' y='22' width='9' height='4' rx='1.5' fill='%2322C55E' fill-opacity='0.5'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../../assets/docs.css" />
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+<header class="waybill">
+  <div class="waybill-in">
+    <a class="wordmark" href="../../" aria-label="excel-bridge"><svg class="mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><rect width="32" height="32" rx="7" fill="#1B2336"/><rect x="5" y="6" width="22" height="6" rx="2" fill="#22C55E"/><rect x="5" y="15" width="9" height="4" rx="1.5" fill="#334155"/><rect x="18" y="15" width="9" height="4" rx="1.5" fill="#334155"/><rect x="5" y="22" width="9" height="4" rx="1.5" fill="#334155"/><rect x="18" y="22" width="9" height="4" rx="1.5" fill="#22C55E" fill-opacity="0.5"/></svg><span><span class="w-excel">excel</span><span class="w-dash">-</span><span class="w-bridge">bridge</span></span></a>
+    <span class="field"><span class="field-caption">Docs</span><span class="field-value">2.x</span></span>
+    <nav class="top-links" aria-label="Site">
+      <a href="../../#pack">Try it</a>
+      <a href="https://github.com/KevinArce98/excel-bridge" rel="noopener">GitHub</a>
+      <a href="https://www.npmjs.com/package/excel-bridge" rel="noopener">npm</a>
+    </nav>
+    <div class="lang" role="group" aria-label="Language"><span class="lang-current" aria-current="true" lang="en">EN</span><a href="../../es/guide/objects/" hreflang="es" lang="es" aria-label="Español">ES</a></div>
+  </div>
+</header>
+<div class="shell">
+  <nav class="rail" aria-label="Docs">
+    <details class="rail-fold" open>
+      <summary>Contents</summary>
+      <section><p class="rail-group">Start</p><ul><li><a href="../../getting-started/">Getting started</a></li></ul></section>
+<section><p class="rail-group">Guide</p><ul><li><a href="../../guide/values/">Write values and formulas</a></li><li><a href="../../guide/styling/">Style cells</a></li><li><a href="../../guide/layout/">Lay out sheets</a></li><li><a href="../../guide/rules/">Add rules</a></li><li><a href="../../guide/reading/">Read a workbook</a></li><li><a href="../../guide/objects/" aria-current="page">Rows as objects</a></li><li><a href="../../guide/workbook/">Edit a workbook</a></li><li><a href="../../guide/streaming/">Stream big exports</a></li><li><a href="../../guide/errors/">Handle errors and limits</a></li></ul></section>
+<section><p class="rail-group">Reference</p><ul><li><a href="../../api/">API reference</a></li><li><a href="../../performance/">Performance and size</a></li><li><a href="../../limitations/">Limits and alternatives</a></li><li><a href="../../upgrading/">Upgrading</a></li><li><a href="../../security/">Security</a></li></ul></section>
+    </details>
+  </nav>
+  <main id="content" class="sheet">
+    <div class="sheet-rule" aria-hidden="true"></div>
+    <article class="prose">
+<h1 id="rows-as-objects">Rows as objects</h1>
+<p>Most exports start as an array of objects and most imports end as one. Two functions cover each direction without hand-building cell arrays.</p>
+<h2 id="write-objects">Write objects<a class="anchor" href="#write-objects" aria-label="Write objects">#</a></h2>
+<p><code>objectsToSheet(rows, columns, options?)</code> returns an <code>ExcelData</code> you can hand to <code>ExcelWriter</code>. Each column names the property to read and, optionally, the header text, width, style and number format.</p>
+<figure class="code"><figcaption><span class="code-name">objects-to-sheet.ts</span><button type="button" class="copy" data-copy="Copy" data-copied="Copied">Copy</button></figcaption><pre tabindex="0"><code><span class="tk-k">import</span> { <span class="tk-t">ExcelWriter</span>, objectsToSheet } <span class="tk-k">from</span> <span class="tk-s">'excel-bridge'</span>;
+
+<span class="tk-k">interface</span> <span class="tk-t">Order</span> {
+  id: number;
+  customer: string;
+  total: number;
+  placed: <span class="tk-t">Date</span>;
+}
+
+<span class="tk-k">const</span> orders: <span class="tk-t">Order</span>[] = [
+  { id: <span class="tk-n">1</span>, customer: <span class="tk-s">'Ana'</span>, total: <span class="tk-n">120.5</span>, placed: <span class="tk-k">new</span> <span class="tk-t">Date</span>(<span class="tk-n">2024</span>, <span class="tk-n">0</span>, <span class="tk-n">15</span>) },
+  { id: <span class="tk-n">2</span>, customer: <span class="tk-s">'Ben'</span>, total: <span class="tk-n">89</span>, placed: <span class="tk-k">new</span> <span class="tk-t">Date</span>(<span class="tk-n">2024</span>, <span class="tk-n">0</span>, <span class="tk-n">16</span>) },
+];
+
+<span class="tk-k">const</span> sheet = objectsToSheet&lt;<span class="tk-t">Order</span>&gt;(
+  orders,
+  [
+    { key: <span class="tk-s">'id'</span>, header: <span class="tk-s">'Order'</span>, width: <span class="tk-n">10</span> },
+    { key: <span class="tk-s">'customer'</span>, header: <span class="tk-s">'Customer'</span>, width: <span class="tk-n">24</span> },
+    { key: <span class="tk-s">'total'</span>, header: <span class="tk-s">'Total'</span>, width: <span class="tk-n">14</span>, numberFormat: <span class="tk-s">'#,##0.00'</span> },
+    { key: <span class="tk-s">'placed'</span>, header: <span class="tk-s">'Placed'</span>, width: <span class="tk-n">14</span>, numberFormat: <span class="tk-s">'yyyy-mm-dd'</span> },
+  ],
+  {
+    name: <span class="tk-s">'Orders'</span>,
+    freezePane: { row: <span class="tk-n">1</span> },
+    headerStyle: { bold: <span class="tk-k">true</span>, background: <span class="tk-s">'#D9E1F2'</span> },
+  }
+);
+
+<span class="tk-k">const</span> bytes = <span class="tk-k">new</span> <span class="tk-t">ExcelWriter</span>().createWorkbookBuffer([sheet]);</code></pre></figure>
+<ul>
+<li>The header row is always written, even when there are no rows.</li>
+<li>A column&#39;s <code>style</code> and <code>numberFormat</code> apply to its body cells, not to the header. Use <code>headerStyle</code> for the header.</li>
+<li><code>undefined</code> and <code>null</code> give an empty cell, and properties that are not listed are ignored.</li>
+<li>Column widths replace <code>options.columnWidths</code>, so a column without a <code>width</code> gets Excel&#39;s default width and <code>autoWidth</code> has no effect on that sheet.</li>
+<li><code>rows</code> can be any iterable. It is read once.</li>
+</ul>
+<h2 id="read-objects">Read objects<a class="anchor" href="#read-objects" aria-label="Read objects">#</a></h2>
+<p><code>sheetToObjects(sheet, options?)</code> reads the header row, then returns one object per data row.</p>
+<figure class="code"><figcaption><span class="code-name">sheet-to-objects.ts</span><button type="button" class="copy" data-copy="Copy" data-copied="Copied">Copy</button></figcaption><pre tabindex="0"><code><span class="tk-k">import</span> fs <span class="tk-k">from</span> <span class="tk-s">'node:fs'</span>;
+<span class="tk-k">import</span> { <span class="tk-t">ExcelReader</span>, sheetToObjects } <span class="tk-k">from</span> <span class="tk-s">'excel-bridge'</span>;
+
+<span class="tk-k">const</span> workbook = <span class="tk-k">new</span> <span class="tk-t">ExcelReader</span>().parseFromBuffer(fs.readFileSync('data.xlsx'));
+
+<span class="tk-k">const</span> rows = sheetToObjects(workbook.sheets[<span class="tk-n">0</span>]);
+
+<span class="tk-k">interface</span> <span class="tk-t">Line</span> {
+  name: string;
+  qty: number | <span class="tk-k">null</span>;
+}
+
+<span class="tk-k">const</span> typed = sheetToObjects&lt;<span class="tk-t">Line</span>&gt;(workbook.sheets[<span class="tk-n">0</span>], {
+  columns: [
+    { key: <span class="tk-s">'name'</span>, header: <span class="tk-s">'Name'</span> },
+    { key: <span class="tk-s">'qty'</span>, header: <span class="tk-s">'Qty'</span>, parse: value =&gt; (<span class="tk-k">typeof</span> value === <span class="tk-s">'number'</span> ? value : <span class="tk-k">null</span>) },
+  ],
+});</code></pre></figure>
+<div class="table-scroll" role="region" tabindex="0" aria-label="Read objects"><table><thead><tr><th scope="col">Case</th><th scope="col">Result</th></tr></thead><tbody>
+<tr><td data-label="Case">No <code>columns</code></td><td data-label="Result">Keys are the header texts, in sheet order.</td></tr>
+<tr><td data-label="Case"><code>columns</code> given</td><td data-label="Result">Only the listed columns, in the listed order, matched by <code>header</code> (default: the key). <code>column</code> picks a zero-based column instead.</td></tr>
+<tr><td data-label="Case">Repeated header</td><td data-label="Result"><code>a</code>, <code>a_1</code>, <code>a_2</code>.</td></tr>
+<tr><td data-label="Case">Blank header cell</td><td data-label="Result">Skipped.</td></tr>
+<tr><td data-label="Case">Empty cell</td><td data-label="Result"><code>null</code>, so every object has the same keys.</td></tr>
+<tr><td data-label="Case">Date-formatted cell</td><td data-label="Result"><code>Date</code>.</td></tr>
+<tr><td data-label="Case">Error cell</td><td data-label="Result"><code>{ error: '#N/A' }</code> for the seven classic errors, otherwise the text.</td></tr>
+<tr><td data-label="Case">Formula cell</td><td data-label="Result">Its cached value, or <code>null</code> if it has none.</td></tr>
+<tr><td data-label="Case">Row with no value in any listed column</td><td data-label="Result">Skipped.</td></tr>
+<tr><td data-label="Case">Listed column missing from the header</td><td data-label="Result">Throws <code>INVALID_FILE</code>, unless the column has <code>optional: true</code>.</td></tr>
+</tbody></table></div>
+<p><code>headerRow</code> is the zero-based index of the header row and defaults to <code>0</code>. Pass <code>headerRow: null</code> when the sheet has no header, and give each column a <code>column</code> index.</p>
+<aside class="callout callout-note"><p class="callout-name">Note</p><p>This reads values only. It does not validate them. For schema-validated imports with error lists, read-excel-file is built for that.</p>
+</aside>
+<h2 id="stream-objects">Stream objects<a class="anchor" href="#stream-objects" aria-label="Stream objects">#</a></h2>
+<p><code>objectsToStreamingSheet(rows, columns, options?)</code> does the same for the <a href="../streaming/">streaming writer</a>, from a sync or async iterable, without holding the rows in memory.</p>
+<figure class="code"><figcaption><span class="code-name">objects-to-streaming-sheet.ts</span><button type="button" class="copy" data-copy="Copy" data-copied="Copied">Copy</button></figcaption><pre tabindex="0"><code><span class="tk-k">import</span> { createExcelWorkbookStream, objectsToStreamingSheet, streamToBuffer } <span class="tk-k">from</span> <span class="tk-s">'excel-bridge'</span>;
+
+<span class="tk-k">async</span> <span class="tk-k">function</span>* orders() {
+  <span class="tk-k">for</span> (<span class="tk-k">let</span> id = <span class="tk-n">1</span>; id &lt;= <span class="tk-n">5</span>; id++) <span class="tk-k">yield</span> { id, customer: <span class="tk-s">`Customer ${id}`</span>, total: id * <span class="tk-n">10</span> };
+}
+
+<span class="tk-k">const</span> bytes = <span class="tk-k">await</span> streamToBuffer(
+  createExcelWorkbookStream([
+    objectsToStreamingSheet(
+      orders(),
+      [
+        { key: <span class="tk-s">'id'</span>, header: <span class="tk-s">'Order'</span>, width: <span class="tk-n">10</span> },
+        { key: <span class="tk-s">'customer'</span>, header: <span class="tk-s">'Customer'</span>, width: <span class="tk-n">24</span> },
+        { key: <span class="tk-s">'total'</span>, header: <span class="tk-s">'Total'</span>, width: <span class="tk-n">14</span> },
+      ],
+      { name: <span class="tk-s">'Orders'</span>, freezePane: { row: <span class="tk-n">1</span> }, headerStyle: { bold: <span class="tk-k">true</span> } }
+    ),
+  ])
+);</code></pre></figure>
+<aside class="callout callout-limit"><p class="callout-name">Limit</p><p>Streaming columns take no <code>style</code> or <code>numberFormat</code>: the stream reads styles from a record fixed before the first row, so a body style would need one entry per row. Style the header with <code>headerStyle</code>.</p>
+</aside>
+
+    </article>
+    <nav class="stubs" aria-label="Previous and next"><a class="stub stub-prev" href="../../guide/reading/"><span class="field-caption">Previous</span><span class="stub-title">Read a workbook</span></a><a class="stub stub-next" href="../../guide/workbook/"><span class="field-caption">Next</span><span class="stub-title">Edit a workbook</span></a></nav>
+    <p class="doc-foot"><a href="https://github.com/KevinArce98/excel-bridge/edit/main/docs-src/en/guide/objects.md" rel="noopener">Edit this page</a> · MIT licence · Microsoft Excel is a trademark of Microsoft; this project is not affiliated with Microsoft.</p>
+  </main>
+  <aside class="toc" aria-label="On this page">
+    <p class="field-caption">On this page</p>
+    <ul><li><a href="#write-objects">Write objects</a></li><li><a href="#read-objects">Read objects</a></li><li><a href="#stream-objects">Stream objects</a></li></ul>
+  </aside>
+</div>
+<script src="../../assets/docs.js" defer></script>
+</body>
+</html>

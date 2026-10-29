@@ -17,8 +17,8 @@ const kitchenSink = (): ExcelData[] => [
   {
     data: [
       ['Product', 'Price', 'Qty', 'Total', 'Due'],
-      ['Laptop', 999.99, 5, '=B2*C2', new Date(2024, 0, 15)],
-      ['Mouse', 29.99, 20, '=B3*C3', new Date(2024, 1, 20, 9, 30)],
+      ['Laptop', 999.99, 5, { formula: 'B2*C2' }, new Date(2024, 0, 15)],
+      ['Mouse', 29.99, 20, { formula: 'B3*C3' }, new Date(2024, 1, 20, 9, 30)],
       [' padded ', true, null, 'x & <y> "z"', undefined],
     ],
     styles: {

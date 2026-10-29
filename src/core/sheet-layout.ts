@@ -1,3 +1,4 @@
+import { invalidInput } from './errors';
 import { EXCEL_LIMITS } from './date-utils';
 import { MAX_ROW_HEIGHT, isRowHeight } from './row-height';
 import { rowIndexes } from './rows';
@@ -11,7 +12,7 @@ export interface PreparedLayout {
 
 const checkIndex = (kind: string, index: number, limit: number): void => {
   if (!Number.isInteger(index) || index < 0 || index >= limit) {
-    throw new Error(`${kind} index ${index} must be a whole number from 0 to ${limit - 1}`);
+    throw invalidInput(`${kind} index ${index} must be a whole number from 0 to ${limit - 1}`);
   }
 };
 
@@ -27,7 +28,7 @@ export const prepareLayout = ({
   heightRows.forEach(row => {
     checkIndex('Row', row, EXCEL_LIMITS.MAX_ROWS);
     if (!isRowHeight(rowHeights[row])) {
-      throw new Error(
+      throw invalidInput(
         `Row ${row + 1} height ${rowHeights[row]} must be above 0 and at most ${MAX_ROW_HEIGHT} points`
       );
     }

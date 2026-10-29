@@ -753,7 +753,7 @@
                 <tr><td class="no">4</td><th scope="row"><b>Streaming writer</b><span>Million-row exports from a sync or async iterable, never held whole in memory.</span></th><td class="qty" data-label="Qty">1M rows</td><td class="kb" data-label="Net weight">12.3&nbsp;KB</td></tr>
                 <tr><td class="no">5</td><th scope="row"><b><code>Workbook</code> API</b><span>Load a workbook this library wrote, edit cells, styles, merges, freeze panes, filters and links, then save it back. Content it does not model is dropped.</span></th><td class="qty" data-label="Qty">1 class</td><td class="kb" data-label="Net weight">41.0&nbsp;KB</td></tr>
                 <tr><td class="no">6</td><th scope="row"><b>TypeScript types</b><span>IntelliSense for every export, in both ESM and CJS builds.</span></th><td class="qty" data-label="Qty">all exports</td><td class="kb" data-label="Net weight">0&nbsp;KB at&nbsp;runtime</td></tr>
-                <tr><td class="no">7</td><th scope="row"><b>Signed releases</b><span>Every version is published to npm with build provenance.</span></th><td class="qty" data-label="Qty">every release</td><td class="kb" data-label="Net weight">—</td></tr>
+                <tr><td class="no">7</td><th scope="row"><b>Signed releases</b><span>Releases from 1.2.0 on are published to npm with build provenance.</span></th><td class="qty" data-label="Qty">since 1.2.0</td><td class="kb" data-label="Net weight">—</td></tr>
             </tbody>
           </table>
         </div>
@@ -1024,9 +1024,9 @@
     const data = [COLS.slice()];
     rows.forEach((r, i) => {
       const sr = i + 2;
-      data.push([r[0], r[1], r[2], r[3], `=SUM(B${sr}:D${sr})`]);
+      data.push([r[0], r[1], r[2], r[3], { formula: `SUM(B${sr}:D${sr})` }]);
     });
-    data.push(["Total", "=SUM(B2:B5)", "=SUM(C2:C5)", "=SUM(D2:D5)", "=SUM(E2:E5)"]);
+    data.push(["Total", { formula: "SUM(B2:B5)" }, { formula: "SUM(C2:C5)" }, { formula: "SUM(D2:D5)" }, { formula: "SUM(E2:E5)" }]);
     data.push(CREDIT.slice());
 
     const styles = {};
@@ -1108,7 +1108,7 @@
     setTimeout(() => URL.revokeObjectURL(url), 4000);
 
     const kb = (blob.size / 1000).toFixed(1);
-    const formulas = sheet.data.flat().filter((v) => typeof v === "string" && v.startsWith("=")).length;
+    const formulas = sheet.data.flat().filter((v) => v !== null && typeof v === "object" && typeof v.formula === "string").length;
     printLabel({ kb, rowsCount: sheet.data.length, colsCount: COLS.length, formulas });
     setStatus(`label printed · ${FILE_NAME} · ${kb} KB`, "ready");
     $("#roundtripBtn").disabled = false;
@@ -1292,8 +1292,8 @@ const writer = new ExcelWriter({ creator: 'My App' });
 const blob = writer.createWorkbook([{
   data: [
     ['Product', 'Q1', 'Q2', 'Q3', 'Total'],
-    ['Laptops', 45000, 52000, 48000, '=SUM(B2:D2)'],
-    ['Monitors', 18000, 21000, 19500, '=SUM(B3:D3)'],
+    ['Laptops', 45000, 52000, 48000, { formula: 'SUM(B2:D2)' }],
+    ['Monitors', 18000, 21000, 19500, { formula: 'SUM(B3:D3)' }],
     ['Made with', 'excel-bridge'],
   ],
   styles: {
@@ -1326,13 +1326,13 @@ const workbook = await reader.parseFromFile(file);
 // Node.js — from a Buffer (synchronous)
 // const workbook = reader.parseFromBuffer(fs.readFileSync('data.xlsx'));
 
-for (const row of workbook.sheets[0].data) {
-  for (const cell of row) {
+workbook.sheets[0].data.forEach(row => {
+  row.forEach(cell => {
     console.log(cell.coordinate, cell.type, cell.value, cell.formula ?? '');
     // "B2" "number" 45000 ""
     // "E2" "empty"  null  "SUM(B2:D2)"
-  }
-}` },
+  });
+});` },
     { id: "workbook", file: "edit.ts", code:
 `import { Workbook } from 'excel-bridge';
 
