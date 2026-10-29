@@ -35,6 +35,16 @@ const textFilesUnder = path => {
 };
 
 const problems = [];
+const version = JSON.parse(readFileSync('package.json', 'utf8')).version;
+const isPrerelease = version.includes('-');
+const bannerFileHasMarker = BANNER_FILES.some(file => readFileSync(file, 'utf8').includes(MARKER));
+
+if (channel === 'next' && !isPrerelease && !bannerFileHasMarker) {
+  console.log(
+    `Release channel "next" is at the stable version ${version}. No prerelease banner is needed yet.`
+  );
+  process.exit(0);
+}
 
 if (channel === 'next') {
   for (const file of BANNER_FILES) {
